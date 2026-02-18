@@ -1,0 +1,5 @@
+witan
+witan-darwin-*
+witan-linux-*
+witan-windows-*
+dist/

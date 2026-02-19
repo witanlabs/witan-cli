@@ -38,7 +38,7 @@ func (c *Client) UploadFile(filePath string) (*FileResponse, error) {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		req.Header.Set("Content-Type", contentType)
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
@@ -46,7 +46,7 @@ func (c *Client) UploadFile(filePath string) (*FileResponse, error) {
 	}
 
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result FileResponse
@@ -69,7 +69,7 @@ func (c *Client) UploadFileVersion(fileID, filePath string) (*FileResponse, erro
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		req.Header.Set("Content-Type", contentType)
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *Client) UploadFileVersion(fileID, filePath string) (*FileResponse, erro
 	}
 
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result FileResponse
@@ -246,14 +246,14 @@ func (c *Client) FilesLint(fileId, revisionId string, params url.Values) (*LintR
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result LintResponse
@@ -281,14 +281,14 @@ func (c *Client) FilesCalc(fileId, revisionId string, params url.Values) (*CalcR
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result CalcResponse
@@ -319,14 +319,14 @@ func (c *Client) FilesEdit(fileId, revisionId string, cells []EditCell) (*EditRe
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result EditResponse
@@ -353,14 +353,14 @@ func (c *Client) DownloadFileContent(fileId, revisionId string) ([]byte, error) 
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 	return raw.Body, nil
 }
@@ -383,14 +383,14 @@ func (c *Client) FilesRender(fileId, revisionId string, params map[string]string
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, "", err
 	}
 	if raw.StatusCode != 200 {
-		return nil, "", parseAPIError(raw.StatusCode, raw.Body)
+		return nil, "", parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 	return raw.Body, raw.ContentType, nil
 }

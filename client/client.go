@@ -47,6 +47,7 @@ type Client struct {
 type rawResponse struct {
 	StatusCode  int
 	ContentType string
+	RetryAfter  string
 	Body        []byte
 }
 
@@ -121,6 +122,7 @@ func (c *Client) doWithRetry(makeRequest func() (*http.Request, error)) (*rawRes
 		return &rawResponse{
 			StatusCode:  resp.StatusCode,
 			ContentType: resp.Header.Get("Content-Type"),
+			RetryAfter:  resp.Header.Get("Retry-After"),
 			Body:        body,
 		}, nil
 	}
@@ -244,7 +246,7 @@ func (c *Client) Render(filePath string, params map[string]string) ([]byte, stri
 			return os.Open(filePath)
 		}
 		req.Header.Set("Content-Type", detectContentType(filePath))
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
@@ -252,7 +254,7 @@ func (c *Client) Render(filePath string, params map[string]string) ([]byte, stri
 	}
 
 	if raw.StatusCode != 200 {
-		return nil, "", parseAPIError(raw.StatusCode, raw.Body)
+		return nil, "", parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 	return raw.Body, raw.ContentType, nil
 }
@@ -281,14 +283,14 @@ func (c *Client) Lint(filePath string, params url.Values) (*LintResponse, error)
 			return os.Open(filePath)
 		}
 		req.Header.Set("Content-Type", detectContentType(filePath))
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result LintResponse
@@ -322,14 +324,14 @@ func (c *Client) Calc(filePath string, params url.Values) (*CalcResponse, error)
 			return os.Open(filePath)
 		}
 		req.Header.Set("Content-Type", detectContentType(filePath))
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result CalcResponse
@@ -352,14 +354,14 @@ func (c *Client) Edit(filePath string, cells []EditCell) (*EditResponse, error) 
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		req.Header.Set("Content-Type", contentType)
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+		setAuthorization(req, c.APIKey)
 		return req, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body)
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
 	var result EditResponse
@@ -414,10 +416,11 @@ type APIError struct {
 	StatusCode int
 	Code       string
 	Message    string
+	RetryAfter string
 }
 
 func (e *APIError) Error() string {
-	if friendly := friendlyErrorMessage(e.Code, e.Message); friendly != "" {
+	if friendly := friendlyErrorMessage(e.StatusCode, e.Code, e.Message, e.RetryAfter); friendly != "" {
 		return friendly
 	}
 	if e.Code != "" {
@@ -427,7 +430,14 @@ func (e *APIError) Error() string {
 }
 
 // friendlyErrorMessage translates known API error codes into user-facing messages.
-func friendlyErrorMessage(code, message string) string {
+func friendlyErrorMessage(statusCode int, code, message, retryAfter string) string {
+	if statusCode == http.StatusTooManyRequests {
+		if retryAfter != "" {
+			return fmt.Sprintf("rate limited by API; retry after %s", retryAfter)
+		}
+		return "rate limited by API; retry in a moment"
+	}
+
 	switch code {
 	case "spawn_failed":
 		return "file is not a valid Excel file (.xlsx, .xls, or .xlsm)"
@@ -452,12 +462,17 @@ func IsNotFound(err error) bool {
 	return false
 }
 
-func parseAPIError(statusCode int, body []byte) error {
+func parseAPIError(statusCode int, body []byte, retryAfter string) error {
 	var apiErr ErrorResponse
 	if json.Unmarshal(body, &apiErr) == nil && apiErr.Error.Message != "" {
-		return &APIError{StatusCode: statusCode, Code: apiErr.Error.Code, Message: apiErr.Error.Message}
+		return &APIError{
+			StatusCode: statusCode,
+			Code:       apiErr.Error.Code,
+			Message:    apiErr.Error.Message,
+			RetryAfter: retryAfter,
+		}
 	}
-	return &APIError{StatusCode: statusCode, Message: string(body)}
+	return &APIError{StatusCode: statusCode, Message: string(body), RetryAfter: retryAfter}
 }
 
 func detectContentType(filePath string) string {
@@ -472,4 +487,11 @@ func detectContentType(filePath string) string {
 	default:
 		return "application/octet-stream"
 	}
+}
+
+func setAuthorization(req *http.Request, apiKey string) {
+	if apiKey == "" {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 }

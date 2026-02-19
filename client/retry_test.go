@@ -159,6 +159,50 @@ func TestDoWithRetry_HonorsRetryAfterHeader(t *testing.T) {
 	}
 }
 
+func TestDoWithRetry_ReturnsRetryAfterOnTerminalRateLimit(t *testing.T) {
+	tr := &sequenceTransport{
+		t: t,
+		results: []transportResult{
+			{status: http.StatusTooManyRequests, body: "rate limited", headers: map[string]string{"Retry-After": "7"}},
+		},
+	}
+	c := newTestClient(t, tr)
+	c.maxAttempts = 1
+
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		return http.NewRequest("GET", "https://api.test.local/v0/test", nil)
+	})
+	if err != nil {
+		t.Fatalf("doWithRetry failed: %v", err)
+	}
+	if raw.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("expected 429, got %d", raw.StatusCode)
+	}
+	if raw.RetryAfter != "7" {
+		t.Fatalf("expected Retry-After header to be preserved, got %q", raw.RetryAfter)
+	}
+}
+
+func TestParseAPIError_RateLimitMessage(t *testing.T) {
+	err := parseAPIError(http.StatusTooManyRequests, []byte(`{"error":{"message":"too many requests","code":"rate_limited"}}`), "9")
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if got := apiErr.Error(); got != "rate limited by API; retry after 9" {
+		t.Fatalf("unexpected rate-limit message: %q", got)
+	}
+
+	err = parseAPIError(http.StatusTooManyRequests, []byte("rate limited"), "")
+	apiErr, ok = err.(*APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if got := apiErr.Error(); got != "rate limited by API; retry in a moment" {
+		t.Fatalf("unexpected rate-limit fallback message: %q", got)
+	}
+}
+
 func TestUploadFile_RetriesAndReplaysMultipartBody(t *testing.T) {
 	tr := &sequenceTransport{
 		t: t,

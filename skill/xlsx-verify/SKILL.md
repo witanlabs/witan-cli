@@ -30,13 +30,15 @@ witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png
 
 # Calc — check formula results
 witan xlsx calc report.xlsx                         # Recalc all, show errors only
-witan xlsx calc report.xlsx -r "Sheet1!B1:B20"      # Seed calc from range, show touched values
+witan xlsx calc report.xlsx -r "Sheet1!B1:B20"      # Seed calc from range, show errors only
+witan xlsx calc report.xlsx -r "Sheet1!B1:B20" --show-touched
+witan xlsx calc report.xlsx --verify                # Non-mutating check; exit 2 if errors or values would change
 
 # Lint — catch formula bugs
 witan xlsx lint report.xlsx                          # Lint entire workbook
 witan xlsx lint report.xlsx -r "Sheet1!A1:Z50"       # Lint specific range
 
-# JSON output (all subcommands) — structured output for automation
+# JSON output (calc and lint) — structured output for automation
 witan xlsx lint report.xlsx --json
 witan xlsx calc report.xlsx --json
 ```
@@ -52,9 +54,36 @@ witan xlsx calc report.xlsx --json
 When exit code 2 is returned:
 
 - **lint**: error- or warning-severity diagnostics found
-- **calc**: formula errors found (`errors` array non-empty)
+- **calc**: formula errors found (`errors` non-empty), or in `--verify` mode, computed values would change (`changed` non-empty)
 
 Exit codes apply in both human and `--json` output modes. Use `--json` to get the API response as structured JSON on stdout (indented), suitable for piping to `jq` or parsing programmatically.
+
+## Calc Contracts
+
+Use two explicit calc contracts:
+
+- **Verification contract (`calc --verify`)**: non-mutating check. Do not overwrite the workbook or update local cached revision. Exit `2` when any formula error exists or any computed value would change.
+- **Delivery contract (`calc`)**: mutating refresh. Overwrite the workbook with refreshed cached formula values before handoff.
+
+## Verification Gate (Agent Default)
+
+For spreadsheet and financial model create/update tasks, treat verification as a blocking gate:
+
+1. Run `witan xlsx calc <file> --verify` on the workbook.
+2. Run `witan xlsx lint <file>` on the workbook.
+3. If formatting/layout changed, run `witan xlsx render` on changed ranges and compare with `--diff`.
+4. Re-run the full gate after each fix until all checks pass.
+5. Before handoff, run `witan xlsx calc <file>` (without `--verify`) to refresh cached values in the deliverable.
+6. Do not deliver until the gate passes or the user explicitly accepts residual risk.
+
+**Pass/fail contract:**
+
+- `calc --verify` must exit `0` (no formula errors and no changed computed values).
+- `calc` (without `--verify`) must exit `0` before handoff.
+- `lint` must exit `0` by default (no warnings or errors).
+- Any command with exit `1` is an execution failure (fix command/environment, then retry).
+- Any command with exit `2` is a validation failure (fix workbook or get explicit user sign-off for scoped exceptions such as `--skip-rule`).
+- `render --diff` must show only intended visual changes.
 
 ## Integration Patterns
 
@@ -63,8 +92,8 @@ Exit codes apply in both human and `--json` output modes. Use `--json` to get th
 After making changes with your editing tools:
 
 - **Changed formatting?** → `render` the affected region
-- **Wrote formulas?** → `calc` to check values and update the file's cached formula results
-- **About to deliver?** → `lint` to catch semantic bugs, `render` to check final appearance
+- **Wrote formulas?** → `calc --verify` to check for errors/value drift without mutating
+- **About to deliver?** → `lint` to catch semantic bugs, `render` to check final appearance, then `calc` to refresh cached values
 
 ### Baseline → Diff → Iterate
 
@@ -112,29 +141,35 @@ Sheet1!A1:L24 | ~768×360px | dpr=2 | diff: 42 pixels changed (0.3%)
 
 **Guidance:** Rectangular ranges are supported. In normal use, range size is rarely a hard limit; if text is too small, prefer re-rendering a smaller region. Very large renders can still hit `pixel-area budget` limits, in which case lower `--dpr` or reduce the range.
 
-## calc — Formula Recalculation
+## calc — Formula Recalculation and Verification
 
-Recalculates formulas in the workbook, updates cached formula values in the file, and reports results.
+Recalculates formulas and reports results.
+- Default mode updates cached formula values in the workbook.
+- Default output is errors-only; use `--show-touched` to list touched cells.
+- `--verify` mode does not mutate the workbook and fails if errors or changed computed values are found.
 
 ```bash
 witan xlsx calc <file>                          # Recalc all, show errors only
-witan xlsx calc <file> -r "Sheet1!B1:B20"       # Seed calc from range, show touched values
+witan xlsx calc <file> -r "Sheet1!B1:B20"       # Seed calc from range, show errors only
+witan xlsx calc <file> -r "Sheet1!B1:B20" --show-touched
 witan xlsx calc <file> -r "Sheet1!B1:B20" -r "Summary!A1:H10"  # Multiple ranges
+witan xlsx calc <file> --verify                 # Non-mutating verification
 ```
 
-| Flag            | Short | Default | Description                                                                             |
-| --------------- | ----- | ------- | --------------------------------------------------------------------------------------- |
-| `--range`       | `-r`  | —       | Range(s) to seed calculation from (repeatable). Without this, only errors are shown. |
-| `--errors-only` |       | `false` | Only show errors, skip successful computed values                                       |
+| Flag            | Short | Default | Description                                                                                  |
+| --------------- | ----- | ------- | -------------------------------------------------------------------------------------------- |
+| `--range`       | `-r`  | —       | Range(s) to seed calculation from (repeatable).                                              |
+| `--show-touched`|       | `false` | Print touched cells with formulas and computed values                                        |
+| `--verify`      |       | `false` | Check mode: do not overwrite file or update local cache; return exit `2` on errors/changes |
 
-**Output (with `--range`):**
+**Output (with `--show-touched`):**
 
 ```
 Sheet1!B11  =SUM(B1:B10)        4,250.00
 Sheet1!B12  =B11*1.04           4,420.00
 Sheet1!C5   =VLOOKUP(A5,...)    #N/A  ← lookup value not found
 
-3 cells recalculated, 1 error
+3 cells recalculated, 2 changed, 1 error
 ```
 
 **Output (errors only):**
@@ -144,7 +179,9 @@ Sheet1!C5   =VLOOKUP(A5,...)    #N/A  ← lookup value not found
   Sheet1!C5  =VLOOKUP(A5,data!A:C,3,FALSE)  #N/A  ← lookup value not found
 ```
 
-The file is updated in place with correct cached formula values after recalculation.
+With `--verify`, a `Changed` section is always printed after the summary. If no computed values changed, it shows `(none)`.
+
+In default mode, the file is updated in place with refreshed cached formula values. In `--verify` mode, it is not updated.
 
 **Note:** If the input file is a `.xls` file, the server converts it to `.xlsx` format. The CLI renames the file on disk to match (e.g. `input.xls` → `input.xlsx`) and prints `note: converted output saved as input.xlsx`. The original `.xls` file no longer exists after this. Use the new `.xlsx` filename for all subsequent commands.
 

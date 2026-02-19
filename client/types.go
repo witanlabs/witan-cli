@@ -41,6 +41,7 @@ type CalcTouchedCell struct {
 // CalcResponse is the response from the calc endpoint
 type CalcResponse struct {
 	Touched    map[string]CalcTouchedCell `json:"touched"`
+	Changed    []string                   `json:"changed,omitempty"` // cells whose computed value changed
 	Errors     []CellError                `json:"errors"`
 	File       *string                    `json:"file,omitempty"`        // base64, stateless only
 	RevisionID *string                    `json:"revision_id,omitempty"` // new revision, files-backed only
@@ -48,10 +49,10 @@ type CalcResponse struct {
 
 // EditCell is a single cell edit request
 type EditCell struct {
-	Address string `json:"address"`
+	Address string          `json:"address"`
 	Value   json.RawMessage `json:"value,omitempty"`
-	Formula string `json:"formula,omitempty"`
-	Format  string `json:"format,omitempty"`
+	Formula string          `json:"formula,omitempty"`
+	Format  string          `json:"format,omitempty"`
 }
 
 // EditResponse is the response from the edit endpoint

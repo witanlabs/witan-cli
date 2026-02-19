@@ -10,7 +10,7 @@ var xlsxCmd = &cobra.Command{
 	Long: `Operate on Excel workbooks (.xls, .xlsx, .xlsm).
 
 Commands:
-  calc   Recalculate formulas and update cached values in the workbook.
+  calc   Recalculate formulas, update cached values, or run non-mutating verification with --verify.
   edit   Update cell values, formulas, or formats and save the workbook.
   lint   Run semantic formula checks and report diagnostics.
   render Render a sheet range as PNG or WebP.

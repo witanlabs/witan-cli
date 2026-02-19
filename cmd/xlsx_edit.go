@@ -114,6 +114,11 @@ func runEdit(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	filePath := args[0]
 
+	filePath, err := fixExcelExtension(filePath)
+	if err != nil {
+		return err
+	}
+
 	// Parse cell edits
 	var cells []client.EditCell
 	if editCells != "" {
@@ -180,6 +185,9 @@ func runEdit(cmd *cobra.Command, args []string) error {
 		if err := os.WriteFile(filePath, decoded, 0o644); err != nil {
 			return fmt.Errorf("writing updated file: %w", err)
 		}
+		if _, err := fixWritebackExtension(filePath); err != nil {
+			return err
+		}
 	} else if !c.Stateless && result.RevisionID != nil {
 		fileBytes, err := c.DownloadFileContent(fileId, *result.RevisionID)
 		if err != nil {
@@ -187,6 +195,9 @@ func runEdit(cmd *cobra.Command, args []string) error {
 		}
 		if err := os.WriteFile(filePath, fileBytes, 0o644); err != nil {
 			return fmt.Errorf("writing updated file: %w", err)
+		}
+		if _, err := fixWritebackExtension(filePath); err != nil {
+			return err
 		}
 	}
 

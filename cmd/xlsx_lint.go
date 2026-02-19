@@ -38,6 +38,11 @@ func runLint(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	filePath := args[0]
 
+	filePath, err := fixExcelExtension(filePath)
+	if err != nil {
+		return err
+	}
+
 	key, err := resolveAPIKey()
 	if err != nil {
 		return err

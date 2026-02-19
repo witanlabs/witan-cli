@@ -27,23 +27,30 @@ const lintRulesHelp = `Available rules:
 
 var lintCmd = &cobra.Command{
 	Use:   "lint <file>",
-	Short: "Run semantic formula analysis",
-	Long: `Run semantic analysis on formulas to catch common bugs that editing tools can't detect.
+	Short: "Run semantic formula checks",
+	Long: `Run semantic formula checks and report diagnostics by severity.
+
+Behavior:
+  - Checks the entire workbook by default.
+  - Use one or more --range values to limit analysis.
+  - Returns exit code 2 when any Error or Warning is reported.
+  - Use --json for machine-readable results.
 
 ` + lintRulesHelp + `
 
 Examples:
-  witan xlsx lint report.xlsx                         # Lint entire workbook
-  witan xlsx lint report.xlsx -r "Sheet1!A1:Z50"      # Lint specific range
-  witan xlsx lint report.xlsx --skip-rule D031         # Skip spell check`,
+  witan xlsx lint report.xlsx
+  witan xlsx lint report.xlsx -r "Sheet1!A1:Z50"
+  witan xlsx lint report.xlsx --skip-rule D031
+  witan xlsx lint report.xlsx --only-rule D001 --only-rule D030`,
 	Args: cobra.ExactArgs(1),
 	RunE: runLint,
 }
 
 func init() {
-	lintCmd.Flags().StringArrayVarP(&lintRanges, "range", "r", nil, `Range(s) to lint (repeatable)`)
-	lintCmd.Flags().StringArrayVarP(&lintSkipRule, "skip-rule", "s", nil, `Rule IDs to skip (repeatable)`)
-	lintCmd.Flags().StringArrayVar(&lintOnlyRule, "only-rule", nil, `Only run these rules (repeatable)`)
+	lintCmd.Flags().StringArrayVarP(&lintRanges, "range", "r", nil, `Sheet-qualified range to lint (repeatable)`)
+	lintCmd.Flags().StringArrayVarP(&lintSkipRule, "skip-rule", "s", nil, `Rule ID to skip (repeatable)`)
+	lintCmd.Flags().StringArrayVar(&lintOnlyRule, "only-rule", nil, `Run only these rule IDs (repeatable)`)
 	xlsxCmd.AddCommand(lintCmd)
 }
 

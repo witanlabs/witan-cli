@@ -24,26 +24,32 @@ var (
 
 var renderCmd = &cobra.Command{
 	Use:   "render <file>",
-	Short: "Render a spreadsheet region as an image",
-	Long: `Render a spreadsheet region as a PNG or WebP image.
+	Short: "Render a sheet range as an image",
+	Long: `Render a sheet-qualified range as a PNG or WebP image.
 
-Requires --range with a sheet-qualified address (e.g. "Sheet1!A1:Z50").
+Behavior:
+  - --range is required (for example "Sheet1!A1:Z50").
+  - --format supports png or webp.
+  - --dpr must be 1-3; default is auto.
+  - If --output is omitted, the image is written to a temporary file.
+  - --diff compares against a baseline PNG and writes a highlighted PNG diff.
+  - Large images (>1568 px in either dimension) may be downscaled by vision models.
 
 Examples:
   witan xlsx render report.xlsx -r "Sheet1!A1:Z50"
   witan xlsx render report.xlsx -r "'My Sheet'!B5:H20" --dpr 2
-  witan xlsx render report.xlsx -r "Sheet1!A1:F10" -o before.png   # save baseline
-  witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png  # highlight changes`,
+  witan xlsx render report.xlsx -r "Sheet1!A1:F10" -o before.png
+  witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png`,
 	Args: cobra.ExactArgs(1),
 	RunE: runRender,
 }
 
 func init() {
-	renderCmd.Flags().StringVarP(&renderRange, "range", "r", "", `Sheet-qualified range (e.g. "Sheet1!A1:Z50")`)
-	renderCmd.Flags().IntVar(&renderDPR, "dpr", 0, "Device pixel ratio (1-3, auto by default)")
-	renderCmd.Flags().StringVar(&renderFormat, "format", "png", "Image format (png or webp)")
-	renderCmd.Flags().StringVarP(&renderOutput, "output", "o", "", "Output file path (default: temp file)")
-	renderCmd.Flags().StringVar(&renderDiff, "diff", "", "Path to baseline image; outputs a pixel-diff highlight instead of the raw render")
+	renderCmd.Flags().StringVarP(&renderRange, "range", "r", "", `Sheet-qualified range to render (required)`)
+	renderCmd.Flags().IntVar(&renderDPR, "dpr", 0, "Device pixel ratio 1-3 (default: auto)")
+	renderCmd.Flags().StringVar(&renderFormat, "format", "png", "Output image format: png or webp")
+	renderCmd.Flags().StringVarP(&renderOutput, "output", "o", "", "Write image to this path (default: temporary file)")
+	renderCmd.Flags().StringVar(&renderDiff, "diff", "", "Compare against baseline PNG and write highlighted diff image")
 	xlsxCmd.AddCommand(renderCmd)
 }
 

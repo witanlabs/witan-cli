@@ -20,34 +20,39 @@ var (
 
 var editCmd = &cobra.Command{
 	Use:   "edit <file> [address=value ...] [flags]",
-	Short: "Edit cell values and formulas in a workbook",
-	Long: `Set cell values or formulas in a workbook and save the result.
+	Short: "Edit cell values, formulas, and formats",
+	Long: `Set cell values, formulas, or formats and save the workbook.
 
-Each edit is specified as address=value. Use a leading = for formulas (double =).
+Input forms:
+  - address=value for values (numbers, booleans, null, or text)
+  - address==FORMULA for formulas (double "=")
+  - address with --format for format-only edits
 
-Use --format/-f to apply an Excel number format to all cells. With --format,
-bare addresses (no =value) perform format-only edits.
+JSON mode:
+  --cells accepts a JSON array of edit objects for per-cell control.
+  --cells cannot be used with positional edits or --format.
 
-Use --cells to pass a JSON array of edits for full per-cell control (including
-per-cell formats). --cells and --format are mutually exclusive, and positional
-edit args are not allowed with --cells.
+Behavior:
+  - Recalculates dependent formulas after edits.
+  - Returns exit code 2 when recalculation errors are found.
+  - Use --json for machine-readable results.
 
 Examples:
   witan xlsx edit report.xlsx "Sheet1!A1=42"
   witan xlsx edit report.xlsx "Sheet1!A1=42" "Sheet1!B2=hello"
-  witan xlsx edit report.xlsx "Sheet1!A1==SUM(B1:B10)"   # formula (double =)
-  witan xlsx edit report.xlsx "Sheet1!C3=true"            # boolean
-  witan xlsx edit report.xlsx "Sheet1!D4=null"            # clear cell
-  witan xlsx edit report.xlsx "Sheet1!A1=42" -f "#,##0.00"        # value + format
-  witan xlsx edit report.xlsx "Sheet1!A1" -f "0.00%"              # format-only
+  witan xlsx edit report.xlsx "Sheet1!A1==SUM(B1:B10)"
+  witan xlsx edit report.xlsx "Sheet1!C3=true"
+  witan xlsx edit report.xlsx "Sheet1!D4=null"
+  witan xlsx edit report.xlsx "Sheet1!A1=42" -f "#,##0.00"
+  witan xlsx edit report.xlsx "Sheet1!A1" -f "0.00%"
   witan xlsx edit report.xlsx --cells '[{"address":"Sheet1!A1","value":42,"format":"#,##0.00"}]'`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runEdit,
 }
 
 func init() {
-	editCmd.Flags().StringVarP(&editFormat, "format", "f", "", "Excel number format to apply to all cells")
-	editCmd.Flags().StringVar(&editCells, "cells", "", "JSON array of cell edits (full per-cell control)")
+	editCmd.Flags().StringVarP(&editFormat, "format", "f", "", "Format code to apply to all positional edits (also enables format-only addresses)")
+	editCmd.Flags().StringVar(&editCells, "cells", "", "JSON array of cell edits (mutually exclusive with positional edits and --format)")
 	xlsxCmd.AddCommand(editCmd)
 }
 

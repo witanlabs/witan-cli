@@ -74,6 +74,9 @@ func resolveAPIKey() (string, error) {
 	}
 	cfg, err := config.Load()
 	if err != nil {
+		if resolveStateless() {
+			return "", nil
+		}
 		return "", fmt.Errorf("loading auth config: %w", err)
 	}
 	if cfg.SessionToken == "" {
@@ -95,7 +98,7 @@ func hasAuthCredentials() bool {
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		return true
+		return false
 	}
 	return cfg.SessionToken != ""
 }

@@ -150,6 +150,8 @@ Sheet1!C5   =VLOOKUP(A5,...)    #N/A  ← lookup value not found
 
 The file is updated in place with correct cached formula values after recalculation.
 
+**Note:** If the input file is a `.xls` file, the server converts it to `.xlsx` format. The CLI renames the file on disk to match (e.g. `input.xls` → `input.xlsx`) and prints `note: converted output saved as input.xlsx`. The original `.xls` file no longer exists after this. Use the new `.xlsx` filename for all subsequent commands.
+
 ## lint — Formula Quality Analysis
 
 Runs semantic analysis on formulas to catch common bugs that editing tools can't detect.
@@ -202,6 +204,7 @@ Info (1):
 | Range validation error           | Follow guidance; include sheet name when required                   |
 | `pixel-area budget`              | Range too large at current DPR — use smaller range or lower `--dpr` |
 | `file is not a valid Excel file` | Ensure the file is a valid .xlsx, .xls, or .xlsm                    |
+| `note: converted output saved as X.xlsx` | Not an error — .xls was converted to .xlsx. Use the new filename going forward. |
 | `Sheet 'X' not found`            | Check the sheet name                                                |
 | `image dimensions differ`        | Use same `--range` and `--dpr` for baseline and diff                |
 | `--diff requires --format png`   | Diff only works with PNG (the default)                              |

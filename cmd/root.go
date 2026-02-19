@@ -21,16 +21,37 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:           "witan",
-	Short:         "Witan CLI — spreadsheet tools for agents",
+	Use:   "witan",
+	Short: "Witan CLI - spreadsheet tools for agents",
+	Long: `Witan CLI provides spreadsheet workflows for calculation, editing, linting,
+and rendering.
+
+Workflows:
+  auth     Sign in or out for organization-backed requests.
+  xlsx     Recalculate formulas, edit cells, lint formulas, and render ranges.
+
+Modes:
+  Stateful (default when authenticated):
+    Uploads workbook revisions and reuses them across commands.
+  Stateless (--stateless, or when no credentials are available):
+    Sends the workbook with each request and keeps no server-side file cache.
+
+Quick start:
+  witan auth login
+  witan xlsx calc report.xlsx
+  witan xlsx lint report.xlsx --skip-rule D031
+  witan xlsx render report.xlsx -r "Sheet1!A1:F20" -o preview.png
+
+Limits:
+  Workbook inputs must be 25 MB or smaller.`,
 	Version:       Version,
 	SilenceErrors: true,
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "Witan API key (env: WITAN_API_KEY)")
-	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Witan API URL (env: WITAN_API_URL)")
-	rootCmd.PersistentFlags().BoolVar(&stateless, "stateless", false, "Zero data retention: send file with every request (no upload/caching) (env: WITAN_STATELESS)")
+	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for Witan requests (env: WITAN_API_KEY)")
+	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Override the Witan API base URL (env: WITAN_API_URL)")
+	rootCmd.PersistentFlags().BoolVar(&stateless, "stateless", false, "Send workbook bytes on every request; do not reuse uploaded revisions (env: WITAN_STATELESS)")
 }
 
 func resolveStateless() bool {
@@ -53,6 +74,9 @@ func resolveAPIKey() (string, error) {
 	}
 	cfg, err := config.Load()
 	if err != nil {
+		if resolveStateless() {
+			return "", nil
+		}
 		return "", fmt.Errorf("loading auth config: %w", err)
 	}
 	if cfg.SessionToken == "" {
@@ -74,7 +98,7 @@ func hasAuthCredentials() bool {
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		return true
+		return false
 	}
 	return cfg.SessionToken != ""
 }

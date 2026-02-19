@@ -19,24 +19,28 @@ var (
 var calcCmd = &cobra.Command{
 	Use:   "calc <file>",
 	Short: "Recalculate formulas and update cached values",
-	Long: `Recalculate formulas in a workbook, update the file with correct cached
-formula values, and report results.
+	Long: `Recalculate formulas and update cached values in a workbook file.
 
-Without --range, calculation is seeded from all formula cells (full workbook behavior).
-With --range, calculation is seeded from formulas in the provided ranges; downstream
-dependents are still recalculated.
-
+Behavior:
+  - The workbook at <file> is overwritten with updated cached values.
+  - Without --range, recalculation is seeded from all formula cells and output
+    shows errors only.
+  - With one or more --range values, recalculation is seeded from those ranges;
+    downstream dependents are still recalculated.
+  - Returns exit code 2 when formula errors are found.
+  - Use --json for machine-readable results.
 Examples:
-  witan xlsx calc report.xlsx                        # Recalc all, show errors only
-  witan xlsx calc report.xlsx -r "Sheet1!B1:B20"     # Seed calc from a range, show touched values
-  witan xlsx calc report.xlsx -r "Sheet1!B1:B20" -r "Summary!A1:H10"  # Multiple seed ranges`,
+  witan xlsx calc report.xlsx
+  witan xlsx calc report.xlsx -r "Sheet1!B1:B20"
+  witan xlsx calc report.xlsx -r "Sheet1!B1:B20" -r "Summary!A1:H10"
+  witan xlsx calc report.xlsx --errors-only`,
 	Args: cobra.ExactArgs(1),
 	RunE: runCalc,
 }
 
 func init() {
-	calcCmd.Flags().StringArrayVarP(&calcRanges, "range", "r", nil, `Range(s) to seed calculation from and show touched values for (repeatable)`)
-	calcCmd.Flags().BoolVar(&calcErrorOnly, "errors-only", false, "Only show errors, skip successful computed values")
+	calcCmd.Flags().StringArrayVarP(&calcRanges, "range", "r", nil, `Sheet-qualified range to seed recalculation from (repeatable)`)
+	calcCmd.Flags().BoolVar(&calcErrorOnly, "errors-only", false, "Print only formula errors")
 	xlsxCmd.AddCommand(calcCmd)
 }
 

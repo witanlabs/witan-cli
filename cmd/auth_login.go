@@ -20,7 +20,19 @@ import (
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Authenticate with Witan via browser",
-	RunE:  runLogin,
+	Long: `Start browser-based sign-in with a one-time device code.
+
+What happens:
+  1. The CLI prints a one-time code and opens the verification page.
+  2. After approval, the CLI exchanges the device code for a session token.
+  3. If needed, you are prompted to choose an active organization.
+  4. The session is saved locally for future commands.
+
+For non-interactive environments, use --api-key or WITAN_API_KEY.
+
+Example:
+  witan auth login`,
+	RunE: runLogin,
 }
 
 func init() {

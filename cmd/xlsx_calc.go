@@ -44,6 +44,11 @@ func runCalc(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	filePath := args[0]
 
+	filePath, err := fixExcelExtension(filePath)
+	if err != nil {
+		return err
+	}
+
 	key, err := resolveAPIKey()
 	if err != nil {
 		return err
@@ -88,6 +93,9 @@ func runCalc(cmd *cobra.Command, args []string) error {
 		if err := os.WriteFile(filePath, decoded, 0o644); err != nil {
 			return fmt.Errorf("writing updated file: %w", err)
 		}
+		if _, err := fixWritebackExtension(filePath); err != nil {
+			return err
+		}
 	} else if !c.Stateless && result.RevisionID != nil {
 		// Files-backed: download the new revision
 		fileBytes, err := c.DownloadFileContent(fileId, *result.RevisionID)
@@ -96,6 +104,9 @@ func runCalc(cmd *cobra.Command, args []string) error {
 		}
 		if err := os.WriteFile(filePath, fileBytes, 0o644); err != nil {
 			return fmt.Errorf("writing updated file: %w", err)
+		}
+		if _, err := fixWritebackExtension(filePath); err != nil {
+			return err
 		}
 		if err := c.UpdateCachedRevision(filePath, fileId, *result.RevisionID); err != nil {
 			return fmt.Errorf("updating local cache: %w", err)

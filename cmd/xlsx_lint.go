@@ -14,10 +14,23 @@ var (
 	lintOnlyRule []string
 )
 
+const lintRulesHelp = `Available rules:
+  D001 (Warning): Double counting: same cells contribute multiple times due to overlapping ranges
+  D002 (Warning): MATCH/VLOOKUP/HLOOKUP/XLOOKUP with approximate match requires sorted lookup range
+  D003 (Warning): Empty cell references may be coerced to 0 or FALSE in numeric/boolean contexts
+  D005 (Warning): Numeric aggregate functions ignore text and boolean values
+  D006 (Warning): Unintended scalar broadcast in elementwise operations
+  D007 (Warning): MATCH/VLOOKUP/HLOOKUP/XLOOKUP with duplicate keys in lookup array returns first match
+  D009 (Warning): Mixed percent and non-percent in addition/subtraction
+  D030 (Warning): Formula references a non-anchor cell in a merged range
+  D031 (Info): Checks spelling of text values in cells`
+
 var lintCmd = &cobra.Command{
 	Use:   "lint <file>",
 	Short: "Run semantic formula analysis",
 	Long: `Run semantic analysis on formulas to catch common bugs that editing tools can't detect.
+
+` + lintRulesHelp + `
 
 Examples:
   witan xlsx lint report.xlsx                         # Lint entire workbook

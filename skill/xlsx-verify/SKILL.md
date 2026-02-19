@@ -17,8 +17,6 @@ Do **not** use these tools for reading cell data — use your data-reading tools
 
 ## Setup
 
-`WITAN_API_KEY` must be set in the environment (or passed via `--api-key`). If you get an "API key required" error, tell the user they need to configure this variable — do not attempt to work around it.
-
 Files are cached server-side by content hash so repeated operations skip re-upload. If `WITAN_STATELESS=1` is set (or `--stateless` is passed), files are processed but not stored.
 
 The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
@@ -86,8 +84,6 @@ For visual verification with before/after comparison:
 
 **Lint:** before delivering any workbook with formulas, when building financial models, when debugging unexpected formula results.
 
-**Skip:** after writing plain values with no formatting or formulas — no verification needed.
-
 ## render — Visual Verification
 
 Renders a rectangular region of a spreadsheet as a PNG image.
@@ -114,7 +110,7 @@ witan xlsx render <file> -r "Sheet1!A1:F10" --diff before.png
 Sheet1!A1:L24 | ~768×360px | dpr=2 | diff: 42 pixels changed (0.3%)
 ```
 
-**Guidance:** Any range size is supported. Large images may exceed what vision models can read in detail — if text is too small, re-render a smaller region.
+**Guidance:** Rectangular ranges are supported. In normal use, range size is rarely a hard limit; if text is too small, prefer re-rendering a smaller region. Very large renders can still hit `pixel-area budget` limits, in which case lower `--dpr` or reduce the range.
 
 ## calc — Formula Recalculation
 
@@ -197,10 +193,9 @@ Info (1):
 
 | Error                            | Fix                                                                 |
 | -------------------------------- | ------------------------------------------------------------------- |
-| `API key required`               | Set `WITAN_API_KEY` env var or pass `--api-key`                     |
 | `--range is required`            | Provide `-r "Sheet1!A1:Z50"` (render only)                          |
 | Range validation error           | Follow guidance; include sheet name when required                   |
-| `pixel-area budget`              | Range too large at current DPR — use smaller range or lower `--dpr` |
+| `pixel-area budget`              | Rare on normal ranges; for very large renders, reduce range and/or `--dpr` |
 | `file is not a valid Excel file` | Ensure the file is a valid .xlsx, .xls, or .xlsm                    |
 | `Sheet 'X' not found`            | Check the sheet name                                                |
 | `image dimensions differ`        | Use same `--range` and `--dpr` for baseline and diff                |

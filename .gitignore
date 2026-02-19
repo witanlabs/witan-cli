@@ -3,3 +3,4 @@ witan-darwin-*
 witan-linux-*
 witan-windows-*
 dist/
+.tmp

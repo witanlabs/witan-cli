@@ -38,7 +38,10 @@ func resolveStateless() bool {
 		return true
 	}
 	v := os.Getenv("WITAN_STATELESS")
-	return v == "1" || v == "true"
+	if v == "1" || v == "true" {
+		return true
+	}
+	return !hasAuthCredentials()
 }
 
 func resolveAPIKey() (string, error) {
@@ -49,7 +52,13 @@ func resolveAPIKey() (string, error) {
 		return v, nil
 	}
 	cfg, err := config.Load()
-	if err != nil || cfg.SessionToken == "" {
+	if err != nil {
+		return "", fmt.Errorf("loading auth config: %w", err)
+	}
+	if cfg.SessionToken == "" {
+		if resolveStateless() {
+			return "", nil
+		}
 		return "", fmt.Errorf("not authenticated: run 'witan auth login' or set --api-key / WITAN_API_KEY")
 	}
 	jwt, err := exchangeSessionForJWT(resolveManagementAPIURL(), cfg.SessionToken)
@@ -57,6 +66,17 @@ func resolveAPIKey() (string, error) {
 		return "", fmt.Errorf("authentication failed (%v): run 'witan auth login' to re-authenticate", err)
 	}
 	return jwt, nil
+}
+
+func hasAuthCredentials() bool {
+	if apiKey != "" || os.Getenv("WITAN_API_KEY") != "" {
+		return true
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		return true
+	}
+	return cfg.SessionToken != ""
 }
 
 func resolveManagementAPIURL() string {

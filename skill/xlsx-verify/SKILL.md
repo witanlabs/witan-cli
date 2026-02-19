@@ -204,7 +204,6 @@ Info (1):
 | Range validation error           | Follow guidance; include sheet name when required                   |
 | `pixel-area budget`              | Range too large at current DPR — use smaller range or lower `--dpr` |
 | `file is not a valid Excel file` | Ensure the file is a valid .xlsx, .xls, or .xlsm                    |
-| `note: converted output saved as X.xlsx` | Not an error — .xls was converted to .xlsx. Use the new filename going forward. |
 | `Sheet 'X' not found`            | Check the sheet name                                                |
 | `image dimensions differ`        | Use same `--range` and `--dpr` for baseline and diff                |
 | `--diff requires --format png`   | Diff only works with PNG (the default)                              |

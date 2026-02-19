@@ -28,9 +28,7 @@ Behavior:
   - With one or more --range values, recalculation is seeded from those ranges;
     downstream dependents are still recalculated.
   - Returns exit code 2 when formula errors are found.
-
-Use --json for machine-readable results.
-
+  - Use --json for machine-readable results.
 Examples:
   witan xlsx calc report.xlsx
   witan xlsx calc report.xlsx -r "Sheet1!B1:B20"

@@ -336,6 +336,44 @@ func (c *Client) FilesEdit(fileId, revisionId string, cells []EditCell) (*EditRe
 	return &result, nil
 }
 
+// FilesExec calls POST /v0/files/:fileId/xlsx/exec with JSON body and returns exec results.
+func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest) (*ExecResponse, error) {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling exec body: %w", err)
+	}
+
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileID + "/xlsx/exec")
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		q := u.Query()
+		q.Set("revision", revisionID)
+		u.RawQuery = q.Encode()
+
+		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(body))
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		httpReq.Header.Set("Content-Type", "application/json")
+		setAuthorization(httpReq, c.APIKey)
+		return httpReq, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != 200 {
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+
+	var result ExecResponse
+	if err := json.Unmarshal(raw.Body, &result); err != nil {
+		return nil, fmt.Errorf("parsing exec response: %w", err)
+	}
+	return &result, nil
+}
+
 // DownloadFileContent calls GET /v0/files/:fileId/content and returns the raw file bytes.
 func (c *Client) DownloadFileContent(fileId, revisionId string) ([]byte, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {

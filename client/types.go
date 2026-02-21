@@ -64,3 +64,35 @@ type EditResponse struct {
 	File             *string           `json:"file,omitempty"`
 	RevisionID       *string           `json:"revision_id,omitempty"`
 }
+
+// ExecRequest is the request body for exec endpoints.
+type ExecRequest struct {
+	Code           string `json:"code"`
+	Input          any    `json:"input,omitempty"`
+	TimeoutMS      int    `json:"timeout_ms,omitempty"`
+	MaxOutputChars int    `json:"max_output_chars,omitempty"`
+}
+
+// ExecAccess describes a workbook access observed during execution.
+type ExecAccess struct {
+	Operation string `json:"operation"` // read|write
+	Address   string `json:"address"`
+}
+
+// ExecError describes a script execution error.
+type ExecError struct {
+	Type    string `json:"type"` // syntax|runtime|timeout
+	Code    string `json:"code"` // EXEC_SYNTAX_ERROR|EXEC_RUNTIME_ERROR|EXEC_TIMEOUT|EXEC_RESULT_TOO_LARGE
+	Message string `json:"message"`
+}
+
+// ExecResponse is the response from exec endpoints.
+type ExecResponse struct {
+	Ok             bool            `json:"ok"`
+	Stdout         string          `json:"stdout"`
+	Truncated      bool            `json:"truncated,omitempty"`
+	Result         json.RawMessage `json:"result,omitempty"`
+	WritesDetected bool            `json:"writes_detected,omitempty"`
+	Accesses       []ExecAccess    `json:"accesses,omitempty"`
+	Error          *ExecError      `json:"error,omitempty"`
+}

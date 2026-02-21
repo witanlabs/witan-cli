@@ -371,6 +371,74 @@ func (c *Client) Edit(filePath string, cells []EditCell) (*EditResponse, error) 
 	return &result, nil
 }
 
+// Exec runs JavaScript against a workbook via multipart POST /v0/xlsx/exec.
+func (c *Client) Exec(filePath string, req ExecRequest) (*ExecResponse, error) {
+	payload, contentType, err := buildExecMultipartPayload(filePath, req)
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		httpReq, err := http.NewRequest("POST", c.BaseURL+"/v0/xlsx/exec", bytes.NewReader(payload))
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		httpReq.Header.Set("Content-Type", contentType)
+		setAuthorization(httpReq, c.APIKey)
+		return httpReq, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != 200 {
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+
+	var result ExecResponse
+	if err := json.Unmarshal(raw.Body, &result); err != nil {
+		return nil, fmt.Errorf("parsing exec response: %w", err)
+	}
+	return &result, nil
+}
+
+func buildExecMultipartPayload(filePath string, req ExecRequest) ([]byte, string, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, "", fmt.Errorf("cannot open file: %w", err)
+	}
+	defer f.Close()
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	filename := filepath.Base(filePath)
+	mimeType := detectContentType(filePath)
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
+	h.Set("Content-Type", mimeType)
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating form file: %w", err)
+	}
+	if _, err := io.Copy(part, f); err != nil {
+		return nil, "", fmt.Errorf("writing file to form: %w", err)
+	}
+
+	reqJSON, err := json.Marshal(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("marshaling exec request: %w", err)
+	}
+	if err := writer.WriteField("exec", string(reqJSON)); err != nil {
+		return nil, "", fmt.Errorf("writing exec field: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("finalizing multipart payload: %w", err)
+	}
+
+	return buf.Bytes(), writer.FormDataContentType(), nil
+}
+
 func buildEditMultipartPayload(filePath string, cells []EditCell) ([]byte, string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {

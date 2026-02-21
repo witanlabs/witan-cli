@@ -28,7 +28,7 @@ and rendering.
 
 Workflows:
   auth     Sign in or out for organization-backed requests.
-  xlsx     Recalculate formulas, edit cells, lint formulas, and render ranges.
+  xlsx     Recalculate formulas, edit cells, execute scripts, lint formulas, and render ranges.
 
 Modes:
   Stateful (default when authenticated):
@@ -39,6 +39,7 @@ Modes:
 Quick start:
   witan auth login
   witan xlsx calc report.xlsx
+  witan xlsx exec report.xlsx --expr 'wb.sheet("Summary").cell("A1").value'
   witan xlsx lint report.xlsx --skip-rule D031
   witan xlsx render report.xlsx -r "Sheet1!A1:F20" -o preview.png
 

@@ -14,7 +14,16 @@ import (
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out of Witan",
-	RunE:  runLogout,
+	Long: `Sign out from Witan on this machine.
+
+What happens:
+  - Attempts to revoke the current server session (best effort).
+  - Removes locally saved session credentials.
+  - If no session exists, prints "Not logged in." and exits successfully.
+
+Example:
+  witan auth logout`,
+	RunE: runLogout,
 }
 
 func init() {

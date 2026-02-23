@@ -72,6 +72,9 @@ func runCalc(cmd *cobra.Command, args []string) error {
 	for _, r := range calcRanges {
 		params.Add("address", r)
 	}
+	if calcVerify {
+		params.Set("verify", "true")
+	}
 
 	var result *client.CalcResponse
 	var fileId string

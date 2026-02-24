@@ -23,6 +23,8 @@ fi
 
 PYPI_VERSION="${VERSION#v}"
 mkdir -p "${OUTPUT_DIR}"
+# Remove stale wheel artifacts from prior runs when reusing an output directory.
+rm -f "${OUTPUT_DIR}"/witan-*.whl
 
 if [[ -z "${GOCACHE:-}" ]]; then
   export GOCACHE="${ROOT_DIR}/.tmp/gocache"

@@ -72,7 +72,7 @@ jobs:
         if: steps.version.outputs.stable == 'true'
         run: |
           python -m pip install --upgrade pip
-          python -m pip install go-to-wheel
+          python -m pip install go-to-wheel==0.2
 
       - name: Build PyPI wheels
         if: steps.version.outputs.stable == 'true'
@@ -81,6 +81,27 @@ jobs:
         run: |
           ./scripts/build-pypi-wheels.sh "$VERSION" "${RUNNER_TEMP}/witan-wheels"
           cp "${RUNNER_TEMP}"/witan-wheels/*.whl "${RUNNER_TEMP}/witan-dist/"
+
+      - name: Regenerate checksums (include wheels)
+        if: steps.version.outputs.stable == 'true'
+        run: |
+          cd "${RUNNER_TEMP}/witan-dist"
+          shopt -s nullglob
+          wheel_files=(*.whl)
+          if [[ ${#wheel_files[@]} -eq 0 ]]; then
+            echo "no wheel artifacts found in ${RUNNER_TEMP}/witan-dist" >&2
+            exit 1
+          fi
+          artifacts=(
+            witan-darwin-arm64.tar.gz
+            witan-darwin-amd64.tar.gz
+            witan-linux-amd64.tar.gz
+            witan-linux-arm64.tar.gz
+            witan-windows-amd64.zip
+            witan-windows-arm64.zip
+            "${wheel_files[@]}"
+          )
+          shasum -a 256 "${artifacts[@]}" > witan-checksums.txt
 
       - name: Smoke test wheel
         if: steps.version.outputs.stable == 'true'
@@ -144,3 +165,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: ${{ runner.temp }}/witan-wheels
+          skip-existing: true

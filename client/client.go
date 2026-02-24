@@ -341,36 +341,6 @@ func (c *Client) Calc(filePath string, params url.Values) (*CalcResponse, error)
 	return &result, nil
 }
 
-// Edit applies cell edits via multipart POST /v0/xlsx/edit and returns results
-func (c *Client) Edit(filePath string, cells []EditCell) (*EditResponse, error) {
-	payload, contentType, err := buildEditMultipartPayload(filePath, cells)
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		req, err := http.NewRequest("POST", c.BaseURL+"/v0/xlsx/edit", bytes.NewReader(payload))
-		if err != nil {
-			return nil, fmt.Errorf("creating request: %w", err)
-		}
-		req.Header.Set("Content-Type", contentType)
-		setAuthorization(req, c.APIKey)
-		return req, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if raw.StatusCode != 200 {
-		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
-	}
-
-	var result EditResponse
-	if err := json.Unmarshal(raw.Body, &result); err != nil {
-		return nil, fmt.Errorf("parsing edit response: %w", err)
-	}
-	return &result, nil
-}
-
 // Exec runs JavaScript against a workbook via multipart POST /v0/xlsx/exec.
 func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecResponse, error) {
 	payload, contentType, err := buildExecMultipartPayload(filePath, req)
@@ -440,46 +410,6 @@ func buildExecMultipartPayload(filePath string, req ExecRequest) ([]byte, string
 	}
 	if err := writer.WriteField("exec", string(reqJSON)); err != nil {
 		return nil, "", fmt.Errorf("writing exec field: %w", err)
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, "", fmt.Errorf("finalizing multipart payload: %w", err)
-	}
-
-	return buf.Bytes(), writer.FormDataContentType(), nil
-}
-
-func buildEditMultipartPayload(filePath string, cells []EditCell) ([]byte, string, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, "", fmt.Errorf("cannot open file: %w", err)
-	}
-	defer f.Close()
-
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	// File part
-	filename := filepath.Base(filePath)
-	mimeType := detectContentType(filePath)
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
-	h.Set("Content-Type", mimeType)
-	part, err := writer.CreatePart(h)
-	if err != nil {
-		return nil, "", fmt.Errorf("creating form file: %w", err)
-	}
-	if _, err := io.Copy(part, f); err != nil {
-		return nil, "", fmt.Errorf("writing file to form: %w", err)
-	}
-
-	// Edits JSON part
-	editsJSON, err := json.Marshal(map[string]any{"cells": cells})
-	if err != nil {
-		return nil, "", fmt.Errorf("marshaling edits: %w", err)
-	}
-	if err := writer.WriteField("edits", string(editsJSON)); err != nil {
-		return nil, "", fmt.Errorf("writing edits field: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {

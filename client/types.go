@@ -47,24 +47,6 @@ type CalcResponse struct {
 	RevisionID *string                    `json:"revision_id,omitempty"` // new revision, files-backed only
 }
 
-// EditCell is a single cell edit request
-type EditCell struct {
-	Address string          `json:"address"`
-	Value   json.RawMessage `json:"value,omitempty"`
-	Formula string          `json:"formula,omitempty"`
-	Format  string          `json:"format,omitempty"`
-}
-
-// EditResponse is the response from the edit endpoint
-type EditResponse struct {
-	Touched          map[string]string `json:"touched"`
-	Errors           []CellError       `json:"errors"`
-	InvalidatedTiles json.RawMessage   `json:"invalidatedTiles"`
-	UpdatedSheets    json.RawMessage   `json:"updatedSheets"`
-	File             *string           `json:"file,omitempty"`
-	RevisionID       *string           `json:"revision_id,omitempty"`
-}
-
 // ExecRequest is the request body for exec endpoints.
 type ExecRequest struct {
 	Code           string `json:"code"`

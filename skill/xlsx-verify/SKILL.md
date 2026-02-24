@@ -1,11 +1,11 @@
 ---
 name: xlsx-verify
-description: Verify Excel spreadsheets — render to check layout, calc to check formulas, lint to catch formula bugs. Use alongside your spreadsheet editing tools.
+description: Verify Excel spreadsheets — render to check layout, calc to check formulas, lint to catch formula bugs. Use alongside your spreadsheet update tools.
 ---
 
 ## When to Use
 
-Use this to verify workbooks after editing. Your editing tools can write data and formulas, but they can't show you what the spreadsheet looks like, whether formulas compute correctly, or whether formulas have semantic bugs.
+Use this to verify workbooks after updates. Your update tools can write data and formulas, but they can't show you what the spreadsheet looks like, whether formulas compute correctly, or whether formulas have semantic bugs.
 
 - **render** — see what the spreadsheet looks like (layout, formatting, colors, borders)
 - **calc** — recalculate all formulas, update cached values, and report errors
@@ -87,9 +87,9 @@ For spreadsheet and financial model create/update tasks, treat verification as a
 
 ## Integration Patterns
 
-### Edit → Verify
+### Update → Verify
 
-After making changes with your editing tools:
+After making changes with your update tools:
 
 - **Changed formatting?** → `render` the affected region
 - **Wrote formulas?** → `calc --verify` to check for errors/value drift without mutating
@@ -100,7 +100,7 @@ After making changes with your editing tools:
 For visual verification with before/after comparison:
 
 1. `witan xlsx render <file> -r "Sheet1!<range>" -o before.png`
-2. Edit the workbook
+2. Update the workbook
 3. `witan xlsx render <file> -r "Sheet1!<range>" --diff before.png`
 4. Changed pixels appear at full color with a black+white outline; unchanged areas are dimmed gray
 5. If the diff shows unintended changes, fix and re-diff
@@ -187,7 +187,7 @@ In default mode, the file is updated in place with refreshed cached formula valu
 
 ## lint — Formula Quality Analysis
 
-Runs semantic analysis on formulas to catch common bugs that editing tools can't detect.
+Runs semantic analysis on formulas to catch common bugs that update tools can't detect.
 
 ```bash
 witan xlsx lint <file>                          # Lint entire workbook

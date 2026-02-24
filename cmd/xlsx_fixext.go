@@ -94,7 +94,7 @@ func fixExcelExtension(filePath string) (string, error) {
 }
 
 // fixWritebackExtension checks a file that was just written back by the server.
-// If the server converted OLE2→OOXML (common for calc/edit), the written bytes
+// If the server converted OLE2→OOXML, the written bytes
 // may not match the file extension. This renames to match.
 func fixWritebackExtension(filePath string) (string, error) {
 	ext := strings.ToLower(filepath.Ext(filePath))

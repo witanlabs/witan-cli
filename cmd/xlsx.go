@@ -11,8 +11,7 @@ var xlsxCmd = &cobra.Command{
 
 Commands:
   calc   Recalculate formulas, update cached values, or run non-mutating verification with --verify.
-  edit   Update cell values, formulas, or formats and save the workbook.
-  exec   Execute JavaScript against workbook data and print stdout/result.
+  exec   Execute JavaScript with workbook read/write access (persist writes with --save).
   lint   Run semantic formula checks and report diagnostics.
   render Render a sheet range as PNG or WebP.
 

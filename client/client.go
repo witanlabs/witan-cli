@@ -372,14 +372,24 @@ func (c *Client) Edit(filePath string, cells []EditCell) (*EditResponse, error) 
 }
 
 // Exec runs JavaScript against a workbook via multipart POST /v0/xlsx/exec.
-func (c *Client) Exec(filePath string, req ExecRequest) (*ExecResponse, error) {
+func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecResponse, error) {
 	payload, contentType, err := buildExecMultipartPayload(filePath, req)
 	if err != nil {
 		return nil, err
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		httpReq, err := http.NewRequest("POST", c.BaseURL+"/v0/xlsx/exec", bytes.NewReader(payload))
+		u, err := url.Parse(c.BaseURL + "/v0/xlsx/exec")
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		if save {
+			q := u.Query()
+			q.Set("save", "true")
+			u.RawQuery = q.Encode()
+		}
+
+		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(payload))
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}

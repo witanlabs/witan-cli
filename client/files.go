@@ -337,7 +337,7 @@ func (c *Client) FilesEdit(fileId, revisionId string, cells []EditCell) (*EditRe
 }
 
 // FilesExec calls POST /v0/files/:fileId/xlsx/exec with JSON body and returns exec results.
-func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest) (*ExecResponse, error) {
+func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool) (*ExecResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling exec body: %w", err)
@@ -350,6 +350,9 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest) (*ExecRes
 		}
 		q := u.Query()
 		q.Set("revision", revisionID)
+		if save {
+			q.Set("save", "true")
+		}
 		u.RawQuery = q.Encode()
 
 		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(body))

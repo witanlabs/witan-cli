@@ -26,6 +26,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		if r.URL.Path != "/v0/xlsx/exec" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
+		if got := r.URL.Query().Get("save"); got != "" {
+			t.Fatalf("expected no save query by default, got %q", got)
+		}
 		if got := r.Header.Get("Authorization"); got != "Bearer test-key" {
 			t.Fatalf("unexpected auth header: %q", got)
 		}
@@ -88,7 +91,7 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		Input:          map[string]any{"x": 7},
 		TimeoutMS:      2500,
 		MaxOutputChars: 128,
-	})
+	}, false)
 	if err != nil {
 		t.Fatalf("Exec failed: %v", err)
 	}
@@ -122,7 +125,7 @@ func TestExec_ParsesOkFalseEnvelope(t *testing.T) {
 	c := New(server.URL, "test-key", true)
 	c.maxAttempts = 1
 
-	resp, err := c.Exec(filePath, ExecRequest{Code: "throw new Error('boom')"})
+	resp, err := c.Exec(filePath, ExecRequest{Code: "throw new Error('boom')"}, false)
 	if err != nil {
 		t.Fatalf("Exec failed: %v", err)
 	}
@@ -131,6 +134,30 @@ func TestExec_ParsesOkFalseEnvelope(t *testing.T) {
 	}
 	if resp.Error == nil || resp.Error.Code != "EXEC_RUNTIME_ERROR" {
 		t.Fatalf("unexpected error payload: %#v", resp.Error)
+	}
+}
+
+func TestExec_SaveQueryParam(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "book.xlsx")
+	if err := os.WriteFile(filePath, []byte{0x50, 0x4b, 0x03, 0x04}, 0o644); err != nil {
+		t.Fatalf("writing temp workbook: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":null}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "test-key", true)
+	c.maxAttempts = 1
+
+	if _, err := c.Exec(filePath, ExecRequest{Code: "return 1"}, true); err != nil {
+		t.Fatalf("Exec failed: %v", err)
 	}
 }
 
@@ -150,7 +177,7 @@ func TestExec_Non200ReturnsAPIError(t *testing.T) {
 	c := New(server.URL, "test-key", true)
 	c.maxAttempts = 1
 
-	_, err := c.Exec(filePath, ExecRequest{Code: "return 1"})
+	_, err := c.Exec(filePath, ExecRequest{Code: "return 1"}, false)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -173,6 +200,9 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 		}
 		if got := r.URL.Query().Get("revision"); got != "rev_9" {
 			t.Fatalf("unexpected revision: %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "" {
+			t.Fatalf("expected no save query by default, got %q", got)
 		}
 		if got := r.Header.Get("Content-Type"); got != "application/json" {
 			t.Fatalf("unexpected content type: %q", got)
@@ -201,12 +231,33 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 	c := New(server.URL, "test-key", false)
 	c.maxAttempts = 1
 
-	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"})
+	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, false)
 	if err != nil {
 		t.Fatalf("FilesExec failed: %v", err)
 	}
 	if !resp.Ok || string(resp.Result) != `{"ok":true}` {
 		t.Fatalf("unexpected response: %#v", resp)
+	}
+}
+
+func TestFilesExec_SaveQueryParam(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("revision"); got != "rev_9" {
+			t.Fatalf("unexpected revision: %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":null}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "test-key", false)
+	c.maxAttempts = 1
+
+	if _, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, true); err != nil {
+		t.Fatalf("FilesExec failed: %v", err)
 	}
 }
 
@@ -220,7 +271,7 @@ func TestFilesExec_ParsesOkFalseEnvelope(t *testing.T) {
 	c := New(server.URL, "test-key", false)
 	c.maxAttempts = 1
 
-	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "while(true){}"})
+	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "while(true){}"}, false)
 	if err != nil {
 		t.Fatalf("FilesExec failed: %v", err)
 	}
@@ -242,7 +293,7 @@ func TestFilesExec_Non200ReturnsAPIError(t *testing.T) {
 	c := New(server.URL, "test-key", false)
 	c.maxAttempts = 1
 
-	_, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1"})
+	_, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1"}, false)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

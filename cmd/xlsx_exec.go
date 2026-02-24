@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,6 +21,7 @@ var (
 	execInputJSON      string
 	execTimeoutMS      int
 	execMaxOutputChars int
+	execSave           bool
 )
 
 var xlsxExecCmd = &cobra.Command{
@@ -40,6 +42,7 @@ Inputs:
 Defaults:
   - --timeout-ms=0 means no explicit timeout override.
   - --max-output-chars=0 means no explicit stdout cap override.
+  - --save=false means no workbook write-back.
 
 Output:
   - Default mode prints stdout first, then:
@@ -48,12 +51,15 @@ Output:
   - --json prints the full response envelope.
     Success shape:
       {"ok":true,"stdout":"...","result":<json>,"writes_detected":<bool>,"accesses":[...]}
+      {"ok":true,...,"file":"<base64>"} when --save in stateless mode and writes are detected
+      {"ok":true,...,"revision_id":"<id>"} when --save in files-backed mode and writes are detected
     Failure shape:
       {"ok":false,"stdout":"...","error":{"type":"...","code":"...","message":"..."}}
 
 Behavior:
   - Works in both stateless and files-backed modes.
-  - Never writes workbook bytes from exec responses back to disk.
+  - By default, does not overwrite the local workbook.
+  - With --save, writes updated workbook bytes only when exec reports writes and the API returns file/revision output.
 
 Exit codes:
   - 0: response has ok=true
@@ -76,6 +82,7 @@ func init() {
 	xlsxExecCmd.Flags().StringVar(&execInputJSON, "input-json", "", "JSON value passed as input to the script")
 	xlsxExecCmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
 	xlsxExecCmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "Maximum stdout characters to capture (> 0)")
+	xlsxExecCmd.Flags().BoolVar(&execSave, "save", false, "Persist exec writes and overwrite local workbook when writes are detected")
 	xlsxCmd.AddCommand(xlsxExecCmd)
 }
 
@@ -122,23 +129,53 @@ func runExec(cmd *cobra.Command, args []string) error {
 	c := client.New(resolveAPIURL(), key, resolveStateless())
 
 	var result *client.ExecResponse
+	var fileID string
 	if c.Stateless {
-		result, err = c.Exec(filePath, req)
+		result, err = c.Exec(filePath, req, execSave)
 	} else {
-		var fileID, revisionID string
+		var revisionID string
 		fileID, revisionID, err = c.EnsureUploaded(filePath)
 		if err == nil {
-			result, err = c.FilesExec(fileID, revisionID, req)
+			result, err = c.FilesExec(fileID, revisionID, req, execSave)
 			if client.IsNotFound(err) {
 				fileID, revisionID, err = c.ReuploadFile(filePath)
 				if err == nil {
-					result, err = c.FilesExec(fileID, revisionID, req)
+					result, err = c.FilesExec(fileID, revisionID, req, execSave)
 				}
 			}
 		}
 	}
 	if err != nil {
 		return err
+	}
+
+	if execSave && result.Ok {
+		if c.Stateless && result.File != nil {
+			decoded, err := base64.StdEncoding.DecodeString(*result.File)
+			if err != nil {
+				return fmt.Errorf("decoding updated file: %w", err)
+			}
+			if err := os.WriteFile(filePath, decoded, 0o644); err != nil {
+				return fmt.Errorf("writing updated file: %w", err)
+			}
+			if _, err := fixWritebackExtension(filePath); err != nil {
+				return err
+			}
+		} else if !c.Stateless && result.RevisionID != nil {
+			fileBytes, err := c.DownloadFileContent(fileID, *result.RevisionID)
+			if err != nil {
+				return fmt.Errorf("downloading updated file: %w", err)
+			}
+			if err := os.WriteFile(filePath, fileBytes, 0o644); err != nil {
+				return fmt.Errorf("writing updated file: %w", err)
+			}
+			if _, err := fixWritebackExtension(filePath); err != nil {
+				return err
+			}
+			if err := c.UpdateCachedRevision(filePath, fileID, *result.RevisionID); err != nil {
+				return fmt.Errorf("updating local cache: %w", err)
+			}
+		}
 	}
 
 	if jsonOutput {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -254,6 +255,55 @@ func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 	}
 }
 
+func TestRunExec_StatelessSaveWritesWorkbookAndSetsQuery(t *testing.T) {
+	resetExecTestGlobals(t)
+	filePath, _ := writeWorkbookForExecTest(t)
+	newBytes := []byte{0x50, 0x4b, 0x03, 0x04, 'n', 'e', 'w'}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v0/xlsx/exec" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(
+			w,
+			`{"ok":true,"stdout":"","result":{"ok":true},"writes_detected":true,"file":"%s"}`,
+			base64.StdEncoding.EncodeToString(newBytes),
+		)
+	}))
+	defer server.Close()
+
+	stateless = true
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return true;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("save", "true"); err != nil {
+		t.Fatalf("setting --save: %v", err)
+	}
+
+	if _, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{filePath})
+	}); err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	after, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("reading workbook after exec: %v", err)
+	}
+	if string(after) != string(newBytes) {
+		t.Fatalf("workbook bytes were not updated: got %v want %v", after, newBytes)
+	}
+}
+
 func TestRunExec_OkFalseReturnsExit1AndSummary(t *testing.T) {
 	resetExecTestGlobals(t)
 	filePath, _ := writeWorkbookForExecTest(t)
@@ -349,6 +399,70 @@ func TestRunExec_StatefulReuploadsOnNotFound(t *testing.T) {
 	}
 }
 
+func TestRunExec_StatefulSaveDownloadsNewRevisionAndSetsQuery(t *testing.T) {
+	resetExecTestGlobals(t)
+	filePath, _ := writeWorkbookForExecTest(t)
+	downloaded := []byte{0x50, 0x4b, 0x03, 0x04, 's', 'a', 'v', 'e'}
+	var downloadCalls int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/files":
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"id":"file_1","object":"file","filename":"book.xlsx","bytes":8,"revision_id":"rev_1","status":"ready"}`)
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/files/file_1/xlsx/exec":
+			if got := r.URL.Query().Get("revision"); got != "rev_1" {
+				t.Fatalf("unexpected revision: %q", got)
+			}
+			if got := r.URL.Query().Get("save"); got != "true" {
+				t.Fatalf("expected save=true, got %q", got)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"ok":true,"stdout":"","result":{"ok":true},"writes_detected":true,"revision_id":"rev_2"}`)
+		case r.Method == http.MethodGet && r.URL.Path == "/v0/files/file_1/content":
+			downloadCalls++
+			if got := r.URL.Query().Get("revision"); got != "rev_2" {
+				t.Fatalf("unexpected download revision: %q", got)
+			}
+			w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+			_, _ = w.Write(downloaded)
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	stateless = false
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return true;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("save", "true"); err != nil {
+		t.Fatalf("setting --save: %v", err)
+	}
+
+	if _, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{filePath})
+	}); err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	if downloadCalls != 1 {
+		t.Fatalf("expected one download call, got %d", downloadCalls)
+	}
+
+	after, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("reading workbook after exec: %v", err)
+	}
+	if string(after) != string(downloaded) {
+		t.Fatalf("workbook bytes were not updated: got %v want %v", after, downloaded)
+	}
+}
+
 func TestRunExec_JSONOutputRawEnvelope(t *testing.T) {
 	resetExecTestGlobals(t)
 	filePath, _ := writeWorkbookForExecTest(t)
@@ -403,6 +517,7 @@ func resetExecTestGlobals(t *testing.T) {
 	origExecInputJSON := execInputJSON
 	origExecTimeoutMS := execTimeoutMS
 	origExecMaxOutputChars := execMaxOutputChars
+	origExecSave := execSave
 
 	t.Cleanup(func() {
 		apiKey = origAPIKey
@@ -416,6 +531,7 @@ func resetExecTestGlobals(t *testing.T) {
 		execInputJSON = origExecInputJSON
 		execTimeoutMS = origExecTimeoutMS
 		execMaxOutputChars = origExecMaxOutputChars
+		execSave = origExecSave
 	})
 
 	apiKey = ""
@@ -429,6 +545,7 @@ func resetExecTestGlobals(t *testing.T) {
 	execInputJSON = ""
 	execTimeoutMS = 0
 	execMaxOutputChars = 0
+	execSave = false
 }
 
 func newExecTestCommand() *cobra.Command {
@@ -440,6 +557,7 @@ func newExecTestCommand() *cobra.Command {
 	cmd.Flags().StringVar(&execInputJSON, "input-json", "", "")
 	cmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "")
 	cmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "")
+	cmd.Flags().BoolVar(&execSave, "save", false, "")
 	return cmd
 }
 

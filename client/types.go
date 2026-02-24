@@ -94,5 +94,7 @@ type ExecResponse struct {
 	Result         json.RawMessage `json:"result,omitempty"`
 	WritesDetected bool            `json:"writes_detected,omitempty"`
 	Accesses       []ExecAccess    `json:"accesses,omitempty"`
+	File           *string         `json:"file,omitempty"`        // base64, stateless save=true only
+	RevisionID     *string         `json:"revision_id,omitempty"` // new revision, files-backed save=true only
 	Error          *ExecError      `json:"error,omitempty"`
 }

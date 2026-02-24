@@ -341,21 +341,31 @@ func (c *Client) Calc(filePath string, params url.Values) (*CalcResponse, error)
 	return &result, nil
 }
 
-// Edit applies cell edits via multipart POST /v0/xlsx/edit and returns results
-func (c *Client) Edit(filePath string, cells []EditCell) (*EditResponse, error) {
-	payload, contentType, err := buildEditMultipartPayload(filePath, cells)
+// Exec runs JavaScript against a workbook via multipart POST /v0/xlsx/exec.
+func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecResponse, error) {
+	payload, contentType, err := buildExecMultipartPayload(filePath, req)
 	if err != nil {
 		return nil, err
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		req, err := http.NewRequest("POST", c.BaseURL+"/v0/xlsx/edit", bytes.NewReader(payload))
+		u, err := url.Parse(c.BaseURL + "/v0/xlsx/exec")
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		if save {
+			q := u.Query()
+			q.Set("save", "true")
+			u.RawQuery = q.Encode()
+		}
+
+		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(payload))
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		req.Header.Set("Content-Type", contentType)
-		setAuthorization(req, c.APIKey)
-		return req, nil
+		httpReq.Header.Set("Content-Type", contentType)
+		setAuthorization(httpReq, c.APIKey)
+		return httpReq, nil
 	})
 	if err != nil {
 		return nil, err
@@ -364,14 +374,14 @@ func (c *Client) Edit(filePath string, cells []EditCell) (*EditResponse, error) 
 		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
-	var result EditResponse
+	var result ExecResponse
 	if err := json.Unmarshal(raw.Body, &result); err != nil {
-		return nil, fmt.Errorf("parsing edit response: %w", err)
+		return nil, fmt.Errorf("parsing exec response: %w", err)
 	}
 	return &result, nil
 }
 
-func buildEditMultipartPayload(filePath string, cells []EditCell) ([]byte, string, error) {
+func buildExecMultipartPayload(filePath string, req ExecRequest) ([]byte, string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, "", fmt.Errorf("cannot open file: %w", err)
@@ -381,7 +391,6 @@ func buildEditMultipartPayload(filePath string, cells []EditCell) ([]byte, strin
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	// File part
 	filename := filepath.Base(filePath)
 	mimeType := detectContentType(filePath)
 	h := make(textproto.MIMEHeader)
@@ -395,13 +404,12 @@ func buildEditMultipartPayload(filePath string, cells []EditCell) ([]byte, strin
 		return nil, "", fmt.Errorf("writing file to form: %w", err)
 	}
 
-	// Edits JSON part
-	editsJSON, err := json.Marshal(map[string]any{"cells": cells})
+	reqJSON, err := json.Marshal(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("marshaling edits: %w", err)
+		return nil, "", fmt.Errorf("marshaling exec request: %w", err)
 	}
-	if err := writer.WriteField("edits", string(editsJSON)); err != nil {
-		return nil, "", fmt.Errorf("writing edits field: %w", err)
+	if err := writer.WriteField("exec", string(reqJSON)); err != nil {
+		return nil, "", fmt.Errorf("writing exec field: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {

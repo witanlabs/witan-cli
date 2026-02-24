@@ -11,7 +11,7 @@ var xlsxCmd = &cobra.Command{
 
 Commands:
   calc   Recalculate formulas, update cached values, or run non-mutating verification with --verify.
-  edit   Update cell values, formulas, or formats and save the workbook.
+  exec   Execute JavaScript with workbook read/write access (persist writes with --save).
   lint   Run semantic formula checks and report diagnostics.
   render Render a sheet range as PNG or WebP.
 
@@ -21,6 +21,7 @@ Output:
 
 Examples:
   witan xlsx calc report.xlsx
+  witan xlsx exec report.xlsx --expr 'wb.sheet("Summary").cell("A1").value'
   witan xlsx --json lint report.xlsx
   witan xlsx render report.xlsx -r "Sheet1!A1:F20"`,
 }

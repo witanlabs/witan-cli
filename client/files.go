@@ -298,29 +298,32 @@ func (c *Client) FilesCalc(fileId, revisionId string, params url.Values) (*CalcR
 	return &result, nil
 }
 
-// FilesEdit calls POST /v0/files/:fileId/xlsx/edit with JSON body and returns edit results.
-func (c *Client) FilesEdit(fileId, revisionId string, cells []EditCell) (*EditResponse, error) {
-	body, err := json.Marshal(map[string]any{"cells": cells})
+// FilesExec calls POST /v0/files/:fileId/xlsx/exec with JSON body and returns exec results.
+func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool) (*ExecResponse, error) {
+	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling edit body: %w", err)
+		return nil, fmt.Errorf("marshaling exec body: %w", err)
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/xlsx/edit")
+		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileID + "/xlsx/exec")
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
 		q := u.Query()
-		q.Set("revision", revisionId)
+		q.Set("revision", revisionID)
+		if save {
+			q.Set("save", "true")
+		}
 		u.RawQuery = q.Encode()
 
-		req, err := http.NewRequest("POST", u.String(), bytes.NewReader(body))
+		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(body))
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		setAuthorization(req, c.APIKey)
-		return req, nil
+		httpReq.Header.Set("Content-Type", "application/json")
+		setAuthorization(httpReq, c.APIKey)
+		return httpReq, nil
 	})
 	if err != nil {
 		return nil, err
@@ -329,9 +332,9 @@ func (c *Client) FilesEdit(fileId, revisionId string, cells []EditCell) (*EditRe
 		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
 	}
 
-	var result EditResponse
+	var result ExecResponse
 	if err := json.Unmarshal(raw.Body, &result); err != nil {
-		return nil, fmt.Errorf("parsing edit response: %w", err)
+		return nil, fmt.Errorf("parsing exec response: %w", err)
 	}
 	return &result, nil
 }

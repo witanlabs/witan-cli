@@ -21,7 +21,9 @@ const lintRulesHelp = `Available rules:
   D005 (Warning): Numeric aggregate functions ignore text and boolean values
   D006 (Warning): Unintended scalar broadcast in elementwise operations
   D007 (Warning): MATCH/VLOOKUP/HLOOKUP/XLOOKUP with duplicate keys in lookup array returns first match
+  D008 (Error): Mixed currencies in additive/aggregate contexts
   D009 (Warning): Mixed percent and non-percent in addition/subtraction
+  D023 (Warning): Currency values mixed with non-currency semantic formats (percent/date/time/text)
   D030 (Warning): Formula references a non-anchor cell in a merged range
   D031 (Info): Checks spelling of text values in cells`
 

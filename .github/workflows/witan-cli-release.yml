@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: witan-cli-release
@@ -47,6 +48,11 @@ jobs:
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "Resolved version: $VERSION"
 
       - name: Build release artifacts
@@ -54,6 +60,34 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           ./scripts/build-dist.sh "$VERSION" "${RUNNER_TEMP}/witan-dist"
+
+      - name: Setup Python
+        if: steps.version.outputs.stable == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install wheel build dependencies
+        if: steps.version.outputs.stable == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install go-to-wheel
+
+      - name: Build PyPI wheels
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ./scripts/build-pypi-wheels.sh "$VERSION" "${RUNNER_TEMP}/witan-wheels"
+          cp "${RUNNER_TEMP}"/witan-wheels/*.whl "${RUNNER_TEMP}/witan-dist/"
+
+      - name: Smoke test wheel
+        if: steps.version.outputs.stable == 'true'
+        run: |
+          WHEEL="$(ls -1 "${RUNNER_TEMP}/witan-wheels"/witan-*-manylinux_2_17_x86_64.whl | head -n 1)"
+          python -m pip install "$WHEEL"
+          witan --version
 
       - name: Show artifacts
         run: |
@@ -76,6 +110,9 @@ jobs:
             "${ASSET_DIR}/witan-windows-arm64.zip"
             "${ASSET_DIR}/witan-checksums.txt"
           )
+          while IFS= read -r -d '' wheel; do
+            ASSETS+=("$wheel")
+          done < <(find "${ASSET_DIR}" -maxdepth 1 -name "*.whl" -print0 | sort -z)
 
           CREATE_FLAGS=()
           EDIT_FLAGS=()
@@ -101,3 +138,9 @@ jobs:
           fi
 
           echo "Published release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"
+
+      - name: Publish wheels to PyPI
+        if: steps.version.outputs.stable == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ runner.temp }}/witan-wheels

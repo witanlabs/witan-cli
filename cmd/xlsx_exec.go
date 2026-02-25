@@ -194,6 +194,29 @@ func runExec(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Println(formatExecError(result.Error))
 		}
+
+		for _, img := range result.Images {
+			ext := execImageExt(img)
+			b64 := img
+			if _, after, ok := strings.Cut(img, ","); ok {
+				b64 = after
+			}
+			decoded, err := base64.StdEncoding.DecodeString(b64)
+			if err != nil {
+				return fmt.Errorf("decoding exec image: %w", err)
+			}
+			f, err := os.CreateTemp("", "witan-exec-*"+ext)
+			if err != nil {
+				return fmt.Errorf("creating temp image file: %w", err)
+			}
+			tmpPath := f.Name()
+			f.Close()
+			if err := os.WriteFile(tmpPath, decoded, 0o644); err != nil {
+				os.Remove(tmpPath)
+				return fmt.Errorf("writing exec image: %w", err)
+			}
+			fmt.Println(tmpPath)
+		}
 	}
 
 	if !result.Ok {
@@ -289,4 +312,18 @@ func formatExecError(execErr *client.ExecError) string {
 		return execErr.Message
 	}
 	return "execution failed"
+}
+
+func execImageExt(dataURL string) string {
+	prefix, _, ok := strings.Cut(dataURL, ",")
+	if !ok {
+		return ".png"
+	}
+	if strings.Contains(prefix, "image/webp") {
+		return ".webp"
+	}
+	if strings.Contains(prefix, "image/jpeg") {
+		return ".jpg"
+	}
+	return ".png"
 }

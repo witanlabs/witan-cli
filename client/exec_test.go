@@ -79,7 +79,7 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"ok":true,"stdout":"hello\n","result":{"value":42},"accesses":[{"operation":"read","address":"Sheet1!A1"}]}`)
+		fmt.Fprint(w, `{"ok":true,"stdout":"hello\n","result":{"value":42},"images":["data:image/png;base64,aGVsbG8="],"accesses":[{"operation":"read","address":"Sheet1!A1"}]}`)
 	}))
 	defer server.Close()
 
@@ -103,6 +103,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 	}
 	if string(resp.Result) != `{"value":42}` {
 		t.Fatalf("unexpected result: %s", string(resp.Result))
+	}
+	if len(resp.Images) != 1 || resp.Images[0] != "data:image/png;base64,aGVsbG8=" {
+		t.Fatalf("unexpected images: %#v", resp.Images)
 	}
 	if len(resp.Accesses) != 1 || resp.Accesses[0].Address != "Sheet1!A1" {
 		t.Fatalf("unexpected accesses: %#v", resp.Accesses)

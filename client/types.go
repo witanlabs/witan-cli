@@ -74,6 +74,7 @@ type ExecResponse struct {
 	Stdout         string          `json:"stdout"`
 	Truncated      bool            `json:"truncated,omitempty"`
 	Result         json.RawMessage `json:"result,omitempty"`
+	Images         []string        `json:"images,omitempty"`
 	WritesDetected bool            `json:"writes_detected,omitempty"`
 	Accesses       []ExecAccess    `json:"accesses,omitempty"`
 	File           *string         `json:"file,omitempty"`        // base64, stateless save=true only

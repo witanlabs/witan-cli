@@ -101,12 +101,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements-release.txt
 
       - name: Install wheel build dependencies
         if: steps.version.outputs.stable == 'true'
         run: |
           python -m pip install --upgrade pip
-          python -m pip install go-to-wheel==0.2
+          python -m pip install -r requirements-release.txt
 
       - name: Build PyPI wheels
         if: steps.version.outputs.stable == 'true'

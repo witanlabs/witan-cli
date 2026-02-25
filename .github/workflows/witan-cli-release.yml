@@ -149,8 +149,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
+          STABLE: ${{ steps.version.outputs.stable }}
         run: |
-          NOTES="Automated release from witan-cli."
           ASSET_DIR="${RUNNER_TEMP}/witan-dist"
           ASSETS=(
             "${ASSET_DIR}/witan-darwin-arm64.tar.gz"
@@ -166,22 +166,18 @@ jobs:
             ASSETS+=("$wheel")
           done < <(find "${ASSET_DIR}" -maxdepth 1 -name "*.whl" -print0 | sort -z)
 
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release upload "$VERSION" "${ASSETS[@]}" --clobber
-            echo "Uploaded assets to existing release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"
-          else
-            CREATE_FLAGS=()
-            if [[ "$VERSION" == *-* ]]; then
-              CREATE_FLAGS+=(--prerelease)
-            else
-              CREATE_FLAGS+=(--latest)
-            fi
-            gh release create "$VERSION" "${ASSETS[@]}" \
-              --title "Witan CLI ${VERSION}" \
-              --notes "$NOTES" \
-              "${CREATE_FLAGS[@]}"
-            echo "Created and published release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"
+          if ! release_json="$(gh release view "$VERSION" --json isDraft,isPrerelease,url 2>/dev/null)"; then
+            echo "release $VERSION does not exist. Create it in GitHub UI first (stable should be prerelease)." >&2
+            exit 1
           fi
+
+          if [[ "${STABLE}" == "true" ]] && [[ "$(jq -r '.isPrerelease' <<<"${release_json}")" != "true" ]]; then
+            echo "stable release $VERSION must be created as prerelease first; flip to latest only after this workflow passes." >&2
+            exit 1
+          fi
+
+          gh release upload "$VERSION" "${ASSETS[@]}" --clobber
+          echo "Uploaded assets to release: $(jq -r '.url' <<<"${release_json}")"
 
       - name: Publish wheels to PyPI
         if: steps.version.outputs.stable == 'true'

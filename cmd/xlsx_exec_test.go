@@ -75,6 +75,34 @@ func TestResolveExecCodeSource_ExprWrapsExactly(t *testing.T) {
 	}
 }
 
+func TestResolveExecCodeSource_ExprRejectsLikelyMultiStatementInput(t *testing.T) {
+	resetExecTestGlobals(t)
+
+	t.Run("semicolon", func(t *testing.T) {
+		cmd := newExecTestCommand()
+		if err := cmd.Flags().Set("expr", `const x = 1; x`); err != nil {
+			t.Fatalf("setting --expr: %v", err)
+		}
+
+		_, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+		if err == nil || !strings.Contains(err.Error(), "--expr is for single expressions; use --code for multi-statement scripts") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("newline", func(t *testing.T) {
+		cmd := newExecTestCommand()
+		if err := cmd.Flags().Set("expr", "const x = 1\nx"); err != nil {
+			t.Fatalf("setting --expr: %v", err)
+		}
+
+		_, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+		if err == nil || !strings.Contains(err.Error(), "--expr is for single expressions; use --code for multi-statement scripts") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
 func TestResolveExecCodeSource_ScriptAndStdin(t *testing.T) {
 	resetExecTestGlobals(t)
 

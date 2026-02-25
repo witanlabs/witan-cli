@@ -32,6 +32,7 @@ var xlsxExecCmd = &cobra.Command{
 Contract:
   - Provide exactly one code source: --code, --script, --stdin, or --expr.
   - --expr wraps input as: return (<expr>);
+  - --expr is for single expressions only (no semicolons/newlines); use --code for multi-statement scripts.
   - Script code must evaluate to JSON-serializable result values.
 
 Inputs:
@@ -78,7 +79,7 @@ func init() {
 	xlsxExecCmd.Flags().StringVar(&execCode, "code", "", "Inline JavaScript source")
 	xlsxExecCmd.Flags().StringVar(&execScript, "script", "", "Path to a JavaScript file")
 	xlsxExecCmd.Flags().BoolVar(&execStdin, "stdin", false, "Read JavaScript source from stdin")
-	xlsxExecCmd.Flags().StringVar(&execExpr, "expr", "", `Expression shorthand; wraps as return (<expr>);`)
+	xlsxExecCmd.Flags().StringVar(&execExpr, "expr", "", `Single-expression shorthand; wraps as return (<expr>);`)
 	xlsxExecCmd.Flags().StringVar(&execInputJSON, "input-json", "", "JSON value passed as input to the script")
 	xlsxExecCmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
 	xlsxExecCmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "Maximum stdout characters to capture (> 0)")
@@ -223,6 +224,9 @@ func resolveExecCodeSource(cmd *cobra.Command, stdin io.Reader) (string, error) 
 
 	switch {
 	case exprSet:
+		if err := validateExecExpr(execExpr); err != nil {
+			return "", err
+		}
 		return fmt.Sprintf("return (%s);", execExpr), nil
 	case codeSet:
 		return execCode, nil
@@ -244,6 +248,17 @@ func resolveExecCodeSource(cmd *cobra.Command, stdin io.Reader) (string, error) 
 	default:
 		return "", fmt.Errorf("exactly one of --code, --script, --stdin, or --expr is required")
 	}
+}
+
+func validateExecExpr(expr string) error {
+	trimmed := strings.TrimSpace(expr)
+	if trimmed == "" {
+		return fmt.Errorf("--expr must not be empty")
+	}
+	if strings.Contains(trimmed, ";") || strings.Contains(trimmed, "\n") || strings.Contains(trimmed, "\r") {
+		return fmt.Errorf("--expr is for single expressions; use --code for multi-statement scripts")
+	}
+	return nil
 }
 
 func parseExecInput(raw string, provided bool) (any, error) {

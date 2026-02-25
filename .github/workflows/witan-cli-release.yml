@@ -55,6 +55,21 @@ jobs:
           fi
           echo "Resolved version: $VERSION"
 
+      - name: Ensure workflow_dispatch ref matches version tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+            echo "workflow_dispatch must run on a tag ref. Current ref: ${GITHUB_REF}" >&2
+            exit 1
+          fi
+          ref_tag="${GITHUB_REF#refs/tags/}"
+          if [[ "${ref_tag}" != "${VERSION}" ]]; then
+            echo "workflow_dispatch ref/version mismatch: ref=${ref_tag}, version=${VERSION}" >&2
+            exit 1
+          fi
+
       - name: Guard PyPI version collision (first attempt)
         if: steps.version.outputs.stable == 'true'
         env:
@@ -77,6 +92,8 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           ./scripts/build-dist.sh "$VERSION" "${RUNNER_TEMP}/witan-dist"
+          cp ./scripts/install.sh "${RUNNER_TEMP}/witan-dist/witan-install.sh"
+          chmod +x "${RUNNER_TEMP}/witan-dist/witan-install.sh"
 
       - name: Setup Python
         if: steps.version.outputs.stable == 'true'
@@ -99,16 +116,11 @@ jobs:
           ./scripts/build-pypi-wheels.sh "$VERSION" "${RUNNER_TEMP}/witan-wheels"
           cp "${RUNNER_TEMP}"/witan-wheels/*.whl "${RUNNER_TEMP}/witan-dist/"
 
-      - name: Regenerate checksums (include wheels)
-        if: steps.version.outputs.stable == 'true'
+      - name: Finalize checksums
         run: |
           cd "${RUNNER_TEMP}/witan-dist"
           shopt -s nullglob
           wheel_files=(*.whl)
-          if [[ ${#wheel_files[@]} -eq 0 ]]; then
-            echo "no wheel artifacts found in ${RUNNER_TEMP}/witan-dist" >&2
-            exit 1
-          fi
           artifacts=(
             witan-darwin-arm64.tar.gz
             witan-darwin-amd64.tar.gz
@@ -116,6 +128,7 @@ jobs:
             witan-linux-arm64.tar.gz
             witan-windows-amd64.zip
             witan-windows-arm64.zip
+            witan-install.sh
             "${wheel_files[@]}"
           )
           shasum -a 256 "${artifacts[@]}" > witan-checksums.txt
@@ -132,7 +145,7 @@ jobs:
           ls -lah "${RUNNER_TEMP}/witan-dist"
           cat "${RUNNER_TEMP}/witan-dist/witan-checksums.txt"
 
-      - name: Publish release
+      - name: Publish release assets
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -146,36 +159,29 @@ jobs:
             "${ASSET_DIR}/witan-linux-arm64.tar.gz"
             "${ASSET_DIR}/witan-windows-amd64.zip"
             "${ASSET_DIR}/witan-windows-arm64.zip"
+            "${ASSET_DIR}/witan-install.sh"
             "${ASSET_DIR}/witan-checksums.txt"
           )
           while IFS= read -r -d '' wheel; do
             ASSETS+=("$wheel")
           done < <(find "${ASSET_DIR}" -maxdepth 1 -name "*.whl" -print0 | sort -z)
 
-          CREATE_FLAGS=()
-          EDIT_FLAGS=()
-          if [[ "$VERSION" == *-* ]]; then
-            CREATE_FLAGS+=(--prerelease)
-            EDIT_FLAGS+=(--prerelease)
-          else
-            CREATE_FLAGS+=(--latest)
-            EDIT_FLAGS+=(--latest)
-          fi
-
           if gh release view "$VERSION" >/dev/null 2>&1; then
             gh release upload "$VERSION" "${ASSETS[@]}" --clobber
-            gh release edit "$VERSION" \
-              --title "Witan CLI ${VERSION}" \
-              --notes "$NOTES" \
-              "${EDIT_FLAGS[@]}"
+            echo "Uploaded assets to existing release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"
           else
+            CREATE_FLAGS=()
+            if [[ "$VERSION" == *-* ]]; then
+              CREATE_FLAGS+=(--prerelease)
+            else
+              CREATE_FLAGS+=(--latest)
+            fi
             gh release create "$VERSION" "${ASSETS[@]}" \
               --title "Witan CLI ${VERSION}" \
               --notes "$NOTES" \
               "${CREATE_FLAGS[@]}"
+            echo "Created and published release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"
           fi
-
-          echo "Published release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${VERSION}"
 
       - name: Publish wheels to PyPI
         if: steps.version.outputs.stable == 'true'

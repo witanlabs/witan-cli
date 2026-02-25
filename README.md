@@ -4,6 +4,12 @@ Command-line client for Witan spreadsheet APIs.
 
 ## Install
 
+### Quick Install Script
+
+```bash
+curl -fsSL https://witanlabs.com/agents/install.sh | sh
+```
+
 ### From GitHub Releases
 
 Download the latest artifacts from:
@@ -114,8 +120,7 @@ The local binary is written to `./witan`.
 
 Releases are handled by GitHub Actions:
 
-- Workflow: `.github/workflows/witan-cli-release.yml`
-- Trigger tags: `v*` (for example `v1.2.3`)
+- Publish workflow: `.github/workflows/witan-cli-release.yml` (triggered by pushing `v*` tags)
 - Artifacts:
   - `witan-darwin-arm64.tar.gz`
   - `witan-darwin-amd64.tar.gz`
@@ -123,6 +128,7 @@ Releases are handled by GitHub Actions:
   - `witan-linux-arm64.tar.gz`
   - `witan-windows-amd64.zip`
   - `witan-windows-arm64.zip`
+  - `witan-install.sh`
   - `witan-*.whl` (PyPI wheels for supported platforms; stable tags only)
   - `witan-checksums.txt`
 
@@ -130,16 +136,20 @@ PyPI publishing:
 
 - Stable tags (`vX.Y.Z`) publish wheels to PyPI using GitHub OIDC trusted publishing.
 - Pre-release tags (for example `v1.2.3-rc.1`) skip PyPI publish.
-- First-time setup requires creating the `witan` project on PyPI and configuring this repository/workflow as a trusted publisher.
 
-Example release:
+GitHub release publishing:
 
-```bash
-git tag v1.2.3
-git push origin v1.2.3
-```
+- The workflow uploads artifacts directly to the matching GitHub Release tag.
+- If the release already exists (for example, created in the GitHub UI), assets are attached with `--clobber`.
 
-You can also run the release workflow manually with `workflow_dispatch` and provide `version` (for example `v1.2.3`).
+Cutting a release (UI-driven):
+
+1. Create a GitHub Release in the UI with a new tag `vX.Y.Z` (or prerelease tag `vX.Y.Z-suffix`).
+2. Tag push triggers `Witan CLI Release`.
+3. The workflow builds artifacts, attaches them to the GitHub Release, and publishes to PyPI for stable tags.
+4. For stable tags, verify `witan==X.Y.Z` on PyPI and `witan --version`.
+
+Manual `git tag ... && git push ...` is equivalent to UI tag creation and triggers the same workflow.
 
 ## CI
 

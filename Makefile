@@ -15,6 +15,9 @@ build-all:
 dist:
 	./scripts/build-dist.sh $(VERSION)
 
+pypi-wheels:
+	./scripts/build-pypi-wheels.sh $(VERSION)
+
 test:
 	go test ./...
 
@@ -31,4 +34,4 @@ clean:
 	rm -f witan witan-darwin-* witan-linux-* witan-windows-*
 	rm -rf dist
 
-.PHONY: build build-all dist test vet format format-check clean
+.PHONY: build build-all dist pypi-wheels test vet format format-check clean

@@ -533,6 +533,124 @@ func TestRunExec_JSONOutputRawEnvelope(t *testing.T) {
 	}
 }
 
+func TestRunExec_ImagesWrittenToTempFiles(t *testing.T) {
+	resetExecTestGlobals(t)
+	filePath, _ := writeWorkbookForExecTest(t)
+
+	imgBytes := []byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}
+	imgDataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(imgBytes)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"ok":true,"stdout":"","result":"done","images":["%s"]}`, imgDataURL)
+	}))
+	defer server.Close()
+
+	stateless = true
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return 'done';"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+
+	output, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{filePath})
+	})
+	if err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	// Output should contain the result line and an image path line
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 output lines (result + image path), got:\n%s", output)
+	}
+
+	imgPath := lines[len(lines)-1]
+	if !strings.Contains(imgPath, "witan-exec-") || !strings.HasSuffix(imgPath, ".png") {
+		t.Fatalf("expected temp image path, got %q", imgPath)
+	}
+
+	written, err := os.ReadFile(imgPath)
+	if err != nil {
+		t.Fatalf("reading temp image file: %v", err)
+	}
+	if string(written) != string(imgBytes) {
+		t.Fatalf("temp file content mismatch: got %v, want %v", written, imgBytes)
+	}
+
+	os.Remove(imgPath)
+}
+
+func TestExecImageExt(t *testing.T) {
+	tests := []struct {
+		name    string
+		dataURL string
+		want    string
+	}{
+		{"png", "data:image/png;base64,iVBOR", ".png"},
+		{"webp", "data:image/webp;base64,UklGR", ".webp"},
+		{"jpeg", "data:image/jpeg;base64,/9j/4A", ".jpg"},
+		{"raw base64 no comma", "iVBORw0KGgo", ".png"},
+		{"unknown mime", "data:image/bmp;base64,Qk0", ".png"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := execImageExt(tt.dataURL); got != tt.want {
+				t.Fatalf("execImageExt(%q) = %q, want %q", tt.dataURL, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRunExec_ImagesWebpExtension(t *testing.T) {
+	resetExecTestGlobals(t)
+	filePath, _ := writeWorkbookForExecTest(t)
+
+	imgBytes := []byte("RIFF\x00\x00\x00\x00WEBP")
+	imgDataURL := "data:image/webp;base64," + base64.StdEncoding.EncodeToString(imgBytes)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"ok":true,"stdout":"","result":"done","images":["%s"]}`, imgDataURL)
+	}))
+	defer server.Close()
+
+	stateless = true
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return 'done';"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+
+	output, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{filePath})
+	})
+	if err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+	imgPath := lines[len(lines)-1]
+	if !strings.Contains(imgPath, "witan-exec-") || !strings.HasSuffix(imgPath, ".webp") {
+		t.Fatalf("expected .webp temp image path, got %q", imgPath)
+	}
+
+	written, err := os.ReadFile(imgPath)
+	if err != nil {
+		t.Fatalf("reading temp image file: %v", err)
+	}
+	if string(written) != string(imgBytes) {
+		t.Fatalf("temp file content mismatch: got %v, want %v", written, imgBytes)
+	}
+
+	os.Remove(imgPath)
+}
+
 func resetExecTestGlobals(t *testing.T) {
 	origAPIKey := apiKey
 	origAPIURL := apiURL

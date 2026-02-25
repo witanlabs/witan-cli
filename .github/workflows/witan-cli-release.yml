@@ -55,6 +55,23 @@ jobs:
           fi
           echo "Resolved version: $VERSION"
 
+      - name: Guard PyPI version collision (first attempt)
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PYPI_VERSION="${VERSION#v}"
+          VERSION_URL="https://pypi.org/pypi/witan/${PYPI_VERSION}/json"
+          if curl -fsS "${VERSION_URL}" >/dev/null 2>&1; then
+            if [[ "${GITHUB_RUN_ATTEMPT}" == "1" ]]; then
+              echo "PyPI already has witan==${PYPI_VERSION}. Choose a new release version." >&2
+              exit 1
+            fi
+            echo "witan==${PYPI_VERSION} already exists; continuing rerun attempt ${GITHUB_RUN_ATTEMPT}."
+          else
+            echo "witan==${PYPI_VERSION} is available on PyPI."
+          fi
+
       - name: Build release artifacts
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -166,3 +183,55 @@ jobs:
         with:
           packages-dir: ${{ runner.temp }}/witan-wheels
           skip-existing: true
+
+      - name: Verify published PyPI package is CLI
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PYPI_VERSION="${VERSION#v}"
+
+          # Wait briefly for index consistency, then force reinstall from PyPI.
+          for attempt in {1..10}; do
+            python -m pip uninstall -y witan >/dev/null 2>&1 || true
+            if python -m pip install --no-cache-dir --force-reinstall --index-url https://pypi.org/simple "witan==${PYPI_VERSION}"; then
+              break
+            fi
+            if [[ "${attempt}" == "10" ]]; then
+              echo "failed to install witan==${PYPI_VERSION} from PyPI after retries" >&2
+              exit 1
+            fi
+            sleep 10
+          done
+
+          python - <<'PY'
+          import importlib.metadata as md
+          import os
+          import sys
+
+          expected = os.environ["VERSION"].lstrip("v")
+          dist = md.distribution("witan")
+          version = dist.version
+          summary = dist.metadata.get("Summary") or ""
+          home_page = dist.metadata.get("Home-page") or ""
+          entry_points = [
+              ep for ep in dist.entry_points if ep.group == "console_scripts" and ep.name == "witan"
+          ]
+
+          if version != expected:
+              print(f"expected PyPI version {expected}, got {version}", file=sys.stderr)
+              sys.exit(1)
+          if not entry_points:
+              print("installed PyPI package has no 'witan' console script", file=sys.stderr)
+              sys.exit(1)
+          if "cli" not in summary.lower() and "witan-cli" not in home_page:
+              print(
+                  f"unexpected package metadata for witan=={version}: summary={summary!r} home_page={home_page!r}",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          print(f"verified PyPI package: witan=={version}")
+          PY
+
+          witan --version

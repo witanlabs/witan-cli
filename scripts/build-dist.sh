@@ -4,6 +4,9 @@ set -euo pipefail
 VERSION="${1:-dev}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="${2:-${ROOT_DIR}/dist}"
+if [[ "${DIST_DIR}" != /* ]]; then
+  DIST_DIR="${PWD}/${DIST_DIR}"
+fi
 
 LDFLAGS="-X github.com/witanlabs/witan-cli/cmd.Version=${VERSION}"
 

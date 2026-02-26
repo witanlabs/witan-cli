@@ -81,13 +81,16 @@ func resolveAPIKey() (string, error) {
 	}
 	if cfg.SessionToken == "" {
 		if resolveStateless() {
+			fmt.Fprintf(os.Stderr, "not authenticated: using anonymous mode (restricted rate limit). Run 'witan auth login' or set --api-key / WITAN_API_KEY for full access.\n")
 			return "", nil
 		}
 		return "", fmt.Errorf("not authenticated: run 'witan auth login' or set --api-key / WITAN_API_KEY")
 	}
 	jwt, err := exchangeSessionForJWT(resolveManagementAPIURL(), cfg.SessionToken)
 	if err != nil {
-		return "", fmt.Errorf("authentication failed (%v): run 'witan auth login' to re-authenticate", err)
+		fmt.Fprintf(os.Stderr, "session expired: using anonymous mode (restricted rate limit). Run 'witan auth login' or set --api-key / WITAN_API_KEY to re-authenticate.\n")
+		stateless = true
+		return "", nil
 	}
 	return jwt, nil
 }

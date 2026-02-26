@@ -1,6 +1,8 @@
 # witan-cli
 
-Command-line client for Witan spreadsheet APIs.
+The spreadsheet toolkit for coding agents — edit, render, calculate, and lint Excel workbooks.
+
+**[Documentation](https://witanlabs.com/agents)** | **[How we built it](https://github.com/witanlabs/research-log)**
 
 ## Install
 

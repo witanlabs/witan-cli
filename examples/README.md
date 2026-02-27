@@ -20,6 +20,17 @@ read, edit, and create workbooks.
 The witan CLI takes a different approach: instead of generating Python code,
 the agent calls a purpose-built spreadsheet API for cell-level reads,
 formula-aware queries, structured rendering, and iterative calculation.
+
+## Using in Claude Code or Codex
+
+You don't need to run these scripts to use the witan CLI with an agent. If
+you're already working inside Claude Code or Codex, you can give the agent
+the witan CLI skill prompt (found in `skill/xlsx-code-mode/SKILL.md`) and
+the witan binary — the agent will use it directly as a tool.
+
+The `agents/` directory shows how each framework is wired up. Use these as
+reference implementations when building your own integration.
+
 ## Getting started
 
 ### 1. Build the witan CLI
@@ -117,16 +128,6 @@ Look at `prompts/loan-amortization.md` for the format, then create your own:
 ```bash
 pnpm model-builder prompts/my-dcf-model.md
 ```
-
-## Using in Claude Code or Codex
-
-You don't need to run these scripts to use the witan CLI with an agent. If
-you're already working inside Claude Code or Codex, you can give the agent
-the witan CLI skill prompt (found in `skill/xlsx-code-mode/SKILL.md`) and
-the witan binary — the agent will use it directly as a tool.
-
-The `agents/` directory shows how each framework is wired up. Use these as
-reference implementations when building your own integration.
 
 ## Options reference
 

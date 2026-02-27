@@ -152,6 +152,12 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | `evaluateFormula`  | `(wb, sheet, formula)`  | Evaluate a formula string in a sheet context |
 | `evaluateFormulas` | `(wb, sheet, formulas)` | Evaluate multiple formulas at once           |
 
+**Validating**
+
+| Function | Signature        | Description                                                    |
+| -------- | ---------------- | -------------------------------------------------------------- |
+| `lint`   | `(wb, options?)` | Find potential issues |
+
 **Rendering**
 
 | Function        | Signature     | Description                                                         |

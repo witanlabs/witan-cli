@@ -20,12 +20,6 @@ read, edit, and create workbooks.
 The witan CLI takes a different approach: instead of generating Python code,
 the agent calls a purpose-built spreadsheet API for cell-level reads,
 formula-aware queries, structured rendering, and iterative calculation.
-
-Both approaches give an agent full spreadsheet capabilities. The trade-off is
-between the flexibility of general-purpose Python and the precision of a
-dedicated spreadsheet API. Compare the two to see which works best for your
-use case.
-
 ## Getting started
 
 ### 1. Build the witan CLI

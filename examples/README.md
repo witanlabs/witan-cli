@@ -12,17 +12,19 @@ Claude Code or Codex to explore interactively.
 
 ## How it compares
 
-The witan CLI replaces the Python-based approach used by
-[anthropics/skills/xlsx](https://github.com/anthropics/skills/tree/main/skills/xlsx),
-which is the current state-of-the-art XLSX skill used by Claude and OpenAI.
-Where that skill uses openpyxl scripts to read and write spreadsheets, the
-witan CLI provides a dedicated API for spreadsheet operations — cell-level
-reads, formula-aware queries, structured rendering, and iterative calculation
-— without requiring the agent to write or debug Python code.
+The [anthropics/skills/xlsx](https://github.com/anthropics/skills/tree/main/skills/xlsx)
+repository illustrates the patterns used by Claude and OpenAI for spreadsheet
+tasks — Python scripts built on openpyxl that the agent writes and runs to
+read, edit, and create workbooks.
+
+The witan CLI takes a different approach: instead of generating Python code,
+the agent calls a purpose-built spreadsheet API for cell-level reads,
+formula-aware queries, structured rendering, and iterative calculation.
 
 Both approaches give an agent full spreadsheet capabilities. The trade-off is
 between the flexibility of general-purpose Python and the precision of a
-purpose-built spreadsheet API.
+dedicated spreadsheet API. Compare the two to see which works best for your
+use case.
 
 ## Getting started
 

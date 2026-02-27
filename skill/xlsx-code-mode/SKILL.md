@@ -154,8 +154,8 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Validating**
 
-| Function | Signature        | Description                                                    |
-| -------- | ---------------- | -------------------------------------------------------------- |
+| Function | Signature        | Description           |
+| -------- | ---------------- | --------------------- |
 | `lint`   | `(wb, options?)` | Find potential issues |
 
 **Rendering**
@@ -306,7 +306,7 @@ type RangeAddressOrCoordinates =
         col?: number | string;
       };
     };
-type VisibilityType = 'visible' | 'outsidePrintArea' | 'collapsed' | 'hidden';
+type VisibilityType = "visible" | "outsidePrintArea" | "collapsed" | "hidden";
 interface SheetInfo {
   address: string;
   from: {
@@ -421,18 +421,18 @@ interface Value {
   colLetter: string;
   value: string | number | boolean | null;
   formula?: string;
-  type: 'string' | 'number' | 'bool' | 'date' | 'error' | 'blank';
+  type: "string" | "number" | "bool" | "date" | "error" | "blank";
   text: string;
   format?: string;
   /** Format-derived numeric classification (e.g., percent, currency). */
   numberType?:
-    | 'currency'
-    | 'percent'
-    | 'fraction'
-    | 'exponential'
-    | 'date'
-    | 'text'
-    | 'number';
+    | "currency"
+    | "percent"
+    | "fraction"
+    | "exponential"
+    | "date"
+    | "text"
+    | "number";
   /** Cell visibility: visible, hidden, collapsed, or outsidePrintArea */
   visibility: VisibilityType;
   /** Self-locating TSV of surrounding cells when context was requested. */
@@ -527,7 +527,7 @@ function findCells(
   },
 ): Promise<
   SearchResults<{
-    type: 'cell';
+    type: "cell";
     address: string;
     value: any;
     text: string;
@@ -553,7 +553,7 @@ function findRows(
   },
 ): Promise<
   SearchResults<{
-    type: 'row';
+    type: "row";
     row: number;
     sheet: string;
     matchedAt: string;
@@ -677,7 +677,12 @@ function insertRowAfter(
   count?: number,
 ): Promise<void>;
 /** Delete one or more rows starting at the specified row. */
-function deleteRows(wb, sheetName: string, row: number, count?: number): Promise<void>;
+function deleteRows(
+  wb,
+  sheetName: string,
+  row: number,
+  count?: number,
+): Promise<void>;
 /** Insert one or more columns after the specified column. */
 function insertColumnAfter(
   wb,
@@ -862,7 +867,7 @@ interface DependencyResult {
     address: string;
     depth: number;
     formula?: string;
-    referenceType?: 'direct' | 'range' | 'named' | 'table';
+    referenceType?: "direct" | "range" | "named" | "table";
   }[];
   warnings?: Diagnostic[];
 }
@@ -968,7 +973,11 @@ function evaluateFormulas(
  * console.log(unique.value); // [["Apple"], ["Banana"], ["Cherry"]]
  * ```
  */
-function evaluateFormula(wb, sheet: string, formula: string): Promise<FormulaResult>;
+function evaluateFormula(
+  wb,
+  sheet: string,
+  formula: string,
+): Promise<FormulaResult>;
 /**
  * Lint the workbook to find potential issues and code smells.
  *
@@ -1010,7 +1019,7 @@ function lint(
 ): Promise<{
   diagnostics: {
     /** Severity level */
-    severity: 'Info' | 'Warning' | 'Error';
+    severity: "Info" | "Warning" | "Error";
     /** Rule ID that generated this diagnostic (e.g., "D003") */
     ruleId: string;
     /** Human-readable description of the issue */
@@ -1027,3 +1036,7 @@ function lint(
  */
 function previewStyles(wb, range: RangeAddressOrCoordinates): Promise<void>;
 ````
+
+## Reading Source Material
+
+To read **non-spreadsheet** source documents (PDF, DOCX, PPTX, HTML, text) and extract text for populating workbooks, use the `witan read` command (see the `read-source` skill). Use `exec` for reading spreadsheet data.

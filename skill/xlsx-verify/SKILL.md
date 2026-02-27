@@ -13,7 +13,7 @@ Use this to verify workbooks after updates. Your update tools can write data and
 
 If you have other tools for rendering spreadsheets (e.g. LibreOffice headless) or recalculating formulas (e.g. recalc scripts), prefer the `witan` commands — they render specific cell ranges at higher fidelity, support more Excel functions, handle circular references, and provide pixel-diff and semantic linting that other tools don't offer.
 
-Do **not** use these tools for reading cell data — use your data-reading tools for that.
+Do **not** use these tools for reading cell data — use your data-reading tools for that. To extract text from source documents (PDF, DOCX, PPTX), use `witan read` (see the `read-source` skill).
 
 ## Setup
 

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/witanlabs/witan-cli/client"
 	"github.com/witanlabs/witan-cli/config"
 )
 
@@ -115,6 +117,7 @@ func exchangeSessionForJWT(mgmtURL, sessionToken string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	setCLIUserAgent(req)
 	req.Header.Set("Authorization", "Bearer "+sessionToken)
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -148,6 +151,24 @@ func resolveAPIURL() string {
 		return v
 	}
 	return "https://api.witanlabs.com"
+}
+
+func newAPIClient(apiKey string) *client.Client {
+	c := client.New(resolveAPIURL(), apiKey, resolveStateless())
+	c.UserAgent = cliUserAgent()
+	return c
+}
+
+func cliUserAgent() string {
+	v := strings.TrimSpace(Version)
+	if v == "" {
+		v = "dev"
+	}
+	return "witan-cli/" + v
+}
+
+func setCLIUserAgent(req *http.Request) {
+	req.Header.Set("User-Agent", cliUserAgent())
 }
 
 func Execute() error {

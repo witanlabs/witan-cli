@@ -79,7 +79,13 @@ func runLogin(cmd *cobra.Command, args []string) error {
 
 	// Step 1: Request device code
 	body, _ := json.Marshal(map[string]string{"client_id": "witan-cli"})
-	resp, err := httpClient.Post(mgmtURL+"/v0/auth/device/code", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest("POST", mgmtURL+"/v0/auth/device/code", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to request device code: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	setCLIUserAgent(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to request device code: %w", err)
 	}
@@ -211,7 +217,14 @@ func pollToken(client *http.Client, mgmtURL, deviceCode string, interval *time.D
 		"client_id":   "witan-cli",
 	})
 
-	resp, err := client.Post(mgmtURL+"/v0/auth/device/token", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest("POST", mgmtURL+"/v0/auth/device/token", bytes.NewReader(body))
+	if err != nil {
+		return "", false, fmt.Errorf("failed to poll for token: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	setCLIUserAgent(req)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", false, fmt.Errorf("failed to poll for token: %w", err)
 	}
@@ -252,6 +265,7 @@ func getSession(client *http.Client, mgmtURL, token string) (*sessionResponse, e
 	if err != nil {
 		return nil, fmt.Errorf("invalid management API URL: %w", err)
 	}
+	setCLIUserAgent(req)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -273,6 +287,7 @@ func listOrganizations(client *http.Client, mgmtURL, token string) (listOrgsResp
 	if err != nil {
 		return nil, fmt.Errorf("invalid management API URL: %w", err)
 	}
+	setCLIUserAgent(req)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -295,6 +310,7 @@ func setActiveOrganization(client *http.Client, mgmtURL, token, orgID string) er
 	if err != nil {
 		return fmt.Errorf("invalid management API URL: %w", err)
 	}
+	setCLIUserAgent(req)
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)

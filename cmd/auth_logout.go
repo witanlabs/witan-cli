@@ -49,6 +49,7 @@ func runLogout(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not revoke session: %v\n", err)
 	} else {
+		setCLIUserAgent(req)
 		req.Header.Set("Authorization", "Bearer "+cfg.SessionToken)
 		resp, err := httpClient.Do(req)
 		if err != nil {

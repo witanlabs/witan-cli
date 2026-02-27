@@ -127,7 +127,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	c := client.New(resolveAPIURL(), key, resolveStateless())
+	c := newAPIClient(key)
 
 	var result *client.ExecResponse
 	var fileID string

@@ -224,7 +224,9 @@ Info (1):
 | D005 | Non-numeric values ignored — SUM/AVERAGE silently skips text in range          |
 | D006 | Broadcast surprise — scalar + range in arithmetic (unintended array operation) |
 | D007 | Duplicate lookup keys — VLOOKUP range has duplicate values in lookup column    |
+| D008 | Mixed currency — arithmetic combining different currency formats (Error)       |
 | D009 | Mixed percent — adding percent-formatted and non-percent values                |
+| D023 | Currency + semantic format — currency combined with semantic formats            |
 | D030 | Merged cell reference — formula references non-anchor cell in merged range     |
 | D031 | Spell check — possible spelling errors in text cells (Info severity)           |
 

@@ -12,7 +12,7 @@ import dotenv from 'dotenv';
 export function loadEnv(): void {
   // 1. Load .env from the examples directory (one level up from lib/)
   const envPath = path.resolve(import.meta.dirname, '..', '.env');
-  dotenv.config({ path: envPath });
+  dotenv.config({ path: envPath, override: true });
 
   // 2. Verify the witan binary exists at the repo root (two levels up from lib/)
   const witanBinary = path.resolve(import.meta.dirname, '..', '..', 'witan');

@@ -1,11 +1,28 @@
 # Witan Agent Examples
 
-Give an AI agent a spreadsheet and a task. These examples show how to wire up
-an agent that can read, query, and build Excel workbooks using the witan CLI.
+Wire up an AI agent to read, query, and build Excel workbooks using the
+**witan CLI** — then experiment with different models, frameworks, and
+prompting strategies.
 
 Two runners are included — **Claude Code** (Anthropic's agent SDK) and
 **DeepAgents** (LangChain-based) — so you can compare how different agent
-frameworks approach the same spreadsheet problems.
+frameworks approach the same spreadsheet problems. Use these implementations
+as a starting point for your own integrations, or run them directly from
+Claude Code or Codex to explore interactively.
+
+## How it compares
+
+The witan CLI replaces the Python-based approach used by
+[anthropics/skills/xlsx](https://github.com/anthropics/skills/tree/main/skills/xlsx),
+which is the current state-of-the-art XLSX skill used by Claude and OpenAI.
+Where that skill uses openpyxl scripts to read and write spreadsheets, the
+witan CLI provides a dedicated API for spreadsheet operations — cell-level
+reads, formula-aware queries, structured rendering, and iterative calculation
+— without requiring the agent to write or debug Python code.
+
+Both approaches give an agent full spreadsheet capabilities. The trade-off is
+between the flexibility of general-purpose Python and the precision of a
+purpose-built spreadsheet API.
 
 ## Getting started
 
@@ -70,21 +87,19 @@ pnpm model-builder path/to/spec.md
 Output workbooks are saved to `./output/`. Open them in Excel to inspect the
 result — formulas, formatting, and structure are all agent-generated.
 
-### Compare runners
+### Switch models and runners
 
-Both examples support the `-r` flag to switch between agent frameworks:
+Both examples support `-r` to switch agent frameworks and `-m` to override
+the model:
 
 ```bash
-# Claude Code (default) — uses Anthropic's agent SDK with sandbox
+# Claude Code (default) — Anthropic's agent SDK with sandbox
 pnpm qna -r claude-code path/to/workbook.xlsx "What is the EBITDA margin?"
 
-# DeepAgents — uses LangChain with local shell execution
+# DeepAgents — LangChain with local shell execution
 pnpm qna -r deep-agents path/to/workbook.xlsx "What is the EBITDA margin?"
-```
 
-You can also override the model with `-m`:
-
-```bash
+# Try different models
 pnpm qna -m claude-sonnet-4-5-20250929 workbook.xlsx "Summarize this model"
 pnpm qna -r deep-agents -m gpt-4.1 workbook.xlsx "Summarize this model"
 ```
@@ -106,6 +121,16 @@ Look at `prompts/loan-amortization.md` for the format, then create your own:
 ```bash
 pnpm model-builder prompts/my-dcf-model.md
 ```
+
+## Using in Claude Code or Codex
+
+You don't need to run these scripts to use the witan CLI with an agent. If
+you're already working inside Claude Code or Codex, you can give the agent
+the witan CLI skill prompt (found in `skill/xlsx-code-mode/SKILL.md`) and
+the witan binary — the agent will use it directly as a tool.
+
+The `agents/` directory shows how each framework is wired up. Use these as
+reference implementations when building your own integration.
 
 ## Options reference
 

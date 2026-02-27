@@ -81,3 +81,43 @@ type ExecResponse struct {
 	RevisionID     *string         `json:"revision_id,omitempty"` // new revision, files-backed save=true only
 	Error          *ExecError      `json:"error,omitempty"`
 }
+
+// ReadMetadata holds pagination and dimension metadata for read responses.
+type ReadMetadata struct {
+	TotalPages  *int `json:"total_pages,omitempty"`
+	ReadPages   *int `json:"read_pages,omitempty"`
+	TotalSlides *int `json:"total_slides,omitempty"`
+	ReadSlides  *int `json:"read_slides,omitempty"`
+	TotalLines  int  `json:"total_lines"`
+	Offset      int  `json:"offset"`
+	Limit       int  `json:"limit"`
+}
+
+// ReadResponse is the response from the read endpoint (content mode).
+type ReadResponse struct {
+	Content  string       `json:"content"`
+	Format   string       `json:"format"`
+	Metadata ReadMetadata `json:"metadata"`
+}
+
+// OutlineEntry is a single entry in a document outline.
+type OutlineEntry struct {
+	Title  string `json:"title"`
+	Level  int    `json:"level"`
+	Pages  string `json:"pages,omitempty"`
+	Slides string `json:"slides,omitempty"`
+	Offset *int   `json:"offset,omitempty"`
+}
+
+// ReadOutlineMetadata holds dimension metadata for outline responses.
+type ReadOutlineMetadata struct {
+	TotalPages  *int `json:"total_pages,omitempty"`
+	TotalSlides *int `json:"total_slides,omitempty"`
+	TotalLines  *int `json:"total_lines,omitempty"`
+}
+
+// ReadOutlineResponse is the response from the read endpoint (outline mode).
+type ReadOutlineResponse struct {
+	Outline  []OutlineEntry      `json:"outline"`
+	Metadata ReadOutlineMetadata `json:"metadata"`
+}

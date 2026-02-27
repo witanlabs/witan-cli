@@ -29,6 +29,7 @@ var rootCmd = &cobra.Command{
 
 Workflows:
   auth     Sign in or out for organization-backed requests.
+  read     Extract text from documents (PDF, DOCX, PPTX, HTML, text).
   xlsx     Recalculate formulas, run read/write scripts, lint formulas, and render ranges.
 
 Modes:
@@ -39,6 +40,8 @@ Modes:
 
 Quick start:
   witan auth login
+  witan read report.pdf --outline
+  witan read report.pdf --pages 1-5
   witan xlsx calc report.xlsx
   witan xlsx exec report.xlsx --expr 'wb.sheet("Summary").cell("A1").value'
   witan xlsx lint report.xlsx --skip-rule D031

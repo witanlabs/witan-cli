@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -125,5 +128,53 @@ func TestResolveAPIKey_AllowsStatelessFallbackWhenConfigLoadErrors(t *testing.T)
 	}
 	if key != "" {
 		t.Fatalf("expected empty API key in forced stateless mode, got %q", key)
+	}
+}
+
+func TestNewAPIClient_SetsVersionedUserAgent(t *testing.T) {
+	origVersion := Version
+	origAPIURL := apiURL
+	origStateless := stateless
+	t.Cleanup(func() {
+		Version = origVersion
+		apiURL = origAPIURL
+		stateless = origStateless
+	})
+
+	Version = "1.2.3"
+	apiURL = "https://api.witanlabs.test"
+	stateless = true
+
+	c := newAPIClient("test-key")
+	if got := c.UserAgent; got != "witan-cli/1.2.3" {
+		t.Fatalf("unexpected client user-agent: %q", got)
+	}
+}
+
+func TestExchangeSessionForJWT_SendsUserAgentHeader(t *testing.T) {
+	origVersion := Version
+	t.Cleanup(func() {
+		Version = origVersion
+	})
+	Version = "9.9.9"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("User-Agent"); got != "witan-cli/9.9.9" {
+			t.Fatalf("unexpected user-agent header: %q", got)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer test-session" {
+			t.Fatalf("unexpected auth header: %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"token":"jwt-token"}`)
+	}))
+	defer server.Close()
+
+	token, err := exchangeSessionForJWT(server.URL, "test-session")
+	if err != nil {
+		t.Fatalf("exchangeSessionForJWT returned error: %v", err)
+	}
+	if token != "jwt-token" {
+		t.Fatalf("unexpected token: %q", token)
 	}
 }

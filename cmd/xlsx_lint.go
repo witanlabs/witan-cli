@@ -70,7 +70,7 @@ func runLint(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	c := client.New(resolveAPIURL(), key, resolveStateless())
+	c := newAPIClient(key)
 
 	// Build query params with repeated values
 	params := url.Values{}

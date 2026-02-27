@@ -38,7 +38,7 @@ func (c *Client) UploadFile(filePath string) (*FileResponse, error) {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		req.Header.Set("Content-Type", contentType)
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func (c *Client) UploadFileVersion(fileID, filePath string) (*FileResponse, erro
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		req.Header.Set("Content-Type", contentType)
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -246,7 +246,7 @@ func (c *Client) FilesLint(fileId, revisionId string, params url.Values) (*LintR
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -281,7 +281,7 @@ func (c *Client) FilesCalc(fileId, revisionId string, params url.Values) (*CalcR
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -322,7 +322,7 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		httpReq.Header.Set("Content-Type", "application/json")
-		setAuthorization(httpReq, c.APIKey)
+		c.setCommonHeaders(httpReq)
 		return httpReq, nil
 	})
 	if err != nil {
@@ -356,7 +356,7 @@ func (c *Client) DownloadFileContent(fileId, revisionId string) ([]byte, error) 
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -386,7 +386,7 @@ func (c *Client) FilesRender(fileId, revisionId string, params map[string]string
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {

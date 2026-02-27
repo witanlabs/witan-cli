@@ -71,7 +71,7 @@ func runRender(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("--format must be 'png' or 'webp', got %q", renderFormat)
 	}
 
-	c := client.New(resolveAPIURL(), key, resolveStateless())
+	c := newAPIClient(key)
 
 	// Require --range (syntax is server-validated)
 	if renderRange == "" {

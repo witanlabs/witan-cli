@@ -25,12 +25,14 @@ const (
 	defaultMaxAttempts    = 3
 	defaultBaseBackoff    = 200 * time.Millisecond
 	defaultMaxBackoff     = 2 * time.Second
+	defaultUserAgent      = "witan-cli/dev"
 )
 
 // Client is a Witan API client
 type Client struct {
 	BaseURL    string
 	APIKey     string
+	UserAgent  string
 	HTTPClient *http.Client
 	Stateless  bool       // when true, use POST-file-in-body endpoints only
 	cache      *FileCache // nil when stateless
@@ -58,6 +60,7 @@ func New(baseURL, apiKey string, stateless bool) *Client {
 	c := &Client{
 		BaseURL:        strings.TrimRight(baseURL, "/"),
 		APIKey:         apiKey,
+		UserAgent:      defaultUserAgent,
 		HTTPClient:     &http.Client{},
 		Stateless:      stateless,
 		requestTimeout: defaultRequestTimeout,
@@ -246,7 +249,7 @@ func (c *Client) Render(filePath string, params map[string]string) ([]byte, stri
 			return os.Open(filePath)
 		}
 		req.Header.Set("Content-Type", detectContentType(filePath))
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -283,7 +286,7 @@ func (c *Client) Lint(filePath string, params url.Values) (*LintResponse, error)
 			return os.Open(filePath)
 		}
 		req.Header.Set("Content-Type", detectContentType(filePath))
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -324,7 +327,7 @@ func (c *Client) Calc(filePath string, params url.Values) (*CalcResponse, error)
 			return os.Open(filePath)
 		}
 		req.Header.Set("Content-Type", detectContentType(filePath))
-		setAuthorization(req, c.APIKey)
+		c.setCommonHeaders(req)
 		return req, nil
 	})
 	if err != nil {
@@ -364,7 +367,7 @@ func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecRespons
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 		httpReq.Header.Set("Content-Type", contentType)
-		setAuthorization(httpReq, c.APIKey)
+		c.setCommonHeaders(httpReq)
 		return httpReq, nil
 	})
 	if err != nil {
@@ -497,9 +500,15 @@ func detectContentType(filePath string) string {
 	}
 }
 
-func setAuthorization(req *http.Request, apiKey string) {
-	if apiKey == "" {
+func (c *Client) setCommonHeaders(req *http.Request) {
+	userAgent := strings.TrimSpace(c.UserAgent)
+	if userAgent == "" {
+		userAgent = defaultUserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
+
+	if c.APIKey == "" {
 		return
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
 }

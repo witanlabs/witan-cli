@@ -32,6 +32,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		if got := r.Header.Get("Authorization"); got != "Bearer test-key" {
 			t.Fatalf("unexpected auth header: %q", got)
 		}
+		if got := r.Header.Get("User-Agent"); got != defaultUserAgent {
+			t.Fatalf("unexpected user-agent header: %q", got)
+		}
 
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			t.Fatalf("parsing multipart form: %v", err)
@@ -212,6 +215,9 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 		}
 		if got := r.Header.Get("Authorization"); got != "Bearer test-key" {
 			t.Fatalf("unexpected auth header: %q", got)
+		}
+		if got := r.Header.Get("User-Agent"); got != defaultUserAgent {
+			t.Fatalf("unexpected user-agent header: %q", got)
 		}
 
 		body, err := io.ReadAll(r.Body)

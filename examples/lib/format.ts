@@ -1,4 +1,4 @@
-import type { SDKMessage } from './agents/index.js';
+import type { SDKMessage } from '../agents/index.js';
 
 // ANSI escape codes — disabled when stdout is not a TTY (piped output, redirects)
 const isTTY = process.stdout.isTTY ?? false;

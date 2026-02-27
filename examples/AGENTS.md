@@ -3,16 +3,27 @@
 ## Project overview
 
 This is a TypeScript examples directory for the witan CLI. It provides two
-agent wrappers (`invokeClaudeCode` and `invokeDeepAgent`) and a `qna.ts`
-entry point that runs questions against Excel workbooks.
+agent wrappers (`invokeClaudeCode` and `invokeDeepAgent`), a shared runner
+module (`run.ts`), and two entry points:
+
+- `qna.ts` — ask questions about existing Excel workbooks.
+- `model-builder.ts` — build financial models from a prompt specification.
 
 ## Key files
 
-- `qna.ts` — CLI entry point. Parses args, sets up a sandboxed temp working
-  directory, invokes the chosen runner, and cleans up.
-- `setup.ts` — Loads `.env`, verifies the witan binary exists, prepends it
+- `qna.ts` — QnA CLI entry point. Parses args, copies the input workbook into
+  a sandboxed temp directory, invokes the chosen runner, and cleans up.
+- `model-builder.ts` — Model builder CLI entry point. Creates an empty workbook,
+  invokes the chosen runner with a model specification prompt, and copies output
+  workbooks to the output directory.
+- `lib/run.ts` — Shared runner dispatch module. Exports `runAgent()` which handles
+  Claude Code and DeepAgents invocation with sandbox config and logging.
+- `lib/setup.ts` — Loads `.env`, verifies the witan binary exists, prepends it
   to PATH.
-- `format.ts` — Console output helpers (ANSI formatting, message logging).
+- `lib/format.ts` — Console output helpers (ANSI formatting, message logging).
+- `lib/demo-workbook.ts` — Sample workbook generator for the QnA demo mode.
+- `prompts/loan-amortization.md` — Default model-builder prompt (loan
+  amortization with circular references).
 - `agents/claude-code.ts` — Async generator wrapping the Claude Code SDK
   `query()` function.
 - `agents/deep-agents.ts` — Async generator wrapping DeepAgents with a local
@@ -23,6 +34,7 @@ entry point that runs questions against Excel workbooks.
 ```bash
 pnpm install
 pnpm qna <workbook.xlsx> <question>
+pnpm model-builder [prompt-file]
 ```
 
 The witan CLI binary must exist at `../witan`. Build it with `cd .. && make build`.

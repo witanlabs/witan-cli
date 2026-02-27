@@ -6,3 +6,4 @@ dist/
 .tmp
 examples/node_modules/
 examples/.env
+examples/output/

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qna": "tsx qna.ts"
+    "qna": "tsx qna.ts",
+    "model-builder": "tsx model-builder.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.39",
@@ -12,6 +13,7 @@
     "deepagents": "^1.7.6",
     "dotenv": "^16.4.7",
     "langchain": "^1.0.4",
+    "exceljs": "^4.4.0",
     "tsx": "^4.7.0"
   }
 }

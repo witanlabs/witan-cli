@@ -25,8 +25,13 @@ formula-aware queries, structured rendering, and iterative calculation.
 
 You don't need to run these scripts to use the witan CLI with an agent. If
 you're already working inside Claude Code or Codex, you can give the agent
-the witan CLI skill prompt (found in `skill/xlsx-code-mode/SKILL.md`) and
-the witan binary — the agent will use it directly as a tool.
+a witan skill prompt and the witan binary — the agent will use it directly
+as a tool. Two skills are available:
+
+- **`skill/xlsx-code-mode/SKILL.md`** — read, write, and query workbooks
+  via the witan exec API.
+- **`skill/xlsx-verify/SKILL.md`** — audit workbooks for formula bugs
+  using lint, calc, and render. Works alongside any write tooling.
 
 The `agents/` directory shows how each framework is wired up. Use these as
 reference implementations when building your own integration.
@@ -94,6 +99,46 @@ pnpm model-builder path/to/spec.md
 Output workbooks are saved to `./output/`. Open them in Excel to inspect the
 result — formulas, formatting, and structure are all agent-generated.
 
+### Audit a workbook for formula bugs
+
+The verify example uses the `xlsx-verify` skill to catch formula bugs that
+are invisible in normal spreadsheet use — double-counting from overlapping
+SUM ranges, currency mixing across regions, unit mismatches (adding dollars
+to percentages), and missing data silently coerced to zero.
+
+```bash
+# Demo: generates a buggy P&L workbook and audits it
+pnpm verify
+
+# Your own workbook
+pnpm verify path/to/workbook.xlsx
+```
+
+The `xlsx-verify` skill provides three tools that go beyond what Python
+libraries or manual inspection can catch:
+
+- **`witan xlsx lint`** — semantic formula analysis. Detects overlapping
+  ranges, mixed currencies, type confusion, unsorted lookups, and more.
+- **`witan xlsx calc --verify`** — recalculates every formula and reports
+  errors or stale cached values without modifying the file.
+- **`witan xlsx render`** — renders any cell range as a PNG image so the
+  agent can visually inspect layout and formatting.
+
+#### Using verify in your own workflow
+
+The verify skill is independent of how you create or edit workbooks. Combine
+it with any write tooling — openpyxl scripts, the `xlsx-code-mode` skill,
+manual edits, or another agent's output — to find and fix subtle errors:
+
+1. **Edit** the workbook with your preferred tools.
+2. **Verify** by giving the agent the `xlsx-verify` skill prompt
+   (`skill/xlsx-verify/SKILL.md`) and the workbook.
+3. **Fix** the issues the agent reports, then re-verify.
+
+The skill works with Claude Code, DeepAgents, or any agent framework that
+can run shell commands. Just include the skill prompt in your system
+instructions and ensure the `witan` binary is on PATH.
+
 ### Switch models and runners
 
 Both examples support `-r` to switch agent frameworks and `-m` to override
@@ -143,11 +188,13 @@ pnpm model-builder prompts/my-dcf-model.md
 ```
 qna.ts                 QnA entry point
 model-builder.ts       Model builder entry point
+verify.ts              Workbook audit entry point
 lib/
   run.ts               Shared runner dispatch
   setup.ts             Env + PATH setup
   format.ts            Console output formatting
-  demo-workbook.ts     Sample workbook generator
+  demo-workbook.ts     Sample workbook generator (QnA)
+  buggy-workbook.ts    Buggy workbook generator (verify)
 agents/
   claude-code.ts       Claude Code SDK wrapper
   deep-agents.ts       DeepAgents wrapper

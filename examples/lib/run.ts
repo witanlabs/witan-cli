@@ -11,12 +11,6 @@ Your current working directory is already set to the correct location. All input
 - Save all output files in the current directory.
 `;
 
-const SANDBOX_CONFIG = {
-  enabled: true,
-  autoAllowBashIfSandboxed: true,
-  network: { allowedDomains: ['localhost', 'api.witanlabs.com'] },
-};
-
 export interface RunAgentOptions {
   runner: string;
   model: string;
@@ -31,14 +25,19 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 
   console.log(`Runner: ${runner} | Model: ${model}\n`);
 
+  const appendedPrompt = WORKING_DIR_POLICY + '\n\n' + skill;
+
   if (runner === 'claude-code') {
     let result: SDKResultMessage | undefined;
     for await (const message of invokeClaudeCode({
       prompt,
       cwd: workDir,
-      systemPrompt: skill,
+      systemPrompt: {
+        type: 'preset' as const,
+        preset: 'claude_code' as const,
+        append: appendedPrompt,
+      },
       model,
-      sandbox: SANDBOX_CONFIG,
     })) {
       logClaudeCodeMessage(message, verbose);
       if (message.type === 'result') result = message;
@@ -52,7 +51,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     for await (const chunk of invokeDeepAgent({
       prompt,
       cwd: workDir,
-      systemPrompt: skill + WORKING_DIR_POLICY,
+      systemPrompt: appendedPrompt,
       model,
     })) {
       answer = logDeepAgentChunk(chunk, verbose, answer);

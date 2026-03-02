@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "qna": "tsx qna.ts",
-    "model-builder": "tsx model-builder.ts"
+    "model-builder": "tsx model-builder.ts",
+    "verify": "tsx verify.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.39",

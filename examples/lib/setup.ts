@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
@@ -27,4 +28,21 @@ export function loadEnv(): void {
   // 3. Prepend the repo root to PATH so child processes can find witan
   const repoRoot = path.resolve(import.meta.dirname, '..', '..');
   process.env.PATH = `${repoRoot}${path.delimiter}${process.env.PATH ?? ''}`;
+}
+
+
+/**
+ * Create a Python virtual environment inside `workDir` with openpyxl installed.
+ *
+ * The venv lives at `<workDir>/venv/` so the agent can use `./venv/bin/python`
+ * without needing PATH manipulation (which gets reset by shell profile sourcing).
+ */
+export function setupPythonVenv(workDir: string): void {
+  const venvDir = path.join(workDir, 'venv');
+  if (fs.existsSync(venvDir)) return;
+
+  console.log('Setting up Python venv with openpyxl...');
+  execSync('python3 -m venv venv', { cwd: workDir, stdio: 'pipe' });
+  execSync('./venv/bin/pip install -q openpyxl', { cwd: workDir, stdio: 'pipe' });
+  console.log('Python venv ready.\n');
 }

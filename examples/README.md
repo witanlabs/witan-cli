@@ -204,25 +204,13 @@ pnpm model-builder prompts/my-dcf-model.md
 All four entry points (`qna`, `model-builder`, `verify`, `read`) accept
 `-r`, `-m`, `-v`, and `-h`.
 
-## Project structure
+## Architecture
 
-```
-qna.ts                 QnA entry point
-model-builder.ts       Model builder entry point
-verify.ts              Workbook audit entry point
-read.ts                Multi-document QnA entry point
-lib/
-  run.ts               Shared runner dispatch
-  setup.ts             Env + PATH setup
-  format.ts            Console output formatting
-  demo-workbook.ts     Sample workbook generator (QnA)
-  buggy-workbook.ts    Buggy workbook generator (verify)
-  acme-fixtures.ts     PDF/DOCX/PPTX fixture generator (read)
-agents/
-  claude-code.ts       Claude Code SDK wrapper
-  deep-agents.ts       DeepAgents wrapper
-  index.ts             Re-exports
-prompts/
-  loan-amortization.md Default model spec
-output/                Generated workbooks (gitignored)
-```
+Four entry points — `qna.ts`, `model-builder.ts`, `verify.ts`, `read.ts` —
+each set up a sandboxed temp directory, load a skill prompt, and call
+`runAgent()` from `lib/run.ts`. The runner dispatches to either the Claude
+Code SDK (`agents/claude-code.ts`) or DeepAgents (`agents/deep-agents.ts`).
+
+Skills live in `../skills/` as standalone markdown files. Each entry point
+loads the skill it needs and passes it as a system prompt append — skills
+are composable and independent of the runner.

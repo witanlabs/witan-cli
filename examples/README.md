@@ -1,8 +1,8 @@
 # Witan Agent Examples
 
 Wire up an AI agent to read, query, and build Excel workbooks — and extract
-text from PDF, DOCX, and PPTX documents — using the **witan CLI**. Experiment
-with different models, frameworks, and prompting strategies.
+text from PDF, DOCX, PPTX, HTML, and 10 other formats — using the **witan
+CLI**. Experiment with different models, frameworks, and prompting strategies.
 
 Two runners are included — **Claude Code** (Anthropic's agent SDK) and
 **DeepAgents** (LangChain-based) — so you can compare how different agent

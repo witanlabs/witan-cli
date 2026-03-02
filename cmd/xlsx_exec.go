@@ -101,6 +101,16 @@ func runExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err := validateExecPositiveFlag(cmd, "timeout-ms", execTimeoutMS); err != nil {
+		return err
+	}
+	if err := validateExecNonNegativeFlag(cmd, "stdin-timeout-ms", execStdinTimeoutMS); err != nil {
+		return err
+	}
+	if err := validateExecPositiveFlag(cmd, "max-output-chars", execMaxOutputChars); err != nil {
+		return err
+	}
+
 	code, err := resolveExecCodeSource(cmd, os.Stdin)
 	if err != nil {
 		return err
@@ -111,16 +121,6 @@ func runExec(cmd *cobra.Command, args []string) error {
 
 	input, err := parseExecInput(execInputJSON, cmd.Flags().Changed("input-json"))
 	if err != nil {
-		return err
-	}
-
-	if err := validateExecPositiveFlag(cmd, "timeout-ms", execTimeoutMS); err != nil {
-		return err
-	}
-	if err := validateExecNonNegativeFlag(cmd, "stdin-timeout-ms", execStdinTimeoutMS); err != nil {
-		return err
-	}
-	if err := validateExecPositiveFlag(cmd, "max-output-chars", execMaxOutputChars); err != nil {
 		return err
 	}
 

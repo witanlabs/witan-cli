@@ -265,6 +265,31 @@ func TestRunExec_RejectsNonPositiveLimits(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "--stdin-timeout-ms must be >= 0") {
 		t.Fatalf("unexpected stdin-timeout validation error: %v", err)
 	}
+
+	cmd = newExecTestCommand()
+	if err := cmd.Flags().Set("stdin", "true"); err != nil {
+		t.Fatalf("setting --stdin: %v", err)
+	}
+	if err := cmd.Flags().Set("stdin-timeout-ms", "-1"); err != nil {
+		t.Fatalf("setting --stdin-timeout-ms: %v", err)
+	}
+
+	origStdin := os.Stdin
+	readPipe, writePipe, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("creating stdin pipe: %v", err)
+	}
+	os.Stdin = readPipe
+	t.Cleanup(func() {
+		os.Stdin = origStdin
+		readPipe.Close()
+		writePipe.Close()
+	})
+
+	err = runExec(cmd, []string{filePath})
+	if err == nil || !strings.Contains(err.Error(), "--stdin-timeout-ms must be >= 0") {
+		t.Fatalf("unexpected stdin-timeout validation error with --stdin: %v", err)
+	}
 }
 
 func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {

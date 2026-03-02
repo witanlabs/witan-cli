@@ -27,27 +27,36 @@ function extractText(content: unknown): string | null {
   return null;
 }
 
-function logToolCall(name: string, input: Record<string, unknown> | undefined): void {
+function formatToolCall(name: string, input: Record<string, unknown> | undefined): string {
   const desc = input?.description as string | undefined;
   const cmd = input?.command as string | undefined;
-  console.log(`\n${cyan}${bold}▶ ${name}${reset}${desc ? `${dim} — ${desc}${reset}` : ''}`);
-  if (cmd) console.log(`${dim}  $ ${truncate(cmd)}${reset}`);
+  let out = `\n${cyan}${bold}▶ ${name}${reset}${desc ? `${dim} — ${desc}${reset}` : ''}`;
+  if (cmd) out += `\n${dim}  $ ${truncate(cmd)}${reset}`;
+  return out;
 }
 
 function logContentBlocks(
   blocks: Array<Record<string, unknown>>,
+  pendingTools: Map<string, string>,
   options?: { suppressText?: boolean },
 ): void {
   for (const block of blocks) {
     if (block.type === 'thinking' && typeof block.thinking === 'string') {
       console.log(`\n${dim}${italic}${block.thinking}${reset}`);
     } else if (block.type === 'tool_use') {
-      logToolCall(block.name as string, block.input as Record<string, unknown> | undefined);
+      const label = formatToolCall(block.name as string, block.input as Record<string, unknown> | undefined);
+      if (block.id) {
+        pendingTools.set(block.id as string, label);
+      } else {
+        console.log(label);
+      }
     } else if (block.type === 'text' && typeof block.text === 'string' && !options?.suppressText) {
       console.log(`\n${block.text}`);
     }
   }
 }
+
+const ccPendingTools = new Map<string, string>();
 
 /** Print a single Claude Code SDK message. */
 export function logClaudeCodeMessage(message: SDKMessage, verbose: boolean): void {
@@ -59,13 +68,19 @@ export function logClaudeCodeMessage(message: SDKMessage, verbose: boolean): voi
   if (message.type === 'assistant') {
     type Block = Record<string, unknown>;
     const content = (message as unknown as { message?: { content?: Block[] } }).message?.content;
-    if (Array.isArray(content)) logContentBlocks(content);
+    if (Array.isArray(content)) logContentBlocks(content, ccPendingTools);
   } else if (message.type === 'user') {
     type Block = Record<string, unknown>;
     const content = (message as unknown as { message?: { content?: string | Block[] } }).message
       ?.content;
     if (Array.isArray(content)) {
       for (const block of content as Block[]) {
+        const id = block.tool_use_id as string | undefined;
+        const label = id ? ccPendingTools.get(id) : undefined;
+        if (label) {
+          ccPendingTools.delete(id!);
+          console.log(label);
+        }
         const text = extractText(block.content);
         if (text) console.log(`${dim}  ← ${truncate(text)}${reset}`);
       }
@@ -91,6 +106,8 @@ function extractChunkMessages(chunk: unknown): unknown[] {
   }
   return [];
 }
+
+const daPendingTools = new Map<string, string>();
 
 /**
  * Print new messages from a DeepAgent state-update chunk.
@@ -121,25 +138,37 @@ export function logDeepAgentChunk(
     const msgType = (kwargs.type as string) ?? '';
     if (msgType === 'human') continue;
 
-    // Tool calls (AIMessage)
+    // Tool calls (AIMessage) — buffer for pairing with results
     const toolCalls = kwargs.tool_calls as Array<Record<string, unknown>> | undefined;
     if (Array.isArray(toolCalls) && toolCalls.length > 0) {
       for (const tc of toolCalls) {
-        logToolCall(tc.name as string, tc.args as Record<string, unknown> | undefined);
+        const label = formatToolCall(tc.name as string, tc.args as Record<string, unknown> | undefined);
+        const tcId = tc.id as string | undefined;
+        if (tcId) {
+          daPendingTools.set(tcId, label);
+        } else {
+          console.log(label);
+        }
       }
     }
 
     // Content
     const content = kwargs.content;
     if (typeof content === 'string' && content) {
-      if (kwargs.tool_call_id) {
+      const tcId = kwargs.tool_call_id as string | undefined;
+      if (tcId) {
+        const label = daPendingTools.get(tcId);
+        if (label) {
+          daPendingTools.delete(tcId);
+          console.log(label);
+        }
         console.log(`${dim}  ← ${truncate(content)}${reset}`);
       } else if (!toolCalls?.length) {
         console.log(`\n${content}`);
         answer = content;
       }
     } else if (Array.isArray(content)) {
-      logContentBlocks(content as Array<Record<string, unknown>>, {
+      logContentBlocks(content as Array<Record<string, unknown>>, daPendingTools, {
         suppressText: !!toolCalls?.length,
       });
     }

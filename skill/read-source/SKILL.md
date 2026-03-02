@@ -13,7 +13,7 @@ Use `witan read` to convert source documents into LLM-ready text for spreadsheet
 - **HTML** → markdown (readability + turndown)
 - **Text** (.txt, .md, .csv, .json, .xml, .yaml, .toml) → passthrough
 
-For reading **spreadsheet** data (.xlsx, .xls), use `witan xlsx exec` instead (see the `xlsx-code-mode` skill).
+This is not for reading spreadsheet data (.xlsx, .xls) — use spreadsheet-specific tools for that.
 
 ## Setup
 

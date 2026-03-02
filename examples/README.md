@@ -1,8 +1,8 @@
 # Witan Agent Examples
 
-Wire up an AI agent to read, query, and build Excel workbooks using the
-**witan CLI** — then experiment with different models, frameworks, and
-prompting strategies.
+Wire up an AI agent to read, query, and build Excel workbooks — and extract
+text from PDF, DOCX, and PPTX documents — using the **witan CLI**. Experiment
+with different models, frameworks, and prompting strategies.
 
 Two runners are included — **Claude Code** (Anthropic's agent SDK) and
 **DeepAgents** (LangChain-based) — so you can compare how different agent
@@ -32,6 +32,8 @@ as a tool. Two skills are available:
   via the witan exec API.
 - **`skills/xlsx-verify/SKILL.md`** — audit workbooks for formula bugs
   using lint, calc, and render. Works alongside any write tooling.
+- **`skills/read-source/SKILL.md`** — extract text from non-spreadsheet
+  documents (PDF, DOCX, PPTX, HTML, text) via `witan read`.
 
 The `agents/` directory shows how each framework is wired up. Use these as
 reference implementations when building your own integration.
@@ -139,6 +141,22 @@ The skill works with Claude Code, DeepAgents, or any agent framework that
 can run shell commands. Just include the skill prompt in your system
 instructions and ensure the `witan` binary is on PATH.
 
+### Read and analyze documents
+
+The read example uses `witan read` to extract text from PDF, DOCX, and PPTX
+files, then synthesizes answers across multiple documents.
+
+```bash
+# Demo: generates 3 Acme Corp documents and asks a cross-document question
+pnpm read
+
+# Your own files — last argument is the question
+pnpm read report.pdf minutes.docx deck.pptx "What is the total revenue?"
+```
+
+The agent calls `witan read <file>` itself via Bash to extract text from each
+document, then reasons across all of them to answer the question.
+
 ### Switch models and runners
 
 Both examples support `-r` to switch agent frameworks and `-m` to override
@@ -183,18 +201,23 @@ pnpm model-builder prompts/my-dcf-model.md
 | `-v, --verbose` | Print raw JSON messages | both |
 | `-o, --output` | Output directory (default: `./output/`) | model-builder |
 
+All four entry points (`qna`, `model-builder`, `verify`, `read`) accept
+`-r`, `-m`, `-v`, and `-h`.
+
 ## Project structure
 
 ```
 qna.ts                 QnA entry point
 model-builder.ts       Model builder entry point
 verify.ts              Workbook audit entry point
+read.ts                Multi-document QnA entry point
 lib/
   run.ts               Shared runner dispatch
   setup.ts             Env + PATH setup
   format.ts            Console output formatting
   demo-workbook.ts     Sample workbook generator (QnA)
   buggy-workbook.ts    Buggy workbook generator (verify)
+  acme-fixtures.ts     PDF/DOCX/PPTX fixture generator (read)
 agents/
   claude-code.ts       Claude Code SDK wrapper
   deep-agents.ts       DeepAgents wrapper

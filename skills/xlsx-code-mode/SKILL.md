@@ -1054,6 +1054,6 @@ function lint(
 function previewStyles(wb, range: RangeAddressOrCoordinates): Promise<void>;
 ````
 
-## Reading Source Material
+## Scope
 
-To read **non-spreadsheet** source documents (PDF, DOCX, PPTX, HTML, text) and extract text for populating workbooks, use the `witan read` command (see the `read-source` skill). Use `exec` for reading spreadsheet data.
+This skill is for reading and manipulating Excel spreadsheets (.xlsx, .xlsm) only. It does not handle non-spreadsheet documents (PDF, DOCX, PPTX, HTML, text).

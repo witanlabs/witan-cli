@@ -26,6 +26,10 @@ mkdir -p "${OUTPUT_DIR}"
 # Remove stale wheel artifacts from prior runs when reusing an output directory.
 rm -f "${OUTPUT_DIR}"/witan-*.whl
 
+# The package bundles a Go binary and does not depend on new Python runtime features.
+# Keep this relaxed to avoid publishing wheels that appear tied to a very new Python.
+PYTHON_REQUIRES="${PYTHON_REQUIRES:->=3.10}"
+
 if [[ -z "${GOCACHE:-}" ]]; then
   export GOCACHE="${ROOT_DIR}/.tmp/gocache"
 fi
@@ -41,6 +45,7 @@ go-to-wheel "${ROOT_DIR}" \
   --author "Witan Labs" \
   --url "https://github.com/witanlabs/witan-cli" \
   --readme "${ROOT_DIR}/README.md" \
+  --requires-python "${PYTHON_REQUIRES}" \
   --set-version-var "github.com/witanlabs/witan-cli/cmd.Version"
 
 echo "Built PyPI wheels in ${OUTPUT_DIR}"

@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/witanlabs/witan-cli/client"
@@ -19,10 +20,13 @@ var (
 	execStdin          bool
 	execExpr           string
 	execInputJSON      string
+	execStdinTimeoutMS int
 	execTimeoutMS      int
 	execMaxOutputChars int
 	execSave           bool
 )
+
+const defaultExecStdinTimeoutMS = 2000
 
 var xlsxExecCmd = &cobra.Command{
 	Use:   "exec <file>",
@@ -42,6 +46,7 @@ Inputs:
 
 Defaults:
   - --timeout-ms=0 means no explicit timeout override.
+  - --stdin-timeout-ms=2000 aborts --stdin reads that never reach EOF; set 0 to disable.
   - --max-output-chars=0 means no explicit stdout cap override.
   - --save=false means no workbook write-back.
 
@@ -81,6 +86,7 @@ func init() {
 	xlsxExecCmd.Flags().BoolVar(&execStdin, "stdin", false, "Read JavaScript source from stdin")
 	xlsxExecCmd.Flags().StringVar(&execExpr, "expr", "", `Single-expression shorthand; wraps as return (<expr>);`)
 	xlsxExecCmd.Flags().StringVar(&execInputJSON, "input-json", "", "JSON value passed as input to the script")
+	xlsxExecCmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "Maximum time to wait for EOF when reading --stdin (0 disables)")
 	xlsxExecCmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
 	xlsxExecCmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "Maximum stdout characters to capture (> 0)")
 	xlsxExecCmd.Flags().BoolVar(&execSave, "save", false, "Persist exec writes and overwrite local workbook when writes are detected")
@@ -109,6 +115,9 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := validateExecPositiveFlag(cmd, "timeout-ms", execTimeoutMS); err != nil {
+		return err
+	}
+	if err := validateExecNonNegativeFlag(cmd, "stdin-timeout-ms", execStdinTimeoutMS); err != nil {
 		return err
 	}
 	if err := validateExecPositiveFlag(cmd, "max-output-chars", execMaxOutputChars); err != nil {
@@ -263,13 +272,39 @@ func resolveExecCodeSource(cmd *cobra.Command, stdin io.Reader) (string, error) 
 		}
 		return string(b), nil
 	case stdinSet:
-		b, err := io.ReadAll(stdin)
+		b, err := readExecStdinWithTimeout(stdin, execStdinTimeoutMS)
 		if err != nil {
 			return "", fmt.Errorf("reading --stdin: %w", err)
 		}
 		return string(b), nil
 	default:
 		return "", fmt.Errorf("exactly one of --code, --script, --stdin, or --expr is required")
+	}
+}
+
+func readExecStdinWithTimeout(stdin io.Reader, timeoutMS int) ([]byte, error) {
+	if timeoutMS == 0 {
+		return io.ReadAll(stdin)
+	}
+
+	type readResult struct {
+		b   []byte
+		err error
+	}
+	done := make(chan readResult, 1)
+	go func() {
+		b, err := io.ReadAll(stdin)
+		done <- readResult{b: b, err: err}
+	}()
+
+	timer := time.NewTimer(time.Duration(timeoutMS) * time.Millisecond)
+	defer timer.Stop()
+
+	select {
+	case res := <-done:
+		return res.b, res.err
+	case <-timer.C:
+		return nil, fmt.Errorf("stdin read timed out after %dms waiting for EOF; ensure the input stream closes or set --stdin-timeout-ms=0 to disable timeout", timeoutMS)
 	}
 }
 
@@ -298,6 +333,13 @@ func parseExecInput(raw string, provided bool) (any, error) {
 func validateExecPositiveFlag(cmd *cobra.Command, name string, value int) error {
 	if cmd.Flags().Changed(name) && value <= 0 {
 		return fmt.Errorf("--%s must be > 0", name)
+	}
+	return nil
+}
+
+func validateExecNonNegativeFlag(cmd *cobra.Command, name string, value int) error {
+	if cmd.Flags().Changed(name) && value < 0 {
+		return fmt.Errorf("--%s must be >= 0", name)
 	}
 	return nil
 }

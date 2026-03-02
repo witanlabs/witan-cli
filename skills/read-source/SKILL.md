@@ -1,17 +1,17 @@
 ---
 name: read-source
-description: Extract text from source documents (PDF, DOCX, PPTX, HTML, text) for spreadsheet workflows. Use to understand source material before populating workbooks.
+description: Extract text from source documents (PDF, DOCX, PPTX, HTML, Markdown) for spreadsheet workflows. Use to understand source material before populating workbooks.
 ---
 
 ## When to Use
 
-Use `witan read` to convert source documents into LLM-ready text for spreadsheet workflows. This is for **source material** — PDFs, Word docs, presentations, and text files that contain data you need to extract and put into a spreadsheet.
+Use `witan read` to convert source documents into LLM-ready text. This is for **source material** — PDFs, Word docs, presentations, HTML pages, and Markdown files that contain data you need to extract.
 
 - **PDF** → plain text
 - **Word** (.doc, .docx) → markdown
 - **PowerPoint** (.ppt, .pptx) → markdown
 - **HTML** → markdown
-- **Text** (.txt, .md, .csv, .json, .xml, .yaml, .toml) → passthrough
+- **Markdown** (.md) → outline support via `--outline`
 
 This is not for reading spreadsheet data (.xlsx, .xls) — use spreadsheet-specific tools for that.
 

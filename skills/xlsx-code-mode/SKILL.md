@@ -206,6 +206,23 @@ To persist changes back to the workbook file, pass the `--save` flag.
 
 Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript.
 
+### Circular reference convergence
+
+When a workbook has **iterative calculation** enabled (circular references between
+cells), `setCells` returns **partially-converged intermediate values** in
+`result.touched` — this is expected and not an error. Do not try to debug or
+"fix" these intermediate values.
+
+To fully converge circular references after setting formulas, run:
+
+```bash
+witan xlsx calc model.xlsx --show-touched
+```
+
+This recalculates all formulas with iterative solving and saves the converged
+values back to the file. After running calc, inspect the output to verify that
+all cells have the expected values.
+
 ### Response format
 
 When `--json` is used, the full response envelope is returned:

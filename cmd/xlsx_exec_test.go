@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -139,6 +140,30 @@ func TestResolveExecCodeSource_ScriptAndStdin(t *testing.T) {
 			t.Fatalf("unexpected stdin code: %q", code)
 		}
 	})
+
+	t.Run("stdin times out when EOF never arrives", func(t *testing.T) {
+		cmd := newExecTestCommand()
+		if err := cmd.Flags().Set("stdin", "true"); err != nil {
+			t.Fatalf("setting --stdin: %v", err)
+		}
+		if err := cmd.Flags().Set("stdin-timeout-ms", "20"); err != nil {
+			t.Fatalf("setting --stdin-timeout-ms: %v", err)
+		}
+
+		r, w := io.Pipe()
+		defer w.Close()
+
+		start := time.Now()
+		_, err := resolveExecCodeSource(cmd, r)
+		elapsed := time.Since(start)
+
+		if err == nil || !strings.Contains(err.Error(), "timed out") {
+			t.Fatalf("expected timeout error, got: %v", err)
+		}
+		if elapsed < 15*time.Millisecond || elapsed > 500*time.Millisecond {
+			t.Fatalf("unexpected timeout duration: %s", elapsed)
+		}
+	})
 }
 
 func TestParseExecInput(t *testing.T) {
@@ -180,6 +205,7 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 		`{"ok":false,"stdout":"...","error":{"type":"...","code":"...","message":"..."}}`,
 		"--input-json is omitted, input defaults to {}.",
 		"--timeout-ms=0 means no explicit timeout override.",
+		"--stdin-timeout-ms=2000 aborts --stdin reads that never reach EOF; set 0 to disable.",
 		"--max-output-chars=0 means no explicit stdout cap override.",
 	}
 
@@ -226,6 +252,18 @@ func TestRunExec_RejectsNonPositiveLimits(t *testing.T) {
 	err = runExec(cmd, []string{filePath})
 	if err == nil || !strings.Contains(err.Error(), "--max-output-chars must be > 0") {
 		t.Fatalf("unexpected max-output validation error: %v", err)
+	}
+
+	cmd = newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return 1;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("stdin-timeout-ms", "-1"); err != nil {
+		t.Fatalf("setting --stdin-timeout-ms: %v", err)
+	}
+	err = runExec(cmd, []string{filePath})
+	if err == nil || !strings.Contains(err.Error(), "--stdin-timeout-ms must be >= 0") {
+		t.Fatalf("unexpected stdin-timeout validation error: %v", err)
 	}
 }
 
@@ -661,6 +699,7 @@ func resetExecTestGlobals(t *testing.T) {
 	origExecStdin := execStdin
 	origExecExpr := execExpr
 	origExecInputJSON := execInputJSON
+	origExecStdinTimeoutMS := execStdinTimeoutMS
 	origExecTimeoutMS := execTimeoutMS
 	origExecMaxOutputChars := execMaxOutputChars
 	origExecSave := execSave
@@ -675,6 +714,7 @@ func resetExecTestGlobals(t *testing.T) {
 		execStdin = origExecStdin
 		execExpr = origExecExpr
 		execInputJSON = origExecInputJSON
+		execStdinTimeoutMS = origExecStdinTimeoutMS
 		execTimeoutMS = origExecTimeoutMS
 		execMaxOutputChars = origExecMaxOutputChars
 		execSave = origExecSave
@@ -689,6 +729,7 @@ func resetExecTestGlobals(t *testing.T) {
 	execStdin = false
 	execExpr = ""
 	execInputJSON = ""
+	execStdinTimeoutMS = defaultExecStdinTimeoutMS
 	execTimeoutMS = 0
 	execMaxOutputChars = 0
 	execSave = false
@@ -701,6 +742,7 @@ func newExecTestCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&execStdin, "stdin", false, "")
 	cmd.Flags().StringVar(&execExpr, "expr", "", "")
 	cmd.Flags().StringVar(&execInputJSON, "input-json", "", "")
+	cmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "")
 	cmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "")
 	cmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "")
 	cmd.Flags().BoolVar(&execSave, "save", false, "")

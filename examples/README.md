@@ -28,9 +28,9 @@ you're already working inside Claude Code or Codex, you can give the agent
 a witan skill prompt and the witan binary — the agent will use it directly
 as a tool. Two skills are available:
 
-- **`skill/xlsx-code-mode/SKILL.md`** — read, write, and query workbooks
+- **`skills/xlsx-code-mode/SKILL.md`** — read, write, and query workbooks
   via the witan exec API.
-- **`skill/xlsx-verify/SKILL.md`** — audit workbooks for formula bugs
+- **`skills/xlsx-verify/SKILL.md`** — audit workbooks for formula bugs
   using lint, calc, and render. Works alongside any write tooling.
 
 The `agents/` directory shows how each framework is wired up. Use these as
@@ -132,7 +132,7 @@ manual edits, or another agent's output — to find and fix subtle errors:
 
 1. **Edit** the workbook with your preferred tools.
 2. **Verify** by giving the agent the `xlsx-verify` skill prompt
-   (`skill/xlsx-verify/SKILL.md`) and the workbook.
+   (`skills/xlsx-verify/SKILL.md`) and the workbook.
 3. **Fix** the issues the agent reports, then re-verify.
 
 The skill works with Claude Code, DeepAgents, or any agent framework that

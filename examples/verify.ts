@@ -39,7 +39,7 @@ const defaultModel = runner === 'deep-agents' ? 'gpt-5.2' : 'claude-opus-4-6';
 const isDemo = positionals.length === 0;
 
 // Load the xlsx-verify skill
-const verifyPath = path.resolve(import.meta.dirname, '../skill/xlsx-verify/SKILL.md');
+const verifyPath = path.resolve(import.meta.dirname, '../skills/xlsx-verify/SKILL.md');
 const skill = fs.readFileSync(verifyPath, 'utf-8');
 
 let filename: string;

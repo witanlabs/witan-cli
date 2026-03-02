@@ -37,7 +37,7 @@ const verbose = values.verbose!;
 const defaultModel = runner === 'deep-agents' ? 'gpt-5.2' : 'claude-opus-4-6';
 const isDemo = positionals.length < 2;
 
-const skillPath = path.resolve(import.meta.dirname, '../skill/xlsx-code-mode/SKILL.md');
+const skillPath = path.resolve(import.meta.dirname, '../skills/xlsx-code-mode/SKILL.md');
 const skill = fs.readFileSync(skillPath, 'utf-8');
 
 let filename: string;

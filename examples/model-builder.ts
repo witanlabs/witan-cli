@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import ExcelJS from 'exceljs';
-import { loadEnv } from './lib/setup.js';
+import { loadEnv, enableIterativeCalc } from './lib/setup.js';
 import { logWorkDir } from './lib/format.js';
 import { runAgent } from './lib/run.js';
 
@@ -78,7 +78,9 @@ async function copyOutputFiles(): Promise<void> {
   }
 }
 
-await createEmptyWorkbook(path.join(workDir, workbookFilename));
+const workbookPath = path.join(workDir, workbookFilename);
+await createEmptyWorkbook(workbookPath);
+enableIterativeCalc(workbookPath);
 
 const prompt = `${promptContent}\n\nInput files: ${workbookFilename}\nThe input files are in your current working directory.`;
 

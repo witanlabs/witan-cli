@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
@@ -45,4 +46,40 @@ export function setupPythonVenv(workDir: string): void {
   execSync('python3 -m venv venv', { cwd: workDir, stdio: 'pipe' });
   execSync('./venv/bin/pip install -q openpyxl', { cwd: workDir, stdio: 'pipe' });
   console.log('Python venv ready.\n');
+}
+
+/**
+ * Patch an xlsx file's workbook.xml to enable iterative calculation.
+ *
+ * ExcelJS does not write the `iterate`, `iterateCount`, or `iterateDelta`
+ * attributes to `<calcPr>` even when `calcProperties` is set. This function
+ * unzips the xlsx, patches the XML, and re-zips it.
+ *
+ * Uses Excel's default settings: 100 max iterations, 0.001 max change.
+ */
+export function enableIterativeCalc(xlsxPath: string): void {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xlsx-patch-'));
+  try {
+    execSync(`unzip -o "${xlsxPath}" -d "${tmpDir}" > /dev/null`);
+
+    const workbookXmlPath = path.join(tmpDir, 'xl/workbook.xml');
+    let xml = fs.readFileSync(workbookXmlPath, 'utf-8');
+
+    if (/<calcPr[^/]*\/>/.test(xml)) {
+      xml = xml.replace(
+        /<calcPr[^/]*\/>/,
+        '<calcPr calcId="171027" iterate="1" iterateCount="100" iterateDelta="0.001"/>',
+      );
+    } else {
+      xml = xml.replace(
+        '</workbook>',
+        '<calcPr calcId="171027" iterate="1" iterateCount="100" iterateDelta="0.001"/></workbook>',
+      );
+    }
+
+    fs.writeFileSync(workbookXmlPath, xml);
+    execSync(`cd "${tmpDir}" && zip -r "${xlsxPath}" . > /dev/null`);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 }

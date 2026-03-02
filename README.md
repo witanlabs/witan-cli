@@ -146,10 +146,12 @@ GitHub release publishing:
 
 Cutting a release (UI-driven):
 
-1. Create a GitHub Release in the UI with a new tag `vX.Y.Z` (or prerelease tag `vX.Y.Z-suffix`).
-2. Tag push triggers `Witan CLI Release`.
-3. The workflow builds artifacts, attaches them to the GitHub Release, and publishes to PyPI for stable tags.
-4. For stable tags, verify `witan==X.Y.Z` on PyPI and `witan --version`.
+1. Add release notes under `## Unreleased` in `CHANGELOG.md`.
+2. Create a GitHub Release in the UI with a new tag `vX.Y.Z` (or prerelease tag `vX.Y.Z-suffix`).
+3. Tag push triggers `Witan CLI Release`.
+4. The workflow builds artifacts, attaches them to the GitHub Release, and publishes to PyPI for stable tags.
+5. On successful release, CI runs `scripts/roll-changelog.sh`, pushes the changelog update to a `chore/changelog-release-X.Y.Z` branch, and opens a PR into the default branch.
+6. For stable tags, verify `witan==X.Y.Z` on PyPI and `witan --version`.
 
 Manual `git tag ... && git push ...` is equivalent to UI tag creation and triggers the same workflow.
 

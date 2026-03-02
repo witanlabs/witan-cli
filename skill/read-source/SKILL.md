@@ -7,10 +7,10 @@ description: Extract text from source documents (PDF, DOCX, PPTX, HTML, text) fo
 
 Use `witan read` to convert source documents into LLM-ready text for spreadsheet workflows. This is for **source material** — PDFs, Word docs, presentations, and text files that contain data you need to extract and put into a spreadsheet.
 
-- **PDF** → plain text (PdfPig)
-- **Word** (.doc, .docx) → markdown (mammoth)
-- **PowerPoint** (.ppt, .pptx) → markdown (slide text extraction)
-- **HTML** → markdown (readability + turndown)
+- **PDF** → plain text
+- **Word** (.doc, .docx) → markdown
+- **PowerPoint** (.ppt, .pptx) → markdown
+- **HTML** → markdown
 - **Text** (.txt, .md, .csv, .json, .xml, .yaml, .toml) → passthrough
 
 This is not for reading spreadsheet data (.xlsx, .xls) — use spreadsheet-specific tools for that.

@@ -1053,3 +1053,7 @@ function lint(
  */
 function previewStyles(wb, range: RangeAddressOrCoordinates): Promise<void>;
 ````
+
+## Scope
+
+This skill is for reading and manipulating Excel spreadsheets (.xlsx, .xlsm) only. It does not handle non-spreadsheet documents (PDF, DOCX, PPTX, HTML, text).

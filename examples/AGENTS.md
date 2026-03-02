@@ -4,11 +4,12 @@
 
 This is a TypeScript examples directory for the witan CLI. It provides two
 agent wrappers (`invokeClaudeCode` and `invokeDeepAgent`), a shared runner
-module (`run.ts`), and three entry points:
+module (`run.ts`), and four entry points:
 
 - `qna.ts` — ask questions about existing Excel workbooks.
 - `model-builder.ts` — build financial models from a prompt specification.
 - `verify.ts` — audit a workbook for formula bugs using the witan linter.
+- `read.ts` — multi-document QnA using `witan read` for PDF/DOCX/PPTX.
 
 ## Key files
 
@@ -31,6 +32,12 @@ module (`run.ts`), and three entry points:
 - `lib/demo-workbook.ts` — Sample workbook generator for the QnA demo mode.
 - `lib/buggy-workbook.ts` — Buggy multi-region P&L workbook generator for the
   verify demo mode. Contains 5 planted formula bugs across 3 sheets.
+- `lib/acme-fixtures.ts` — Generates deterministic PDF/DOCX/PPTX fixtures for
+  the read demo (Acme Corp FY2025 annual report, board minutes, investor deck).
+- `read.ts` — Multi-document QnA CLI entry point. In demo mode, generates 3
+  Acme Corp documents and asks a cross-document question. In custom mode,
+  copies user-provided files into a sandbox and uses the last positional as
+  the question. The agent calls `witan read` via Bash to extract text.
 - `prompts/loan-amortization.md` — Default model-builder prompt (loan
   amortization with circular references).
 - `agents/claude-code.ts` — Async generator wrapping the Claude Code SDK
@@ -45,6 +52,7 @@ pnpm install
 pnpm qna <workbook.xlsx> <question>
 pnpm model-builder [prompt-file]
 pnpm verify [workbook.xlsx]
+pnpm read [file1.pdf file2.docx ...] [question]
 ```
 
 The witan CLI binary must exist at `../witan`. Build it with `cd .. && make build`.

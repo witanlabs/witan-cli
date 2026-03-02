@@ -1,6 +1,6 @@
 ---
 name: xlsx-code-mode
-description: Use this skill any time an Excel file (.xlsx, .xlsm) needs to be read, explored, understood, or modified. You cannot read .xlsx files with cat, head, or normal file-reading tools — this is the only way to inspect them. Trigger when you or the user need to: open, look at, or explore a workbook; find out what sheets it has or where specific data lives; read cells, rows, columns, or ranges; search for values, labels, or patterns; trace formula dependencies or understand how a cell is calculated; run what-if scenarios by changing inputs and reading recalculated outputs; or edit cells, rows, columns, and sheets. Trigger when the user references a spreadsheet file by name or path — even casually (e.g. 'check the xlsx', 'what's in report.xlsx') — and also when you need to inspect a workbook yourself as part of a larger task. The tool runs sandboxed JavaScript against the workbook server-side via `witan xlsx exec`."
+description: Use this skill any time an Excel file (.xlsx, .xlsm) needs to be read, explored, understood, or modified. You cannot read .xlsx files with cat, head, or normal file-reading tools — this is the only way to inspect them. Trigger when you or the user need to open, look at, or explore a workbook; find out what sheets it has or where specific data lives; read cells, rows, columns, or ranges; search for values, labels, or patterns; trace formula dependencies or understand how a cell is calculated; run what-if scenarios by changing inputs and reading recalculated outputs; or edit cells, rows, columns, and sheets. Trigger when the user references a spreadsheet file by name or path — even casually (e.g. 'check the xlsx', 'what's in report.xlsx') — and also when you need to inspect a workbook yourself as part of a larger task. The tool runs sandboxed JavaScript against the workbook server-side via `witan xlsx exec`."
 ---
 
 ## Setup
@@ -205,6 +205,23 @@ To persist changes back to the workbook file, pass the `--save` flag.
 ```
 
 Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript.
+
+### Circular reference convergence
+
+When a workbook has **iterative calculation** enabled (circular references between
+cells), `setCells` returns **partially-converged intermediate values** in
+`result.touched` — this is expected and not an error. Do not try to debug or
+"fix" these intermediate values.
+
+To fully converge circular references after setting formulas, run:
+
+```bash
+witan xlsx calc model.xlsx --show-touched
+```
+
+This recalculates all formulas with iterative solving and saves the converged
+values back to the file. After running calc, inspect the output to verify that
+all cells have the expected values.
 
 ### Response format
 

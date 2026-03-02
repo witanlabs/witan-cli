@@ -58,6 +58,22 @@ When exit code 2 is returned:
 
 Exit codes apply in both human and `--json` output modes. Use `--json` to get the API response as structured JSON on stdout (indented), suitable for piping to `jq` or parsing programmatically.
 
+**Important:** Exit code 2 is a successful run that found issues — it is not a
+failure. Do not retry commands that exit with code 2; instead, read and report
+the findings from stdout. Only exit code 1 indicates an actual error that
+should be retried or debugged.
+
+To prevent exit code 2 from being treated as a command failure, append
+`; true` to the command:
+
+```bash
+witan xlsx lint report.xlsx; true
+witan xlsx calc report.xlsx --verify --show-touched; true
+```
+
+The output still contains all findings — the `; true` simply ensures exit
+code 0 so your shell or tool runner does not flag it as an error.
+
 ## Calc Contracts
 
 Use two explicit calc contracts:

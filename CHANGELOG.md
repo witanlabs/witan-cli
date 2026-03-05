@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- New: `sortRange` operation to sort rows by column keys.
+- New: `autoFitColumns` operation to auto-fit column widths to cell content.
+- New: `findAndReplace` for bulk text substitution with regex and formula support.
+- New: `copyRange` operation to copy ranges with formula reference adjustment.
+- New: `scenarios` operation for batch what-if analysis with compact TSV output.
+- New: `getConditionalFormatting`, `setConditionalFormatting`, `removeConditionalFormatting` for reading, adding, and removing conditional formatting rules (`iconSet` currently read-only in write payloads).
+- Breaking: `detectTables` replaced by `describeSheets` — returns per-sheet tables + compact ASCII structure map showing cell types, row collapsing, and inline label annotations.
+- `readRange`, `readRow`, `readColumn`, `readCell`: now include `note`, `link`, `thread` fields when cells have comments, hyperlinks, or threaded comments.
+- `setCells`: now supports `note`, `link`, and `thread` fields for setting/clearing comments, hyperlinks, and threaded comments (with inline person upsert).
+
 ## 0.3.0
 
 ### Commands

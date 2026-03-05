@@ -14,4 +14,3 @@
 ### Skills
 
 - `xlsx-code-mode`: Workbook exploration/editing workflow centered on `witan xlsx exec` for reading data, tracing logic, and running what-if updates.
-- `xlsx-verify`: Spreadsheet verification workflow that uses `render`, `calc`, and `lint` as a quality gate before delivery.

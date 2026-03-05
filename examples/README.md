@@ -29,9 +29,7 @@ a witan skill prompt and the witan binary — the agent will use it directly
 as a tool. Two skills are available:
 
 - **`skills/xlsx-code-mode/SKILL.md`** — read, write, and query workbooks
-  via the witan exec API.
-- **`skills/xlsx-verify/SKILL.md`** — audit workbooks for formula bugs
-  using lint, calc, and render. Works alongside any write tooling.
+  via the witan exec API. Includes lint, calc, and render for verification.
 - **`skills/read-source/SKILL.md`** — extract text from non-spreadsheet
   documents (PDF, DOCX, PPTX, HTML, text) via `witan read`.
 
@@ -103,10 +101,10 @@ result — formulas, formatting, and structure are all agent-generated.
 
 ### Audit a workbook for formula bugs
 
-The verify example uses the `xlsx-verify` skill to catch formula bugs that
-are invisible in normal spreadsheet use — double-counting from overlapping
-SUM ranges, currency mixing across regions, unit mismatches (adding dollars
-to percentages), and missing data silently coerced to zero.
+The verify example catches formula bugs that are invisible in normal
+spreadsheet use — double-counting from overlapping SUM ranges, currency
+mixing across regions, unit mismatches (adding dollars to percentages),
+and missing data silently coerced to zero.
 
 ```bash
 # Demo: generates a buggy P&L workbook and audits it
@@ -116,8 +114,8 @@ pnpm verify
 pnpm verify path/to/workbook.xlsx
 ```
 
-The `xlsx-verify` skill provides three tools that go beyond what Python
-libraries or manual inspection can catch:
+The `xlsx-code-mode` skill includes three verification tools that go
+beyond what Python libraries or manual inspection can catch:
 
 - **`witan xlsx lint`** — semantic formula analysis. Detects overlapping
   ranges, mixed currencies, type confusion, unsorted lookups, and more.
@@ -125,21 +123,6 @@ libraries or manual inspection can catch:
   errors or stale cached values without modifying the file.
 - **`witan xlsx render`** — renders any cell range as a PNG image so the
   agent can visually inspect layout and formatting.
-
-#### Using verify in your own workflow
-
-The verify skill is independent of how you create or edit workbooks. Combine
-it with any write tooling — openpyxl scripts, the `xlsx-code-mode` skill,
-manual edits, or another agent's output — to find and fix subtle errors:
-
-1. **Edit** the workbook with your preferred tools.
-2. **Verify** by giving the agent the `xlsx-verify` skill prompt
-   (`skills/xlsx-verify/SKILL.md`) and the workbook.
-3. **Fix** the issues the agent reports, then re-verify.
-
-The skill works with Claude Code, DeepAgents, or any agent framework that
-can run shell commands. Just include the skill prompt in your system
-instructions and ensure the `witan` binary is on PATH.
 
 ### Read and analyze documents
 

@@ -19,11 +19,11 @@ module (`run.ts`), and four entry points:
   invokes the chosen runner with a model specification prompt, and copies output
   workbooks to the output directory.
 - `verify.ts` — Workbook audit CLI entry point. Generates a buggy P&L workbook
-  (demo mode) or accepts a user-provided workbook, loads the xlsx-verify skill,
-  and asks the agent to find formula issues. The xlsx-verify skill provides
-  lint (semantic formula analysis), calc (recalculation verification), and
-  render (visual inspection) — tools that catch bugs invisible to normal
-  spreadsheet use. Combine with any write tooling to create an edit-verify loop.
+  (demo mode) or accepts a user-provided workbook, loads the xlsx-code-mode skill,
+  and asks the agent to find formula issues. The skill provides lint (semantic
+  formula analysis), calc (recalculation verification), and render (visual
+  inspection) — tools that catch bugs invisible to normal spreadsheet use.
+  Combine with any write tooling to create an edit-verify loop.
 - `lib/run.ts` — Shared runner dispatch module. Exports `runAgent()` which handles
   Claude Code and DeepAgents invocation with system prompt assembly and logging.
 - `lib/setup.ts` — Loads `.env`, verifies the witan binary exists, prepends it

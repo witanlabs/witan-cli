@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 
 /**
  * Generate a multi-region P&L workbook with 5 planted formula bugs
- * for demonstrating the xlsx-verify (lint) skill.
+ * for demonstrating the lint/calc/render verification workflow.
  *
  * Sheets:
  *   1. P&L        — income statement with North America, Europe, Asia-Pacific

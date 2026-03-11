@@ -21,7 +21,7 @@ Output:
 
 Examples:
   witan xlsx calc report.xlsx
-  witan xlsx exec report.xlsx --expr 'wb.sheet("Summary").cell("A1").value'
+  witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
   witan xlsx --json lint report.xlsx
   witan xlsx render report.xlsx -r "Sheet1!A1:F20"`,
 }

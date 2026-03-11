@@ -61,7 +61,7 @@ witan xlsx calc report.xlsx
 witan xlsx lint report.xlsx
 
 # Run JS against workbook
-witan xlsx exec report.xlsx --expr 'wb.sheet("Summary").cell("A1").value'
+witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
 ```
 
 ## What This CLI Covers

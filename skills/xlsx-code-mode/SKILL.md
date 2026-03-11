@@ -120,9 +120,9 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
 | `readRow`               | `(wb, sheet, row, opts?)` | Read a row; `opts.startCol/endCol` to limit                                                |
 | `readColumn`            | `(wb, sheet, col, opts?)` | Read a column; `opts.startRow/endRow` to limit                                             |
-| `readRangeTsv`          | `(wb, range, opts?)`      | Read range as TSV text; `opts.includeEmpty`                                                |
-| `readColumnTsv`         | `(wb, sheet, col, opts?)` | Read column as TSV text                                                                    |
-| `readRowTsv`            | `(wb, sheet, row, opts?)` | Read row as TSV text                                                                       |
+| `readRangeTsv`          | `(wb, range, opts?)`      | Read range as TSV text; `opts.includeEmpty`, `includeFormulas`                             |
+| `readColumnTsv`         | `(wb, sheet, col, opts?)` | Read column as TSV text; `opts.startRow/endRow`, `includeEmpty`, `includeFormulas`         |
+| `readRowTsv`            | `(wb, sheet, row, opts?)` | Read row as TSV text; `opts.startCol/endCol`, `includeEmpty`, `includeFormulas`            |
 | `getStyle`              | `(wb, cell)`              | Get style properties (fill, font, alignment, border, numberFormat, richText) of a cell     |
 
 **Searching**
@@ -491,6 +491,7 @@ function readRangeTsv(
   range: RangeAddressOrCoordinates,
   opts?: {
     includeEmpty?: boolean;
+    includeFormulas?: boolean;
   },
 ): Promise<string>;
 /** Read a column as tab-separated values. */
@@ -502,6 +503,7 @@ function readColumnTsv(
     startRow?: number;
     endRow?: number;
     includeEmpty?: boolean;
+    includeFormulas?: boolean;
   },
 ): Promise<string>;
 /** Read a row as tab-separated values. */
@@ -513,6 +515,7 @@ function readRowTsv(
     startCol?: number;
     endCol?: number;
     includeEmpty?: boolean;
+    includeFormulas?: boolean;
   },
 ): Promise<string>;
 declare class SearchResults<T> extends Array<T> {

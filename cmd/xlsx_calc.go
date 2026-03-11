@@ -122,7 +122,7 @@ func runCalc(cmd *cobra.Command, args []string) error {
 			if err := os.WriteFile(filePath, fileBytes, 0o644); err != nil {
 				return fmt.Errorf("writing updated file: %w", err)
 			}
-			if _, err := fixWritebackExtension(filePath); err != nil {
+			if filePath, err = fixWritebackExtension(filePath); err != nil {
 				return err
 			}
 			if err := c.UpdateCachedRevision(filePath, fileId, *result.RevisionID); err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -176,5 +177,26 @@ func TestExchangeSessionForJWT_SendsUserAgentHeader(t *testing.T) {
 	}
 	if token != "jwt-token" {
 		t.Fatalf("unexpected token: %q", token)
+	}
+}
+
+func TestHelpExamples_UseDocumentedExecAPI(t *testing.T) {
+	badExample := `wb.sheet("Summary").cell("A1").value`
+	goodExample := `await xlsx.readCell(wb, "Summary!A1")`
+
+	for _, tc := range []struct {
+		name string
+		text string
+	}{
+		{name: "root", text: rootCmd.Long},
+		{name: "xlsx", text: xlsxCmd.Long},
+		{name: "xlsx exec", text: xlsxExecCmd.Long},
+	} {
+		if strings.Contains(tc.text, badExample) {
+			t.Fatalf("%s help still contains undocumented exec API example: %s", tc.name, badExample)
+		}
+		if !strings.Contains(tc.text, goodExample) {
+			t.Fatalf("%s help should contain documented exec API example: %s", tc.name, goodExample)
+		}
 	}
 }

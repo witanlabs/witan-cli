@@ -72,7 +72,7 @@ Exit codes:
   - 1: transport/API error, invalid request, or response has ok=false
 
 Examples:
-  witan xlsx exec report.xlsx --expr 'wb.sheet("Summary").cell("A1").value'
+  witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
   witan xlsx exec report.xlsx --script ./exec.js --input-json '{"threshold":10}'
   witan xlsx exec report.xlsx --code 'console.log("hi"); return {"ok":true}'
   cat script.js | witan xlsx exec report.xlsx --stdin`,

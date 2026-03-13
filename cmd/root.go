@@ -70,31 +70,108 @@ func resolveStateless() bool {
 	return !hasAuthCredentials()
 }
 
-func resolveAPIKey() (string, error) {
+func resolveRawAPIKey() string {
 	if apiKey != "" {
-		return apiKey, nil
+		return apiKey
 	}
-	if v := os.Getenv("WITAN_API_KEY"); v != "" {
-		return v, nil
+	return os.Getenv("WITAN_API_KEY")
+}
+
+func resolveAuth() (string, string, error) {
+	// Priority 1: Raw API key from flag/env
+	if rawKey := resolveRawAPIKey(); rawKey != "" {
+		orgID, err := resolveAPIKeyOrgID(rawKey)
+		if err != nil {
+			return "", "", err
+		}
+		return rawKey, orgID, nil
 	}
+
+	// Priority 2: Session token
 	cfg, err := config.Load()
 	if err != nil {
 		if resolveStateless() {
-			return "", nil
+			return "", "", nil
 		}
-		return "", fmt.Errorf("loading auth config: %w", err)
+		return "", "", fmt.Errorf("loading auth config: %w", err)
 	}
 	if cfg.SessionToken == "" {
 		if resolveStateless() {
-			return "", nil
+			return "", "", nil
 		}
-		return "", fmt.Errorf("not authenticated: run 'witan auth login' or set --api-key / WITAN_API_KEY")
+		return "", "", fmt.Errorf("not authenticated: run 'witan auth login' or set --api-key / WITAN_API_KEY")
 	}
+
 	jwt, err := exchangeSessionForJWT(resolveManagementAPIURL(), cfg.SessionToken)
 	if err != nil {
-		return "", fmt.Errorf("authentication failed (%v): run 'witan auth login' to re-authenticate", err)
+		return "", "", fmt.Errorf("authentication failed (%v): run 'witan auth login' to re-authenticate", err)
 	}
-	return jwt, nil
+	return jwt, cfg.SessionOrgID, nil
+}
+
+// resolveAPIKeyOrgID resolves the org ID for an API key, using the config cache
+// or falling back to the management API.
+func resolveAPIKeyOrgID(rawAPIKey string) (string, error) {
+	cfg, err := config.Load()
+	if err == nil {
+		if orgID := cfg.OrgIDForAPIKey(rawAPIKey); orgID != "" {
+			return orgID, nil
+		}
+	}
+
+	orgs, err := listOrgs(resolveManagementAPIURL(), rawAPIKey)
+	if err != nil {
+		return "", fmt.Errorf("resolving org for API key: %w", err)
+	}
+	if len(orgs) == 0 {
+		return "", fmt.Errorf("no organizations found for this API key")
+	}
+
+	orgID := orgs[0].ID
+
+	// Best-effort cache in config
+	cfg2, loadErr := config.Load()
+	if loadErr == nil {
+		cfg2.SetOrgIDForAPIKey(rawAPIKey, orgID)
+		_ = config.Save(cfg2)
+	}
+
+	return orgID, nil
+}
+
+// orgEntry represents a single organization from the management API.
+type orgEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// listOrgs calls GET {mgmtURL}/v0/orgs and returns the list of organizations.
+func listOrgs(mgmtURL, bearerToken string) ([]orgEntry, error) {
+	req, err := http.NewRequest("GET", mgmtURL+"/v0/orgs", nil)
+	if err != nil {
+		return nil, err
+	}
+	setCLIUserAgent(req)
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data []orgEntry `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	return result.Data, nil
 }
 
 func hasAuthCredentials() bool {
@@ -156,8 +233,8 @@ func resolveAPIURL() string {
 	return "https://api.witanlabs.com"
 }
 
-func newAPIClient(apiKey string) *client.Client {
-	c := client.New(resolveAPIURL(), apiKey, resolveStateless())
+func newAPIClient(bearerToken, orgID string) *client.Client {
+	c := client.New(resolveAPIURL(), bearerToken, orgID, resolveStateless())
 	c.UserAgent = cliUserAgent()
 	return c
 }

@@ -1,13 +1,39 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
 )
 
 type Config struct {
-	SessionToken string `json:"session_token,omitempty"`
+	SessionToken string            `json:"session_token,omitempty"`
+	SessionOrgID string            `json:"session_org_id,omitempty"`
+	APIKeyOrgs   map[string]string `json:"api_key_orgs,omitempty"` // sha256(apiKey) -> orgID
+}
+
+// HashAPIKey returns the hex-encoded SHA-256 of an API key.
+func HashAPIKey(apiKey string) string {
+	h := sha256.Sum256([]byte(apiKey))
+	return hex.EncodeToString(h[:])
+}
+
+// OrgIDForAPIKey looks up the cached org ID for the given API key.
+func (c *Config) OrgIDForAPIKey(apiKey string) string {
+	if c.APIKeyOrgs == nil {
+		return ""
+	}
+	return c.APIKeyOrgs[HashAPIKey(apiKey)]
+}
+
+// SetOrgIDForAPIKey caches an org ID for the given API key.
+func (c *Config) SetOrgIDForAPIKey(apiKey, orgID string) {
+	if c.APIKeyOrgs == nil {
+		c.APIKeyOrgs = make(map[string]string)
+	}
+	c.APIKeyOrgs[HashAPIKey(apiKey)] = orgID
 }
 
 func dir() (string, error) {

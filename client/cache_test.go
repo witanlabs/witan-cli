@@ -111,13 +111,13 @@ func TestFileCache_KnownInMemory(t *testing.T) {
 	baseURL := "http://localhost:3000"
 	entry := CacheEntry{FileID: "file_known", RevisionID: "rev_known", Filename: "test.xlsx"}
 
-	_, ok := fc.GetKnown(path, baseURL)
+	_, ok := fc.GetKnown(path, baseURL, "")
 	if ok {
 		t.Fatal("expected known miss")
 	}
 
-	fc.PutKnown(path, baseURL, entry)
-	got, ok := fc.GetKnown(path, baseURL)
+	fc.PutKnown(path, baseURL, "", entry)
+	got, ok := fc.GetKnown(path, baseURL, "")
 	if !ok {
 		t.Fatal("expected known hit")
 	}
@@ -125,8 +125,8 @@ func TestFileCache_KnownInMemory(t *testing.T) {
 		t.Fatalf("unexpected known entry: %+v", got)
 	}
 
-	fc.EvictKnown(path, baseURL)
-	_, ok = fc.GetKnown(path, baseURL)
+	fc.EvictKnown(path, baseURL, "")
+	_, ok = fc.GetKnown(path, baseURL, "")
 	if ok {
 		t.Fatal("expected known miss after evict")
 	}
@@ -142,12 +142,12 @@ func TestFileCache_KnownDisk(t *testing.T) {
 	baseURL := "http://localhost:3000"
 	entry := CacheEntry{FileID: "file_known_2", RevisionID: "rev_known_2", Filename: "book.xlsx"}
 
-	fc.PutKnown(path, baseURL, entry)
+	fc.PutKnown(path, baseURL, "", entry)
 
 	fc2 := &FileCache{dir: dir, inMemory: make(map[string]CacheEntry)}
 	fc2.load()
 
-	got, ok := fc2.GetKnown(path, baseURL)
+	got, ok := fc2.GetKnown(path, baseURL, "")
 	if !ok {
 		t.Fatal("expected known hit after reload")
 	}
@@ -162,13 +162,13 @@ func TestHashFile(t *testing.T) {
 	path := filepath.Join(dir, "test.xlsx")
 	os.WriteFile(path, []byte("hello world"), 0o644)
 
-	key1, err := HashFile(path, "http://localhost:3000")
+	key1, err := HashFile(path, "http://localhost:3000", "")
 	if err != nil {
 		t.Fatalf("HashFile failed: %v", err)
 	}
 
 	// Same file, same base URL → same key
-	key2, err := HashFile(path, "http://localhost:3000")
+	key2, err := HashFile(path, "http://localhost:3000", "")
 	if err != nil {
 		t.Fatalf("HashFile failed: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestHashFile(t *testing.T) {
 	}
 
 	// Same file, different base URL → different key
-	key3, err := HashFile(path, "https://api.witanlabs.com")
+	key3, err := HashFile(path, "https://api.witanlabs.com", "")
 	if err != nil {
 		t.Fatalf("HashFile failed: %v", err)
 	}
@@ -188,12 +188,46 @@ func TestHashFile(t *testing.T) {
 	// Different content → different key
 	path2 := filepath.Join(dir, "test2.xlsx")
 	os.WriteFile(path2, []byte("goodbye world"), 0o644)
-	key4, err := HashFile(path2, "http://localhost:3000")
+	key4, err := HashFile(path2, "http://localhost:3000", "")
 	if err != nil {
 		t.Fatalf("HashFile failed: %v", err)
 	}
 	if key1 == key4 {
 		t.Fatal("expected different keys for different content")
+	}
+}
+
+func TestHashFile_DifferentOrgID(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.xlsx")
+	os.WriteFile(path, []byte("hello world"), 0o644)
+
+	baseURL := "http://localhost:3000"
+
+	key1, err := HashFile(path, baseURL, "org_aaa")
+	if err != nil {
+		t.Fatalf("HashFile failed: %v", err)
+	}
+
+	key2, err := HashFile(path, baseURL, "org_bbb")
+	if err != nil {
+		t.Fatalf("HashFile failed: %v", err)
+	}
+
+	if key1 == key2 {
+		t.Fatal("expected different cache keys for different orgIDs")
+	}
+}
+
+func TestKnownFileKey_DifferentOrgID(t *testing.T) {
+	path := "/tmp/test.xlsx"
+	baseURL := "http://localhost:3000"
+
+	key1 := KnownFileKey(path, baseURL, "org_aaa")
+	key2 := KnownFileKey(path, baseURL, "org_bbb")
+
+	if key1 == key2 {
+		t.Fatal("expected different known file keys for different orgIDs")
 	}
 }
 

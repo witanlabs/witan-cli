@@ -179,15 +179,15 @@ func (fc *FileCache) load() {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		fc.data = cacheData{
-			Version: 3,
+			Version: 2,
 			Files:   make(map[string]CacheEntry),
 			Known:   make(map[string]CacheEntry),
 		}
 		return
 	}
-	if err := json.Unmarshal(raw, &fc.data); err != nil || fc.data.Version < 1 || fc.data.Version > 3 {
+	if err := json.Unmarshal(raw, &fc.data); err != nil || fc.data.Version < 1 || fc.data.Version > 2 {
 		fc.data = cacheData{
-			Version: 3,
+			Version: 2,
 			Files:   make(map[string]CacheEntry),
 			Known:   make(map[string]CacheEntry),
 		}

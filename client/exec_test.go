@@ -314,3 +314,37 @@ func TestFilesExec_Non200ReturnsAPIError(t *testing.T) {
 		t.Fatalf("unexpected APIError: %#v", apiErr)
 	}
 }
+
+func TestBuildPath_WithAndWithoutOrgID(t *testing.T) {
+	c := New("https://api.test.local", "test-key", "", false)
+	if got := c.buildPath("v0", "/xlsx/calc"); got != "/v0/xlsx/calc" {
+		t.Fatalf("expected /v0/xlsx/calc, got %q", got)
+	}
+
+	c.OrgID = "org_abc"
+	if got := c.buildPath("v0", "/xlsx/calc"); got != "/v0/orgs/org_abc/xlsx/calc" {
+		t.Fatalf("expected /v0/orgs/org_abc/xlsx/calc, got %q", got)
+	}
+	if got := c.buildPath("v0", "/files/f1/xlsx/exec"); got != "/v0/orgs/org_abc/files/f1/xlsx/exec" {
+		t.Fatalf("expected /v0/orgs/org_abc/files/f1/xlsx/exec, got %q", got)
+	}
+}
+
+func TestFilesExec_OrgScopedPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v0/orgs/org_xyz/files/file_1/xlsx/exec" {
+			t.Fatalf("expected org-scoped path, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":null}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "test-key", "org_xyz", false)
+	c.maxAttempts = 1
+
+	_, err := c.FilesExec("file_1", "rev_1", ExecRequest{Code: "return 1;"}, false)
+	if err != nil {
+		t.Fatalf("FilesExec failed: %v", err)
+	}
+}

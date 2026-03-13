@@ -51,7 +51,7 @@ func (s *sequenceTransport) RoundTrip(req *http.Request) (*http.Response, error)
 
 func newTestClient(t *testing.T, tr http.RoundTripper) *Client {
 	t.Helper()
-	c := New("https://api.test.local", "test-key", false)
+	c := New("https://api.test.local", "test-key", "", false)
 	c.HTTPClient = &http.Client{Transport: tr}
 	c.sleep = func(time.Duration) {}
 	c.randInt63n = func(n int64) int64 { return 0 }

@@ -55,7 +55,7 @@ func (c *Client) Read(filePath string, params url.Values) (*ReadResponse, error)
 			return nil, fmt.Errorf("cannot open file: %w", err)
 		}
 
-		u, err := url.Parse(c.BaseURL + "/v0/read")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/read"))
 		if err != nil {
 			f.Close()
 			return nil, fmt.Errorf("building URL: %w", err)
@@ -96,7 +96,7 @@ func (c *Client) ReadOutline(filePath string, params url.Values) (*ReadOutlineRe
 			return nil, fmt.Errorf("cannot open file: %w", err)
 		}
 
-		u, err := url.Parse(c.BaseURL + "/v0/read")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/read"))
 		if err != nil {
 			f.Close()
 			return nil, fmt.Errorf("building URL: %w", err)
@@ -137,7 +137,7 @@ func (c *Client) ReadOutline(filePath string, params url.Values) (*ReadOutlineRe
 // FilesRead calls GET /v0/files/:fileId/read.
 func (c *Client) FilesRead(fileId, revisionId string, params url.Values) (*ReadResponse, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/read")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileId+"/read"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
@@ -172,7 +172,7 @@ func (c *Client) FilesRead(fileId, revisionId string, params url.Values) (*ReadR
 // FilesReadOutline calls GET /v0/files/:fileId/read?outline=true.
 func (c *Client) FilesReadOutline(fileId, revisionId string, params url.Values) (*ReadOutlineResponse, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/read")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileId+"/read"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}

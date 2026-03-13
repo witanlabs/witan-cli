@@ -92,8 +92,8 @@ func (fc *FileCache) Put(key string, entry CacheEntry) {
 }
 
 // GetKnown looks up a cache entry by local file identity.
-func (fc *FileCache) GetKnown(filePath, baseURL string) (CacheEntry, bool) {
-	key := KnownFileKey(filePath, baseURL)
+func (fc *FileCache) GetKnown(filePath, baseURL, orgID string) (CacheEntry, bool) {
+	key := KnownFileKey(filePath, baseURL, orgID)
 
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
@@ -107,8 +107,8 @@ func (fc *FileCache) GetKnown(filePath, baseURL string) (CacheEntry, bool) {
 }
 
 // PutKnown stores a cache entry by local file identity.
-func (fc *FileCache) PutKnown(filePath, baseURL string, entry CacheEntry) {
-	key := KnownFileKey(filePath, baseURL)
+func (fc *FileCache) PutKnown(filePath, baseURL, orgID string, entry CacheEntry) {
+	key := KnownFileKey(filePath, baseURL, orgID)
 
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
@@ -135,8 +135,8 @@ func (fc *FileCache) Evict(key string) {
 }
 
 // EvictKnown removes a local-file cache entry.
-func (fc *FileCache) EvictKnown(filePath, baseURL string) {
-	key := KnownFileKey(filePath, baseURL)
+func (fc *FileCache) EvictKnown(filePath, baseURL, orgID string) {
+	key := KnownFileKey(filePath, baseURL, orgID)
 
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
@@ -149,8 +149,8 @@ func (fc *FileCache) EvictKnown(filePath, baseURL string) {
 	}
 }
 
-// HashFile computes the cache key for a local file: "sha256:<hex>@<baseURL>".
-func HashFile(filePath, baseURL string) (string, error) {
+// HashFile computes the cache key for a local file: "sha256:<hex>@<baseURL>@<orgID>".
+func HashFile(filePath, baseURL, orgID string) (string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("opening file for hashing: %w", err)
@@ -162,16 +162,16 @@ func HashFile(filePath, baseURL string) (string, error) {
 		return "", fmt.Errorf("hashing file: %w", err)
 	}
 	hex := hex.EncodeToString(h.Sum(nil))
-	return "sha256:" + hex + "@" + baseURL, nil
+	return "sha256:" + hex + "@" + baseURL + "@" + orgID, nil
 }
 
 // KnownFileKey computes the cache key for a local file identity.
-func KnownFileKey(filePath, baseURL string) string {
+func KnownFileKey(filePath, baseURL, orgID string) string {
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		absPath = filePath
 	}
-	return "path:" + filepath.Clean(absPath) + "@" + baseURL
+	return "path:" + filepath.Clean(absPath) + "@" + baseURL + "@" + orgID
 }
 
 func (fc *FileCache) load() {
@@ -179,15 +179,15 @@ func (fc *FileCache) load() {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		fc.data = cacheData{
-			Version: 2,
+			Version: 3,
 			Files:   make(map[string]CacheEntry),
 			Known:   make(map[string]CacheEntry),
 		}
 		return
 	}
-	if err := json.Unmarshal(raw, &fc.data); err != nil || fc.data.Version < 1 || fc.data.Version > 2 {
+	if err := json.Unmarshal(raw, &fc.data); err != nil || fc.data.Version < 1 || fc.data.Version > 3 {
 		fc.data = cacheData{
-			Version: 2,
+			Version: 3,
 			Files:   make(map[string]CacheEntry),
 			Known:   make(map[string]CacheEntry),
 		}

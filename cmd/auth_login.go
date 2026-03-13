@@ -60,17 +60,9 @@ type tokenErrorResponse struct {
 }
 
 type sessionResponse struct {
-	Session struct {
-		ActiveOrganizationId string `json:"activeOrganizationId"`
-	} `json:"session"`
 	User struct {
 		Email string `json:"email"`
 	} `json:"user"`
-}
-
-type listOrgsResponse []struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
 }
 
 func runLogin(cmd *cobra.Command, args []string) error {
@@ -152,52 +144,49 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 4: Fetch session (and capture email for later display)
+	// Step 4: Fetch session (for user email) and list orgs
 	session, err := getSession(httpClient, mgmtURL, sessionToken)
 	if err != nil {
 		return fmt.Errorf("failed to get session: %w", err)
 	}
 	email := session.User.Email
 
-	if session.Session.ActiveOrganizationId == "" {
-		orgs, err := listOrganizations(httpClient, mgmtURL, sessionToken)
-		if err != nil {
-			return fmt.Errorf("failed to list organizations: %w", err)
-		}
+	orgs, err := listOrgs(mgmtURL, sessionToken)
+	if err != nil {
+		return fmt.Errorf("failed to list organizations: %w", err)
+	}
 
-		var selectedOrgID string
-		switch len(orgs) {
-		case 0:
-			return fmt.Errorf("no organizations found — contact your administrator")
-		case 1:
-			selectedOrgID = orgs[0].ID
-		default:
-			fmt.Fprintf(os.Stderr, "? Select an organization:\n")
-			for i, org := range orgs {
-				fmt.Fprintf(os.Stderr, "  [%d] %s\n", i+1, org.Name)
-			}
-			for {
-				fmt.Fprintf(os.Stderr, "Choice: ")
-				var choice int
-				if _, err := fmt.Fscan(os.Stdin, &choice); err != nil || choice < 1 || choice > len(orgs) {
-					fmt.Fprintf(os.Stderr, "Invalid choice, enter a number between 1 and %d.\n", len(orgs))
-					// drain the rest of the line on bad input
-					var discard string
-					fmt.Fscanln(os.Stdin, &discard)
-					continue
-				}
-				selectedOrgID = orgs[choice-1].ID
-				break
-			}
+	var selectedOrgID string
+	switch len(orgs) {
+	case 0:
+		return fmt.Errorf("no organizations found — contact your administrator")
+	case 1:
+		selectedOrgID = orgs[0].ID
+	default:
+		fmt.Fprintf(os.Stderr, "? Select an organization:\n")
+		for i, org := range orgs {
+			fmt.Fprintf(os.Stderr, "  [%d] %s\n", i+1, org.Name)
 		}
-
-		if err := setActiveOrganization(httpClient, mgmtURL, sessionToken, selectedOrgID); err != nil {
-			return fmt.Errorf("failed to set active organization: %w", err)
+		for {
+			fmt.Fprintf(os.Stderr, "Choice: ")
+			var choice int
+			if _, err := fmt.Fscan(os.Stdin, &choice); err != nil || choice < 1 || choice > len(orgs) {
+				fmt.Fprintf(os.Stderr, "Invalid choice, enter a number between 1 and %d.\n", len(orgs))
+				// drain the rest of the line on bad input
+				var discard string
+				fmt.Fscanln(os.Stdin, &discard)
+				continue
+			}
+			selectedOrgID = orgs[choice-1].ID
+			break
 		}
 	}
 
 	// Step 5: Save config
-	if err := config.Save(config.Config{SessionToken: sessionToken}); err != nil {
+	if err := config.Save(config.Config{
+		SessionToken: sessionToken,
+		SessionOrgID: selectedOrgID,
+	}); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
@@ -280,48 +269,6 @@ func getSession(client *http.Client, mgmtURL, token string) (*sessionResponse, e
 		return nil, err
 	}
 	return &s, nil
-}
-
-func listOrganizations(client *http.Client, mgmtURL, token string) (listOrgsResponse, error) {
-	req, err := http.NewRequest("GET", mgmtURL+"/v0/auth/organization/list", nil)
-	if err != nil {
-		return nil, fmt.Errorf("invalid management API URL: %w", err)
-	}
-	setCLIUserAgent(req)
-	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	var orgs listOrgsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&orgs); err != nil {
-		return nil, err
-	}
-	return orgs, nil
-}
-
-func setActiveOrganization(client *http.Client, mgmtURL, token, orgID string) error {
-	body, _ := json.Marshal(map[string]string{"organizationId": orgID})
-	req, err := http.NewRequest("POST", mgmtURL+"/v0/auth/organization/set-active", bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("invalid management API URL: %w", err)
-	}
-	setCLIUserAgent(req)
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	return nil
 }
 
 func openBrowser(url string) error {

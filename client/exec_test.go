@@ -86,7 +86,7 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	resp, err := c.Exec(filePath, ExecRequest{
@@ -128,7 +128,7 @@ func TestExec_ParsesOkFalseEnvelope(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	resp, err := c.Exec(filePath, ExecRequest{Code: "throw new Error('boom')"}, false)
@@ -159,7 +159,7 @@ func TestExec_SaveQueryParam(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	if _, err := c.Exec(filePath, ExecRequest{Code: "return 1"}, true); err != nil {
@@ -180,7 +180,7 @@ func TestExec_Non200ReturnsAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	_, err := c.Exec(filePath, ExecRequest{Code: "return 1"}, false)
@@ -237,7 +237,7 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, false)
@@ -262,7 +262,7 @@ func TestFilesExec_SaveQueryParam(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	if _, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, true); err != nil {
@@ -277,7 +277,7 @@ func TestFilesExec_ParsesOkFalseEnvelope(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "while(true){}"}, false)
@@ -299,7 +299,7 @@ func TestFilesExec_Non200ReturnsAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	_, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1"}, false)

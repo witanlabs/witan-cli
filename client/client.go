@@ -32,6 +32,7 @@ const (
 type Client struct {
 	BaseURL    string
 	APIKey     string
+	OrgID      string
 	UserAgent  string
 	HTTPClient *http.Client
 	Stateless  bool       // when true, use POST-file-in-body endpoints only
@@ -56,10 +57,11 @@ type rawResponse struct {
 // New creates a new Witan API client. By default it uses the /v0/files
 // endpoints with a local hash cache for deduplication. Pass stateless=true
 // to use POST-file-in-body endpoints instead (zero data retention).
-func New(baseURL, apiKey string, stateless bool) *Client {
+func New(baseURL, apiKey, orgID string, stateless bool) *Client {
 	c := &Client{
 		BaseURL:        strings.TrimRight(baseURL, "/"),
 		APIKey:         apiKey,
+		OrgID:          orgID,
 		UserAgent:      defaultUserAgent,
 		HTTPClient:     &http.Client{},
 		Stateless:      stateless,
@@ -75,6 +77,14 @@ func New(baseURL, apiKey string, stateless bool) *Client {
 		c.cache = NewFileCache()
 	}
 	return c
+}
+
+// buildPath constructs an API path, inserting /orgs/{orgID} when OrgID is set.
+func (c *Client) buildPath(version, path string) string {
+	if c.OrgID != "" {
+		return "/" + version + "/orgs/" + c.OrgID + path
+	}
+	return "/" + version + path
 }
 
 func (c *Client) doWithRetry(makeRequest func() (*http.Request, error)) (*rawResponse, error) {
@@ -229,7 +239,7 @@ func (c *Client) Render(filePath string, params map[string]string) ([]byte, stri
 			return nil, fmt.Errorf("cannot open file: %w", err)
 		}
 
-		u, err := url.Parse(c.BaseURL + "/v0/xlsx/render")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/xlsx/render"))
 		if err != nil {
 			f.Close()
 			return nil, fmt.Errorf("building URL: %w", err)
@@ -270,7 +280,7 @@ func (c *Client) Lint(filePath string, params url.Values) (*LintResponse, error)
 			return nil, fmt.Errorf("cannot open file: %w", err)
 		}
 
-		u, err := url.Parse(c.BaseURL + "/v0/xlsx/lint")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/xlsx/lint"))
 		if err != nil {
 			f.Close()
 			return nil, fmt.Errorf("building URL: %w", err)
@@ -311,7 +321,7 @@ func (c *Client) Calc(filePath string, params url.Values) (*CalcResponse, error)
 			return nil, fmt.Errorf("cannot open file: %w", err)
 		}
 
-		u, err := url.Parse(c.BaseURL + "/v0/xlsx/calc")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/xlsx/calc"))
 		if err != nil {
 			f.Close()
 			return nil, fmt.Errorf("building URL: %w", err)
@@ -352,7 +362,7 @@ func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecRespons
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/xlsx/exec")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/xlsx/exec"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}

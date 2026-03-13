@@ -79,10 +79,10 @@ func TestRunCalcVerify_FilesBackedSendsVerifyQueryParam(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/v0/files":
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/orgs/org_test/files":
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprint(w, `{"id":"file_1","object":"file","filename":"book.xlsx","bytes":8,"revision_id":"rev_1","status":"ready"}`)
-		case r.Method == http.MethodGet && r.URL.Path == "/v0/files/file_1/xlsx/calc":
+		case r.Method == http.MethodGet && r.URL.Path == "/v0/orgs/org_test/files/file_1/xlsx/calc":
 			if got := r.URL.Query().Get("verify"); got != "true" {
 				t.Fatalf("expected verify=true, got %q", got)
 			}
@@ -102,6 +102,7 @@ func TestRunCalcVerify_FilesBackedSendsVerifyQueryParam(t *testing.T) {
 		t.Fatalf("writing workbook fixture: %v", err)
 	}
 
+	mockMgmtOrgsServer(t)
 	apiKey = "test-key"
 	apiURL = server.URL
 	stateless = false

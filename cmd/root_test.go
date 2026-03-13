@@ -32,9 +32,9 @@ func TestResolveStateless_ForcesWithoutCredentials(t *testing.T) {
 		t.Fatal("expected stateless mode to be forced when no credentials are available")
 	}
 
-	key, err := resolveAPIKey()
+	key, _, err := resolveAuth()
 	if err != nil {
-		t.Fatalf("resolveAPIKey returned error: %v", err)
+		t.Fatalf("resolveAuth returned error: %v", err)
 	}
 	if key != "" {
 		t.Fatalf("expected empty API key in forced stateless mode, got %q", key)
@@ -55,6 +55,14 @@ func TestResolveStateless_DoesNotForceWithAPIKey(t *testing.T) {
 	apiURL = ""
 	stateless = false
 
+	// Stand up a mock mgmt API that returns a single org for /v0/orgs
+	mgmtServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"object":"list","data":[{"id":"org_1","name":"Test Org"}],"has_more":false}`)
+	}))
+	defer mgmtServer.Close()
+	t.Setenv("WITAN_MANAGEMENT_API_URL", mgmtServer.URL)
+
 	t.Setenv("WITAN_API_KEY", "test-key")
 	t.Setenv("WITAN_STATELESS", "")
 	t.Setenv("WITAN_CONFIG_DIR", t.TempDir())
@@ -63,12 +71,15 @@ func TestResolveStateless_DoesNotForceWithAPIKey(t *testing.T) {
 		t.Fatal("expected stateful mode when API key is present and stateless is not requested")
 	}
 
-	key, err := resolveAPIKey()
+	key, orgID, err := resolveAuth()
 	if err != nil {
-		t.Fatalf("resolveAPIKey returned error: %v", err)
+		t.Fatalf("resolveAuth returned error: %v", err)
 	}
 	if key != "test-key" {
 		t.Fatalf("expected API key from environment, got %q", key)
+	}
+	if orgID != "org_1" {
+		t.Fatalf("expected org_1, got %q", orgID)
 	}
 }
 
@@ -123,7 +134,7 @@ func TestResolveAPIKey_AllowsStatelessFallbackWhenConfigLoadErrors(t *testing.T)
 		t.Fatalf("setup invalid config path: %v", err)
 	}
 
-	key, err := resolveAPIKey()
+	key, _, err := resolveAuth()
 	if err != nil {
 		t.Fatalf("expected stateless fallback, got error: %v", err)
 	}
@@ -146,7 +157,7 @@ func TestNewAPIClient_SetsVersionedUserAgent(t *testing.T) {
 	apiURL = "https://api.witanlabs.test"
 	stateless = true
 
-	c := newAPIClient("test-key")
+	c := newAPIClient("test-key", "")
 	if got := c.UserAgent; got != "witan-cli/1.2.3" {
 		t.Fatalf("unexpected client user-agent: %q", got)
 	}
@@ -178,6 +189,23 @@ func TestExchangeSessionForJWT_SendsUserAgentHeader(t *testing.T) {
 	if token != "jwt-token" {
 		t.Fatalf("unexpected token: %q", token)
 	}
+}
+
+// mockMgmtOrgsServer starts a mock management API that returns a single org
+// for GET /v0/orgs and sets WITAN_MANAGEMENT_API_URL. Call t.Cleanup to tear it down.
+func mockMgmtOrgsServer(t *testing.T) {
+	t.Helper()
+	mgmt := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v0/orgs" {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"object":"list","data":[{"id":"org_test","name":"Test Org"}],"has_more":false}`)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(mgmt.Close)
+	t.Setenv("WITAN_MANAGEMENT_API_URL", mgmt.URL)
+	t.Setenv("WITAN_CONFIG_DIR", t.TempDir())
 }
 
 func TestHelpExamples_UseDocumentedExecAPI(t *testing.T) {

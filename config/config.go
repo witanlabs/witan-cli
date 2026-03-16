@@ -8,7 +8,10 @@ import (
 	"path/filepath"
 )
 
+const configVersion = 1
+
 type Config struct {
+	Version      int               `json:"v,omitempty"`
 	SessionToken string            `json:"session_token,omitempty"`
 	SessionOrgID string            `json:"session_org_id,omitempty"`
 	APIKeyOrgs   map[string]string `json:"api_key_orgs,omitempty"` // sha256(apiKey) -> orgID
@@ -58,7 +61,8 @@ func filePath() (string, error) {
 	return filepath.Join(d, "config.json"), nil
 }
 
-// Load reads the config file. Returns a zero-value Config if the file does not exist.
+// Load reads the config file. Returns a zero-value Config if the file does not
+// exist or has an outdated version (the stale file is deleted automatically).
 func Load() (Config, error) {
 	p, err := filePath()
 	if err != nil {
@@ -75,11 +79,16 @@ func Load() (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
 	}
+	if cfg.Version < configVersion {
+		_ = os.Remove(p)
+		return Config{}, nil
+	}
 	return cfg, nil
 }
 
 // Save writes the config to disk atomically using a temp file + rename.
 func Save(cfg Config) error {
+	cfg.Version = configVersion
 	p, err := filePath()
 	if err != nil {
 		return err

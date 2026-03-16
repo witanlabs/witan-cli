@@ -46,6 +46,7 @@ func TestRunCalcVerify_StatelessSendsVerifyQueryParam(t *testing.T) {
 		t.Fatalf("writing workbook fixture: %v", err)
 	}
 
+	t.Setenv("WITAN_CONFIG_DIR", t.TempDir())
 	apiKey = ""
 	apiURL = server.URL
 	stateless = true

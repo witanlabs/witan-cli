@@ -426,6 +426,10 @@ interface SheetInfo {
   sheet: string;
   hidden?: boolean;
   printArea?: string;
+  /** Sheets this sheet references via formulas */
+  precedents?: string[];
+  /** Sheets that reference this sheet via formulas */
+  dependents?: string[];
 }
 interface WorkbookProperties {
   sheets: SheetInfo[];

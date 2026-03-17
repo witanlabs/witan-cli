@@ -421,7 +421,7 @@ interface WorkbookProperties {
     minorFont?: string;
   };
 }
-/** Get workbook-level properties including sheets, theme, and metadata. */
+/** Get workbook-level properties including theme, and metadata. */
 function getWorkbookProperties(wb): Promise<WorkbookProperties>;
 /**
  * Set workbook-level properties.

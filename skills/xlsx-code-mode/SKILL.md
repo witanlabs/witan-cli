@@ -168,10 +168,9 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 | Function                | Signature                 | Description                                                                                |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `listSheets`            | `(wb)`                    | List all sheets with used ranges                                                           |
-| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata                                                                    |
+| `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
+| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors)               |
 | `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (view, format, columns, rows, merges); `filter.columns/rows` to limit |
-| `getUsedRange`          | `(wb, sheetName)`         | Used range for a sheet                                                                     |
 | `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
 | `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
 | `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
@@ -432,7 +431,6 @@ interface SheetInfo {
   dependents?: string[];
 }
 interface WorkbookProperties {
-  sheets: SheetInfo[];
   activeSheetIndex: number;
   defaultFont: {
     name: string;
@@ -459,6 +457,8 @@ interface WorkbookProperties {
     accent6: string;
     hyperlink: string;
     followedHyperlink: string;
+    majorFont?: string;
+    minorFont?: string;
   };
 }
 /** Get workbook-level properties including sheets, theme, and metadata. */
@@ -494,13 +494,13 @@ function setWorkbookProperties(
       accent6?: string;
       hyperlink?: string;
       followedHyperlink?: string;
+      majorFont?: string;
+      minorFont?: string;
     };
   },
 ): Promise<void>;
-/** List all sheets with their used ranges and visibility. */
+/** List all sheets with their used ranges, visibility, and cross-sheet dependencies. */
 function listSheets(wb): Promise<SheetInfo[]>;
-/** Get the bounding range of non-empty cells in a sheet. */
-function getUsedRange(wb, sheetName: string): Promise<SheetInfo>;
 interface DefinedName {
   name: string;
   range: string;

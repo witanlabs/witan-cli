@@ -14,51 +14,11 @@ The CLI automatically converts older .xls files to .xlsx, so it fully supports a
 ## Quick Reference
 
 ```bash
-# Explore — map out sheets and find data
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-const sheets = await xlsx.listSheets(wb)
-print("Sheets:", sheets.map(s => s.sheet))
-
-const found = await xlsx.findCells(wb, "Revenue", { context: 1 })
-print("Revenue cells:", found.length)
-return { sheets, found }
-WITAN
-
 # Read from sheets with spaces, apostrophes, or parentheses — all safe
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const a = await xlsx.readCell(wb, "'Workers' Compensation'!B50")
 const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {row:1,col:1}, to: {row:10,col:5} })
 return { a: a.value, b }
-WITAN
-
-# What-if — "what happens to Y if X changes?"
-# Step 1: find the output cell and confirm it's the right one.
-# This may take more than one attempt — review context, try synonyms,
-# or read surrounding rows before committing to an address.
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-const outputHits = await xlsx.findCells(wb, ["Net Income", "Profit"], { context: 2, limit: 10 })
-print("Output candidates:")
-for (const h of outputHits) print(`  ${h.address} = ${h.text}  ${h.context ?? ""}`)
-WITAN
-
-# Step 2: once you've identified the output, trace to its inputs and run the what-if.
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-const outputAddr = "Summary!C30"
-
-// Trace backwards — confirm the input the user wants to change actually drives this output.
-// Results are sorted by referenceCount (most-referenced first). Filter by nearbyLabel
-// to find the one matching the user's question instead of printing hundreds of cells.
-const inputs = await xlsx.traceToInputs(wb, outputAddr)
-print(`${inputs.length} input cells found. Top matches:`)
-const relevant = inputs.filter(i => /growth|rate/i.test(i.nearbyLabel ?? i.text ?? ""))
-print(relevant.length ? relevant : inputs.slice(0, 10))
-
-// Read baseline, then change the input
-const baseline = await xlsx.readCell(wb, outputAddr)
-const result = await xlsx.setCells(wb, [{ address: "Inputs!B5", value: 1.10 }])
-print("Before:", baseline.text)
-print("After:", result.touched[outputAddr])
-print("Errors:", result.errors)
 WITAN
 
 # Multi-scenario sweep — compare several input values at once
@@ -72,7 +32,7 @@ const result = await xlsx.scenarios(wb, {
   mode: "cartesian",
   includeStats: true,
 })
-print(result.tsv)
+console.log(result.tsv)
 WITAN
 
 # Conditional formatting — add a highlight rule and a color scale
@@ -367,21 +327,21 @@ The `previewStyles` exec function (see Rendering in the API reference) provides 
 
 ## Error Guide
 
-| Error                                                             | Fix                                                                       |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `exactly one of --code, --script, --stdin, or --expr is required` | Provide exactly one code source flag                                      |
-| `--code, --script, --stdin, and --expr are mutually exclusive`    | Only use one code source flag per invocation                              |
-| `exec code must not be empty`                                     | Provide non-empty code                                                    |
-| `Import statements are not allowed`                               | No `import` in exec scripts; use the `xlsx` global                        |
-| `EXEC_SYNTAX_ERROR`                                               | Fix JavaScript syntax in your script                                      |
-| `EXEC_RUNTIME_ERROR`                                              | Fix runtime error (check the message for details)                         |
-| `EXEC_RESULT_TOO_LARGE`                                           | Return less data; use `print()` for large output instead of return values |
-| `--timeout-ms must be > 0`                                        | Omit the flag (no timeout) or provide a positive value                    |
-| `invalid --input-json`                                            | Provide valid JSON                                                        |
-| `Sheet 'X' not found`                                             | Check the sheet name; use `listSheets` to enumerate                       |
-| Shell quoting errors with sheet names                             | Use `--stdin <<'WITAN'` heredoc — it avoids all shell quoting issues      |
-| `findCells` returns empty                                         | Try synonym arrays, broader search, or check spelling                     |
-| `setCells` result missing expected output                         | The output cell may not be a dependent; trace the formula chain           |
+| Error                                                             | Fix                                                                             |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `exactly one of --code, --script, --stdin, or --expr is required` | Provide exactly one code source flag                                            |
+| `--code, --script, --stdin, and --expr are mutually exclusive`    | Only use one code source flag per invocation                                    |
+| `exec code must not be empty`                                     | Provide non-empty code                                                          |
+| `Import statements are not allowed`                               | No `import` in exec scripts; use the `xlsx` global                              |
+| `EXEC_SYNTAX_ERROR`                                               | Fix JavaScript syntax in your script                                            |
+| `EXEC_RUNTIME_ERROR`                                              | Fix runtime error (check the message for details)                               |
+| `EXEC_RESULT_TOO_LARGE`                                           | Return less data; use `console.log()` for large output instead of return values |
+| `--timeout-ms must be > 0`                                        | Omit the flag (no timeout) or provide a positive value                          |
+| `invalid --input-json`                                            | Provide valid JSON                                                              |
+| `Sheet 'X' not found`                                             | Check the sheet name; use `listSheets` to enumerate                             |
+| Shell quoting errors with sheet names                             | Use `--stdin <<'WITAN'` heredoc — it avoids all shell quoting issues            |
+| `findCells` returns empty                                         | Try synonym arrays, broader search, or check spelling                           |
+| `setCells` result missing expected output                         | The output cell may not be a dependent; trace the formula chain                 |
 
 ### Full Type Definitions
 

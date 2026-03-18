@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.4.0
+
+
 - New: `sortRange` operation to sort rows by column keys.
 - New: `autoFitColumns` operation to auto-fit column widths to cell content.
 - New: `findAndReplace` for bulk text substitution with regex and formula support.

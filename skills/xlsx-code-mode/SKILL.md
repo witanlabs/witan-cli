@@ -129,7 +129,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | Function                | Signature                 | Description                                                                                |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
-| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors)               |
+| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors, iterative calc) |
 | `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (view, format, columns, rows, merges); `filter.columns/rows` to limit |
 | `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
 | `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
@@ -396,6 +396,11 @@ interface WorkbookProperties {
     name: string;
     size: number;
   };
+  iterativeCalculation: {
+    enabled: boolean;
+    maxIterations: number;
+    maxChange: number;
+  };
   metadata?: {
     author?: string;
     title?: string;
@@ -434,6 +439,11 @@ function setWorkbookProperties(
     defaultFont?: {
       name?: string;
       size?: number;
+    };
+    iterativeCalculation?: {
+      enabled?: boolean;
+      maxIterations?: number;
+      maxChange?: number;
     };
     metadata?: {
       author?: string;

@@ -216,7 +216,7 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 	}
 
 	disallowed := []string{
-		"/v0/xlsx/exec",
+		"/v0/orgs/org_test/xlsx/exec",
 		"/v0/files/:id/xlsx/exec",
 	}
 	if slices.ContainsFunc(disallowed, func(needle string) bool {
@@ -298,7 +298,7 @@ func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 
 	var gotExecCode string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v0/xlsx/exec" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v0/orgs/org_test/xlsx/exec" {
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
@@ -352,7 +352,7 @@ func TestRunExec_StatelessSaveWritesWorkbookAndSetsQuery(t *testing.T) {
 	newBytes := []byte{0x50, 0x4b, 0x03, 0x04, 'n', 'e', 'w'}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v0/xlsx/exec" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v0/orgs/org_test/xlsx/exec" {
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
 		if got := r.URL.Query().Get("save"); got != "true" {
@@ -435,7 +435,7 @@ func TestRunExec_StatefulReuploadsOnNotFound(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/v0/files":
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/orgs/org_test/files":
 			uploadCalls++
 			rev := "rev_1"
 			if uploadCalls == 2 {
@@ -443,7 +443,7 @@ func TestRunExec_StatefulReuploadsOnNotFound(t *testing.T) {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintf(w, `{"id":"file_1","object":"file","filename":"book.xlsx","bytes":8,"revision_id":"%s","status":"ready"}`, rev)
-		case r.Method == http.MethodPost && r.URL.Path == "/v0/files/file_1/xlsx/exec":
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/orgs/org_test/files/file_1/xlsx/exec":
 			execCalls++
 			if execCalls == 1 {
 				if got := r.URL.Query().Get("revision"); got != "rev_1" {
@@ -498,10 +498,10 @@ func TestRunExec_StatefulSaveDownloadsNewRevisionAndSetsQuery(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/v0/files":
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/orgs/org_test/files":
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprint(w, `{"id":"file_1","object":"file","filename":"book.xlsx","bytes":8,"revision_id":"rev_1","status":"ready"}`)
-		case r.Method == http.MethodPost && r.URL.Path == "/v0/files/file_1/xlsx/exec":
+		case r.Method == http.MethodPost && r.URL.Path == "/v0/orgs/org_test/files/file_1/xlsx/exec":
 			if got := r.URL.Query().Get("revision"); got != "rev_1" {
 				t.Fatalf("unexpected revision: %q", got)
 			}
@@ -510,7 +510,7 @@ func TestRunExec_StatefulSaveDownloadsNewRevisionAndSetsQuery(t *testing.T) {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprint(w, `{"ok":true,"stdout":"","result":{"ok":true},"writes_detected":true,"revision_id":"rev_2"}`)
-		case r.Method == http.MethodGet && r.URL.Path == "/v0/files/file_1/content":
+		case r.Method == http.MethodGet && r.URL.Path == "/v0/orgs/org_test/files/file_1/content":
 			downloadCalls++
 			if got := r.URL.Query().Get("revision"); got != "rev_2" {
 				t.Fatalf("unexpected download revision: %q", got)
@@ -745,6 +745,7 @@ func resetExecTestGlobals(t *testing.T) {
 		execSave = origExecSave
 	})
 
+	mockMgmtOrgsServer(t)
 	apiKey = ""
 	apiURL = ""
 	stateless = false

@@ -60,12 +60,12 @@ func runCalc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	key, err := resolveAPIKey()
+	key, orgID, err := resolveAuth()
 	if err != nil {
 		return err
 	}
 
-	c := newAPIClient(key)
+	c := newAPIClient(key, orgID)
 
 	// Build query params with repeated address values
 	params := url.Values{}

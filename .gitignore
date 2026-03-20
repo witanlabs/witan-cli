@@ -7,3 +7,4 @@ dist/
 examples/node_modules/
 examples/.env
 examples/output/
+.DS_Store

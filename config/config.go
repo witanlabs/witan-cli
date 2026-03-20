@@ -1,13 +1,42 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
 )
 
+const configVersion = 1
+
 type Config struct {
-	SessionToken string `json:"session_token,omitempty"`
+	Version      int               `json:"v,omitempty"`
+	SessionToken string            `json:"session_token,omitempty"`
+	SessionOrgID string            `json:"session_org_id,omitempty"`
+	APIKeyOrgs   map[string]string `json:"api_key_orgs,omitempty"` // sha256(apiKey) -> orgID
+}
+
+// HashAPIKey returns the hex-encoded SHA-256 of an API key.
+func HashAPIKey(apiKey string) string {
+	h := sha256.Sum256([]byte(apiKey))
+	return hex.EncodeToString(h[:])
+}
+
+// OrgIDForAPIKey looks up the cached org ID for the given API key.
+func (c *Config) OrgIDForAPIKey(apiKey string) string {
+	if c.APIKeyOrgs == nil {
+		return ""
+	}
+	return c.APIKeyOrgs[HashAPIKey(apiKey)]
+}
+
+// SetOrgIDForAPIKey caches an org ID for the given API key.
+func (c *Config) SetOrgIDForAPIKey(apiKey, orgID string) {
+	if c.APIKeyOrgs == nil {
+		c.APIKeyOrgs = make(map[string]string)
+	}
+	c.APIKeyOrgs[HashAPIKey(apiKey)] = orgID
 }
 
 func dir() (string, error) {
@@ -32,7 +61,8 @@ func filePath() (string, error) {
 	return filepath.Join(d, "config.json"), nil
 }
 
-// Load reads the config file. Returns a zero-value Config if the file does not exist.
+// Load reads the config file. Returns a zero-value Config if the file does not
+// exist or has an outdated version (the stale file is deleted automatically).
 func Load() (Config, error) {
 	p, err := filePath()
 	if err != nil {
@@ -49,11 +79,16 @@ func Load() (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
 	}
+	if cfg.Version < configVersion {
+		_ = os.Remove(p)
+		return Config{}, nil
+	}
 	return cfg, nil
 }
 
 // Save writes the config to disk atomically using a temp file + rename.
 func Save(cfg Config) error {
+	cfg.Version = configVersion
 	p, err := filePath()
 	if err != nil {
 		return err

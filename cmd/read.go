@@ -78,12 +78,12 @@ func runRead(cmd *cobra.Command, args []string) error {
 		defer cleanup()
 	}
 
-	key, err := resolveAPIKey()
+	key, orgID, err := resolveAuth()
 	if err != nil {
 		return err
 	}
 
-	c := newAPIClient(key)
+	c := newAPIClient(key, orgID)
 
 	// Build query params
 	params := url.Values{}

@@ -28,9 +28,9 @@ const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {r
 return { a: a.value, b }
 WITAN
 
-# Multi-scenario sweep — compare several input values at once
+# Multi-input sweep — compare several input values at once
 witan xlsx exec model.xlsx --stdin <<'WITAN'
-const result = await xlsx.scenarios(wb, {
+const result = await xlsx.sweepInputs(wb, {
   inputs: [
     { address: "Inputs!B5", values: [0.02, 0.04, 0.06] },
     { address: "Inputs!B6", values: [0.08, 0.10, 0.12] },
@@ -178,7 +178,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 | Function           | Signature                                         | Description                                        |
 | ------------------ | ------------------------------------------------- | -------------------------------------------------- |
-| `scenarios`        | `(wb, { inputs, outputs, mode?, includeStats? })` | Batch what-if sweeps with TSV + structured outputs |
+| `sweepInputs`      | `(wb, { inputs, outputs, mode?, includeStats? })` | Batch what-if sweeps with TSV + structured outputs |
 | `evaluateFormula`  | `(wb, sheet, formula)`                            | Evaluate a formula string in a sheet context       |
 | `evaluateFormulas` | `(wb, sheet, formulas)`                           | Evaluate multiple formulas at once                 |
 
@@ -258,7 +258,7 @@ For questions like "what happens to Y if X changes?", follow this sequence. **St
 2. **Trace + run the what-if (second exec call)** — once you have the output address, call `xlsx.traceToInputs(wb, outputAddr)` to confirm the user's input actually drives it. Trace results can contain hundreds of cells — filter by `nearbyLabel` matching the user's term instead of printing them all. Then `xlsx.setCells` to make the change and read the answer from `result.touched[outputAddr]`. If the output address is missing from `touched`, the cell didn't recalculate — you likely have the wrong address.
 3. **Report before and after** — always include the baseline value (read before the edit) and the new value from `touched`.
 
-For sweeping multiple values (sensitivity tables), use `scenarios` instead — it runs all combinations in one call and returns structured before/after data.
+For sweeping multiple values (sensitivity tables), use `sweepInputs` instead — it runs all combinations in one call and returns structured before/after data.
 
 Common pitfalls:
 
@@ -761,11 +761,11 @@ interface Diagnostic {
   address: string;
   formula?: string;
 }
-interface ScenarioInput {
+interface SweepInput {
   address: CellAddressOrCoordinates;
   values: (number | string | boolean | null)[];
 }
-interface ScenarioEntry {
+interface SweepEntry {
   inputs: Record<string, string>;
   outputs: Record<string, string>;
   errors: Diagnostic[];
@@ -776,11 +776,11 @@ interface OutputStats {
   mean: number;
   count: number;
 }
-interface ScenariosResult {
+interface SweepInputsResult {
   tsv: string;
-  scenarios: ScenarioEntry[];
+  sweeps: SweepEntry[];
   stats?: Record<string, OutputStats>;
-  scenarioCount: number;
+  sweepCount: number;
   inputCount: number;
   outputCount: number;
 }
@@ -837,18 +837,18 @@ function setCells(
   }>,
 ): Promise<SetCellsResult>;
 /**
- * Run batch what-if scenarios across one or more input cells and collect outputs.
+ * Run a batch what-if input sweep across one or more input cells and collect outputs.
  * Supports cartesian product or parallel zip semantics.
  */
-function scenarios(
+function sweepInputs(
   wb,
   args: {
-    inputs: ScenarioInput[];
+    inputs: SweepInput[];
     outputs: (string | CellAddressOrCoordinates)[];
     mode?: "cartesian" | "parallel";
     includeStats?: boolean;
   },
-): Promise<ScenariosResult>;
+): Promise<SweepInputsResult>;
 /**
  * Multiply all numeric cells in a range by a scale factor.
  * Formula cells are skipped by default.

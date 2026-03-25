@@ -372,19 +372,15 @@ type RangeAddressOrCoordinates =
 type VisibilityType = "visible" | "outsidePrintArea" | "collapsed" | "hidden";
 interface SheetInfo {
   address: string;
-  from: {
-    row: number;
-    col: number;
-  };
-  to: {
-    row: number;
-    col: number;
-  };
   rows: number;
   cols: number;
   sheet: string;
   hidden?: boolean;
   printArea?: string;
+  /** Excel ListObjects / table names in sheet order. */
+  listObjects?: string[];
+  /** Excel What-If Analysis data table block ranges. */
+  dataTables?: string[];
   /** Sheets this sheet references via formulas */
   precedents?: string[];
   /** Sheets that reference this sheet via formulas */

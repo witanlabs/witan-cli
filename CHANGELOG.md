@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.5.0
+
+
 - New: Array formulas are now supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
 - New: LAMBDA/LET/REDUCE/MAP/SCAN/MAKE_ARRAY/BYROW/CYCOL functions are now fully supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
 - New: Calculation of What-If Data Tables is now fully supported, automatically recalculating as needed when upstream cells are modified through `setCells`

@@ -200,3 +200,52 @@ func TestHelpExamples_UseDocumentedExecAPI(t *testing.T) {
 		}
 	}
 }
+
+func TestSkillDocs_UseValidExecExamples(t *testing.T) {
+	readSourcePath := filepath.Join("..", "skills", "read-source", "SKILL.md")
+	readSource, err := os.ReadFile(readSourcePath)
+	if err != nil {
+		t.Fatalf("reading %s: %v", readSourcePath, err)
+	}
+	readSourceText := string(readSource)
+	invalidWriteExample := "witan xlsx exec model.xlsx --input-json '...'"
+	validWriteExample := `witan xlsx exec model.xlsx --code 'return await xlsx.setCells(wb, [{ address: "Inputs!B3", value: 123 }])'`
+	if strings.Contains(readSourceText, invalidWriteExample) {
+		t.Fatalf("read-source skill still contains invalid exec example: %s", invalidWriteExample)
+	}
+	if strings.Contains(readSourceText, "--input-json") {
+		t.Fatal("read-source skill should keep the write example self-contained in --code")
+	}
+	if !strings.Contains(readSourceText, validWriteExample) {
+		t.Fatalf("read-source skill should contain valid exec example: %s", validWriteExample)
+	}
+
+	xlsxSkillPath := filepath.Join("..", "skills", "xlsx-code-mode", "SKILL.md")
+	xlsxSkill, err := os.ReadFile(xlsxSkillPath)
+	if err != nil {
+		t.Fatalf("reading %s: %v", xlsxSkillPath, err)
+	}
+	xlsxSkillText := string(xlsxSkill)
+	bareCalls := []string{
+		"`traceToInputs(wb, outputAddr)`",
+		"`setCells` to make the change",
+		"* - text: findCells(wb, \"Revenue\")",
+		"* - formula search: findCells(wb, \"SUM\", { formulas: true })",
+	}
+	for _, bad := range bareCalls {
+		if strings.Contains(xlsxSkillText, bad) {
+			t.Fatalf("xlsx-code-mode skill still contains bare exec API example: %s", bad)
+		}
+	}
+	requiredCalls := []string{
+		"`xlsx.traceToInputs(wb, outputAddr)`",
+		"`xlsx.setCells` to make the change",
+		"* - text: xlsx.findCells(wb, \"Revenue\")",
+		"* - formula search: xlsx.findCells(wb, \"SUM\", { formulas: true })",
+	}
+	for _, good := range requiredCalls {
+		if !strings.Contains(xlsxSkillText, good) {
+			t.Fatalf("xlsx-code-mode skill should contain documented exec API example: %s", good)
+		}
+	}
+}

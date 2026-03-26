@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- New: All API calls are now org-scoped (`/v0/orgs/:org_id/...`) when authenticated, enabling multi-org support
+- New: Login flow prompts for org selection when the user belongs to multiple organizations
+- Updated: File and revision cache keys now include org ID to prevent cross-org collisions
+
 ## 0.5.0
 
 - New: Array formulas are now supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity

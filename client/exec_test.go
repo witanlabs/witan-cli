@@ -86,7 +86,7 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	resp, err := c.Exec(filePath, ExecRequest{
@@ -128,7 +128,7 @@ func TestExec_ParsesOkFalseEnvelope(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	resp, err := c.Exec(filePath, ExecRequest{Code: "throw new Error('boom')"}, false)
@@ -159,7 +159,7 @@ func TestExec_SaveQueryParam(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	if _, err := c.Exec(filePath, ExecRequest{Code: "return 1"}, true); err != nil {
@@ -180,7 +180,7 @@ func TestExec_Non200ReturnsAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", true)
+	c := New(server.URL, "test-key", "", true)
 	c.maxAttempts = 1
 
 	_, err := c.Exec(filePath, ExecRequest{Code: "return 1"}, false)
@@ -237,7 +237,7 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, false)
@@ -262,7 +262,7 @@ func TestFilesExec_SaveQueryParam(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	if _, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, true); err != nil {
@@ -277,7 +277,7 @@ func TestFilesExec_ParsesOkFalseEnvelope(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "while(true){}"}, false)
@@ -299,7 +299,7 @@ func TestFilesExec_Non200ReturnsAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
 	_, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1"}, false)
@@ -312,5 +312,39 @@ func TestFilesExec_Non200ReturnsAPIError(t *testing.T) {
 	}
 	if apiErr.StatusCode != http.StatusNotFound || apiErr.Code != "NOT_FOUND" {
 		t.Fatalf("unexpected APIError: %#v", apiErr)
+	}
+}
+
+func TestBuildPath_WithAndWithoutOrgID(t *testing.T) {
+	c := New("https://api.test.local", "test-key", "", false)
+	if got := c.buildPath("v0", "/xlsx/calc"); got != "/v0/xlsx/calc" {
+		t.Fatalf("expected /v0/xlsx/calc, got %q", got)
+	}
+
+	c.OrgID = "org_abc"
+	if got := c.buildPath("v0", "/xlsx/calc"); got != "/v0/orgs/org_abc/xlsx/calc" {
+		t.Fatalf("expected /v0/orgs/org_abc/xlsx/calc, got %q", got)
+	}
+	if got := c.buildPath("v0", "/files/f1/xlsx/exec"); got != "/v0/orgs/org_abc/files/f1/xlsx/exec" {
+		t.Fatalf("expected /v0/orgs/org_abc/files/f1/xlsx/exec, got %q", got)
+	}
+}
+
+func TestFilesExec_OrgScopedPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v0/orgs/org_xyz/files/file_1/xlsx/exec" {
+			t.Fatalf("expected org-scoped path, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":null}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "test-key", "org_xyz", false)
+	c.maxAttempts = 1
+
+	_, err := c.FilesExec("file_1", "rev_1", ExecRequest{Code: "return 1;"}, false)
+	if err != nil {
+		t.Fatalf("FilesExec failed: %v", err)
 	}
 }

@@ -131,12 +131,12 @@ func runExec(cmd *cobra.Command, args []string) error {
 		MaxOutputChars: execMaxOutputChars,
 	}
 
-	key, err := resolveAPIKey()
+	key, orgID, err := resolveAuth()
 	if err != nil {
 		return err
 	}
 
-	c := newAPIClient(key)
+	c := newAPIClient(key, orgID)
 
 	var result *client.ExecResponse
 	var fileID string

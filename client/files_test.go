@@ -33,10 +33,10 @@ func TestEnsureUploaded_UsesKnownFileVersionUpload(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.cache = &FileCache{inMemory: make(map[string]CacheEntry)}
 	c.maxAttempts = 1
-	c.cache.PutKnown(filePath, c.BaseURL, CacheEntry{
+	c.cache.PutKnown(filePath, c.BaseURL, "", CacheEntry{
 		FileID:     "file_known",
 		RevisionID: "rev_old",
 		Filename:   "test.xlsx",
@@ -56,7 +56,7 @@ func TestEnsureUploaded_UsesKnownFileVersionUpload(t *testing.T) {
 		t.Fatalf("expected 0 POST calls, got %d", postCalls)
 	}
 
-	hashKey, err := HashFile(filePath, c.BaseURL)
+	hashKey, err := HashFile(filePath, c.BaseURL, "")
 	if err != nil {
 		t.Fatalf("HashFile failed: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestEnsureUploaded_UsesKnownFileVersionUpload(t *testing.T) {
 		t.Fatalf("expected hash revision rev_new, got %q", hashEntry.RevisionID)
 	}
 
-	knownEntry, ok := c.cache.GetKnown(filePath, c.BaseURL)
+	knownEntry, ok := c.cache.GetKnown(filePath, c.BaseURL, "")
 	if !ok {
 		t.Fatal("expected known cache hit")
 	}
@@ -103,10 +103,10 @@ func TestEnsureUploaded_FallsBackToPostWhenKnownFileNotFound(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := New(server.URL, "test-key", false)
+	c := New(server.URL, "test-key", "", false)
 	c.cache = &FileCache{inMemory: make(map[string]CacheEntry)}
 	c.maxAttempts = 1
-	c.cache.PutKnown(filePath, c.BaseURL, CacheEntry{
+	c.cache.PutKnown(filePath, c.BaseURL, "", CacheEntry{
 		FileID:     "file_missing",
 		RevisionID: "rev_old",
 		Filename:   "test.xlsx",
@@ -126,7 +126,7 @@ func TestEnsureUploaded_FallsBackToPostWhenKnownFileNotFound(t *testing.T) {
 		t.Fatalf("expected 1 POST call, got %d", postCalls)
 	}
 
-	knownEntry, ok := c.cache.GetKnown(filePath, c.BaseURL)
+	knownEntry, ok := c.cache.GetKnown(filePath, c.BaseURL, "")
 	if !ok {
 		t.Fatal("expected known cache hit")
 	}
@@ -142,7 +142,7 @@ func TestUpdateCachedRevision_UpdatesHashAndKnownEntry(t *testing.T) {
 		t.Fatalf("writing temp file: %v", err)
 	}
 
-	c := New("http://localhost:3000", "test-key", false)
+	c := New("http://localhost:3000", "test-key", "", false)
 	c.cache = &FileCache{inMemory: make(map[string]CacheEntry)}
 
 	if err := c.UpdateCachedRevision(filePath, "file_1", "rev_1"); err != nil {
@@ -156,7 +156,7 @@ func TestUpdateCachedRevision_UpdatesHashAndKnownEntry(t *testing.T) {
 		t.Fatalf("UpdateCachedRevision failed: %v", err)
 	}
 
-	newHash, err := HashFile(filePath, c.BaseURL)
+	newHash, err := HashFile(filePath, c.BaseURL, "")
 	if err != nil {
 		t.Fatalf("HashFile failed: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestUpdateCachedRevision_UpdatesHashAndKnownEntry(t *testing.T) {
 		t.Fatalf("expected hash revision rev_2, got %q", hashEntry.RevisionID)
 	}
 
-	knownEntry, ok := c.cache.GetKnown(filePath, c.BaseURL)
+	knownEntry, ok := c.cache.GetKnown(filePath, c.BaseURL, "")
 	if !ok {
 		t.Fatal("expected known cache hit")
 	}

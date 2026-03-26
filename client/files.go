@@ -33,7 +33,7 @@ func (c *Client) UploadFile(filePath string) (*FileResponse, error) {
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		req, err := http.NewRequest("POST", c.BaseURL+"/v0/files", bytes.NewReader(payload))
+		req, err := http.NewRequest("POST", c.BaseURL+c.buildPath("v0", "/files"), bytes.NewReader(payload))
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
@@ -64,7 +64,7 @@ func (c *Client) UploadFileVersion(fileID, filePath string) (*FileResponse, erro
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		req, err := http.NewRequest("PUT", c.BaseURL+"/v0/files/"+fileID, bytes.NewReader(payload))
+		req, err := http.NewRequest("PUT", c.BaseURL+c.buildPath("v0", "/files/"+fileID), bytes.NewReader(payload))
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
@@ -133,23 +133,23 @@ func (c *Client) EnsureUploaded(filePath string) (fileId, revisionId string, err
 		return resp.ID, resp.RevisionID, nil
 	}
 
-	key, err := HashFile(filePath, c.BaseURL)
+	key, err := HashFile(filePath, c.BaseURL, c.OrgID)
 	if err != nil {
 		return "", "", err
 	}
 
 	if entry, ok := c.cache.Get(key); ok {
-		c.cache.PutKnown(filePath, c.BaseURL, entry)
+		c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
 		return entry.FileID, entry.RevisionID, nil
 	}
 
 	// Cache miss. If this local file is known, upload as a new revision first.
-	if known, ok := c.cache.GetKnown(filePath, c.BaseURL); ok {
+	if known, ok := c.cache.GetKnown(filePath, c.BaseURL, c.OrgID); ok {
 		resp, err := c.UploadFileVersion(known.FileID, filePath)
 		if err == nil {
 			entry := cacheEntryFromUpload(resp)
 			c.cache.Put(key, entry)
-			c.cache.PutKnown(filePath, c.BaseURL, entry)
+			c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
 			return resp.ID, resp.RevisionID, nil
 		}
 		if !shouldFallbackToFreshUpload(err) {
@@ -165,7 +165,7 @@ func (c *Client) EnsureUploaded(filePath string) (fileId, revisionId string, err
 
 	entry := cacheEntryFromUpload(resp)
 	c.cache.Put(key, entry)
-	c.cache.PutKnown(filePath, c.BaseURL, entry)
+	c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
 	return resp.ID, resp.RevisionID, nil
 }
 
@@ -173,11 +173,11 @@ func (c *Client) EnsureUploaded(filePath string) (fileId, revisionId string, err
 // Use this after getting a 404 from a files endpoint (stale cache entry).
 func (c *Client) ReuploadFile(filePath string) (fileId, revisionId string, err error) {
 	if c.cache != nil {
-		key, err := HashFile(filePath, c.BaseURL)
+		key, err := HashFile(filePath, c.BaseURL, c.OrgID)
 		if err == nil {
 			c.cache.Evict(key)
 		}
-		c.cache.EvictKnown(filePath, c.BaseURL)
+		c.cache.EvictKnown(filePath, c.BaseURL, c.OrgID)
 	}
 	return c.EnsureUploaded(filePath)
 }
@@ -189,7 +189,7 @@ func (c *Client) UpdateCachedRevision(filePath, fileID, revisionID string) error
 		return nil
 	}
 
-	key, err := HashFile(filePath, c.BaseURL)
+	key, err := HashFile(filePath, c.BaseURL, c.OrgID)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (c *Client) UpdateCachedRevision(filePath, fileID, revisionID string) error
 	}
 
 	c.cache.Put(key, entry)
-	c.cache.PutKnown(filePath, c.BaseURL, entry)
+	c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
 	return nil
 }
 
@@ -231,7 +231,7 @@ func shouldFallbackToFreshUpload(err error) bool {
 // FilesLint calls GET /v0/files/:fileId/xlsx/lint and returns lint diagnostics.
 func (c *Client) FilesLint(fileId, revisionId string, params url.Values) (*LintResponse, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/xlsx/lint")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileId+"/xlsx/lint"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
@@ -266,7 +266,7 @@ func (c *Client) FilesLint(fileId, revisionId string, params url.Values) (*LintR
 // FilesCalc calls GET /v0/files/:fileId/xlsx/calc and returns calc results.
 func (c *Client) FilesCalc(fileId, revisionId string, params url.Values) (*CalcResponse, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/xlsx/calc")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileId+"/xlsx/calc"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
@@ -306,7 +306,7 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool
 	}
 
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileID + "/xlsx/exec")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileID+"/xlsx/exec"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
@@ -342,7 +342,7 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool
 // DownloadFileContent calls GET /v0/files/:fileId/content and returns the raw file bytes.
 func (c *Client) DownloadFileContent(fileId, revisionId string) ([]byte, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/content")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileId+"/content"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
@@ -371,7 +371,7 @@ func (c *Client) DownloadFileContent(fileId, revisionId string) ([]byte, error) 
 // FilesRender calls GET /v0/files/:fileId/xlsx/render and returns image bytes.
 func (c *Client) FilesRender(fileId, revisionId string, params map[string]string) ([]byte, string, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {
-		u, err := url.Parse(c.BaseURL + "/v0/files/" + fileId + "/xlsx/render")
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileId+"/xlsx/render"))
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}

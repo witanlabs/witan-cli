@@ -1,6 +1,6 @@
 ---
 name: xlsx-code-mode
-description: Use this skill any time an Excel file (.xlsx, .xlsm) needs to be read, explored, understood, or modified. You cannot read .xlsx files with cat, head, or normal file-reading tools — this is the only way to inspect them. Trigger when you or the user need to open, look at, or explore a workbook; find out what sheets it has or where specific data lives; read cells, rows, columns, or ranges; search for values, labels, or patterns; trace formula dependencies or understand how a cell is calculated; run what-if scenarios by changing inputs and reading recalculated outputs; or edit cells, rows, columns, and sheets. Trigger when the user references a spreadsheet file by name or path — even casually (e.g. 'check the xlsx', 'what's in report.xlsx') — and also when you need to inspect a workbook yourself as part of a larger task. The tool runs sandboxed JavaScript against the workbook server-side via `witan xlsx exec`."
+description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to be read, explored, understood, or modified. You cannot read excel files with cat, head, or normal file-reading tools — this is the only way to inspect them. Trigger when you or the user need to open, look at, or explore a workbook; find out what sheets it has or where specific data lives; read cells, rows, columns, or ranges; search for values, labels, or patterns; trace formula dependencies or understand how a cell is calculated; run what-if scenarios by changing inputs and reading recalculated outputs; or edit cells, rows, columns, and sheets. Trigger when the user references a spreadsheet file by name or path — even casually (e.g. 'check the xlsx', 'what's in report.xlsx') — and also when you need to inspect a workbook yourself as part of a larger task. The tool runs sandboxed JavaScript against the workbook server-side via `witan xlsx exec`."
 ---
 
 ## Setup
@@ -9,19 +9,11 @@ Files are cached server-side by content hash so repeated operations skip re-uplo
 
 The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
 
+The CLI automatically converts older .xls files to .xlsx, so it fully supports all Excel file formats.
+
 ## Quick Reference
 
 ```bash
-# Explore — map out sheets and find data
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-const sheets = await xlsx.listSheets(wb)
-print("Sheets:", sheets.map(s => s.sheet))
-
-const found = await xlsx.findCells(wb, "Revenue", { context: 1 })
-print("Revenue cells:", found.length)
-return { sheets, found }
-WITAN
-
 # Read from sheets with spaces, apostrophes, or parentheses — all safe
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const a = await xlsx.readCell(wb, "'Workers' Compensation'!B50")
@@ -29,12 +21,37 @@ const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {r
 return { a: a.value, b }
 WITAN
 
-# What-if — change an input and read the recalculated output
+# Multi-scenario sweep — compare several input values at once
 witan xlsx exec model.xlsx --stdin <<'WITAN'
-const result = await xlsx.setCells(wb, [
-  { address: "Inputs!B5", value: 1.10 }
+const result = await xlsx.scenarios(wb, {
+  inputs: [
+    { address: "Inputs!B5", values: [0.02, 0.04, 0.06] },
+    { address: "Inputs!B6", values: [0.08, 0.10, 0.12] },
+  ],
+  outputs: ["Output!C30", "Output!C45"],
+  mode: "cartesian",
+  includeStats: true,
+})
+console.log(result.tsv)
+WITAN
+
+# Conditional formatting — add a highlight rule and a color scale
+witan xlsx exec model.xlsx --stdin <<'WITAN'
+await xlsx.setConditionalFormatting(wb, "Sheet1", [
+  {
+    type: "cellValue",
+    address: "A1:A100",
+    operator: "greaterThan",
+    formula: "100",
+    style: { fill: { color: "#FF0000" } }
+  },
+  {
+    type: "twoColorScale",
+    address: "B1:B100",
+    lowValue: { type: "min", color: "#FFFFFF" },
+    highValue: { type: "max", color: "#FF0000" }
+  }
 ])
-return { touched: result.touched, errors: result.errors }
 WITAN
 
 # Simple one-liner (--expr is fine when there are no special characters)
@@ -111,10 +128,9 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 | Function                | Signature                 | Description                                                                                |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `listSheets`            | `(wb)`                    | List all sheets with used ranges                                                           |
-| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata                                                                    |
+| `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
+| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors, iterative calc) |
 | `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (view, format, columns, rows, merges); `filter.columns/rows` to limit |
-| `getUsedRange`          | `(wb, sheetName)`         | Used range for a sheet                                                                     |
 | `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
 | `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
 | `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
@@ -127,12 +143,12 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Searching**
 
-| Function       | Signature                                | Description                                                                         |
-| -------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `findCells`    | `(wb, matcher, opts?)`                   | Find cells by value or pattern; `opts.in`, `context`, `limit`, `offset`, `formulas` |
-| `findRows`     | `(wb, matcher, opts?)`                   | Find rows by value or pattern; `opts.in`, `context`, `limit`, `offset`              |
-| `detectTables` | `(wb)`                                   | Auto-detect table-like regions                                                      |
-| `tableLookup`  | `(wb, { table, rowLabel, columnLabel })` | Look up a value by row and column labels                                            |
+| Function         | Signature                                | Description                                                                         |
+| ---------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `findCells`      | `(wb, matcher, opts?)`                   | Find cells by value or pattern; `opts.in`, `context`, `limit`, `offset`, `formulas` |
+| `findRows`       | `(wb, matcher, opts?)`                   | Find rows by value or pattern; `opts.in`, `context`, `limit`, `offset`              |
+| `describeSheets` | `(wb)`                                   | Per-sheet structure map + detected tables                                           |
+| `tableLookup`    | `(wb, { table, rowLabel, columnLabel })` | Look up a value by row and column labels                                            |
 
 `matcher` accepts: string, string array (OR match), number, boolean, RegExp, or RegExp array. Searches are fuzzy and case-insensitive by default.
 
@@ -147,10 +163,11 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Computing**
 
-| Function           | Signature               | Description                                  |
-| ------------------ | ----------------------- | -------------------------------------------- |
-| `evaluateFormula`  | `(wb, sheet, formula)`  | Evaluate a formula string in a sheet context |
-| `evaluateFormulas` | `(wb, sheet, formulas)` | Evaluate multiple formulas at once           |
+| Function           | Signature                                         | Description                                        |
+| ------------------ | ------------------------------------------------- | -------------------------------------------------- |
+| `scenarios`        | `(wb, { inputs, outputs, mode?, includeStats? })` | Batch what-if sweeps with TSV + structured outputs |
+| `evaluateFormula`  | `(wb, sheet, formula)`                            | Evaluate a formula string in a sheet context       |
+| `evaluateFormulas` | `(wb, sheet, formulas)`                           | Evaluate multiple formulas at once                 |
 
 **Validating**
 
@@ -164,23 +181,35 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | --------------- | ------------- | ------------------------------------------------------------------- |
 | `previewStyles` | `(wb, range)` | Generate a PNG screenshot of a cell range; image is auto-registered |
 
+**Conditional Formatting**
+
+| Function                      | Signature                   | Description                                          |
+| ----------------------------- | --------------------------- | ---------------------------------------------------- |
+| `getConditionalFormatting`    | `(wb, sheet)`               | Get all CF rules on a sheet (`iconSet` is read-only) |
+| `setConditionalFormatting`    | `(wb, sheet, rules, opts?)` | Add writable CF rules; `opts.clear` to replace all   |
+| `removeConditionalFormatting` | `(wb, sheet, indices)`      | Remove rules by index                                |
+
 **Writing (ephemeral)**
 
-| Function                | Signature                    | Description                                                            |
-| ----------------------- | ---------------------------- | ---------------------------------------------------------------------- |
-| `setCells`              | `(wb, cells)`                | Write values/formulas to cells; returns `{ touched, changed, errors }` |
-| `scaleRange`            | `(wb, range, factor, opts?)` | Multiply numeric cells by a factor; `opts.skipFormulas` (default true) |
-| `insertRowAfter`        | `(wb, sheet, row, count?)`   | Insert rows after a given row                                          |
-| `deleteRows`            | `(wb, sheet, row, count?)`   | Delete rows starting at a given row                                    |
-| `insertColumnAfter`     | `(wb, sheet, col, count?)`   | Insert columns after a given column                                    |
-| `deleteColumns`         | `(wb, sheet, col, count?)`   | Delete columns starting at a given column                              |
-| `addSheet`              | `(wb, name)`                 | Add a new sheet                                                        |
-| `deleteSheet`           | `(wb, name)`                 | Delete a sheet                                                         |
-| `renameSheet`           | `(wb, oldName, newName)`     | Rename a sheet                                                         |
-| `addDefinedName`        | `(wb, name, range, scope?)`  | Add a defined name                                                     |
-| `setWorkbookProperties` | `(wb, properties)`           | Set workbook-level properties                                          |
-| `setSheetProperties`    | `(wb, sheet, properties)`    | Set sheet-level properties (columns, rows, merges, view)               |
-| `setStyle`              | `(wb, target, style)`        | Apply styles to a cell or range                                        |
+| Function                | Signature                          | Description                                                                                            |
+| ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `setCells`              | `(wb, cells)`                      | Write values/formulas to cells; returns `{ touched, changed, errors }`                                 |
+| `findAndReplace`        | `(wb, find, replace, opts?)`       | Bulk text replacement in values or formulas; supports regex/capture groups                             |
+| `scaleRange`            | `(wb, range, factor, opts?)`       | Multiply numeric cells by a factor; `opts.skipFormulas` (default true)                                 |
+| `insertRowAfter`        | `(wb, sheet, row, count?)`         | Insert rows after a given row                                                                          |
+| `deleteRows`            | `(wb, sheet, row, count?)`         | Delete rows starting at a given row                                                                    |
+| `insertColumnAfter`     | `(wb, sheet, col, count?)`         | Insert columns after a given column                                                                    |
+| `deleteColumns`         | `(wb, sheet, col, count?)`         | Delete columns starting at a given column                                                              |
+| `autoFitColumns`        | `(wb, sheet, columns?, opts?)`     | Auto-fit column widths to content; `opts.minWidth/maxWidth/padding`                                    |
+| `sortRange`             | `(wb, range, keys, opts?)`         | Sort rows in a range by one or more keys; `opts.hasHeader` defaults to `true`                          |
+| `copyRange`             | `(wb, source, destination, opts?)` | Copy a range to a destination anchor; `opts.pasteType` supports `all`, `values`, `formulas`, `formats` |
+| `addSheet`              | `(wb, name)`                       | Add a new sheet                                                                                        |
+| `deleteSheet`           | `(wb, name)`                       | Delete a sheet                                                                                         |
+| `renameSheet`           | `(wb, oldName, newName)`           | Rename a sheet                                                                                         |
+| `addDefinedName`        | `(wb, name, range, scope?)`        | Add a defined name                                                                                     |
+| `setWorkbookProperties` | `(wb, properties)`                 | Set workbook-level properties                                                                          |
+| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (columns, rows, merges, view)                                               |
+| `setStyle`              | `(wb, target, style)`              | Apply styles to a cell or range                                                                        |
 
 ### The ephemeral write contract
 
@@ -190,7 +219,7 @@ This means:
 
 - No risk of corrupting the original file
 - No `reset()` needed — each invocation starts clean
-- Multiple scenarios = multiple `exec` invocations
+- For independent what-if tests, each `exec` invocation starts from the original file
 
 To persist changes back to the workbook file, pass the `--save` flag.
 
@@ -205,6 +234,23 @@ To persist changes back to the workbook file, pass the `--save` flag.
 ```
 
 Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript.
+
+### What-if / sensitivity workflow
+
+For questions like "what happens to Y if X changes?", follow this sequence. **Steps 1 and 2 should be separate `exec` calls** — review the output of step 1 before proceeding.
+
+1. **Find the output cell (separate exec call)** — search for what the user is asking about (e.g., "net income", "reserve"). Use `xlsx.findCells` with `context: 2` and review the candidates. Labels and formula cells often share the same text — pick the formula cell, not the label. This step may take more than one attempt: try synonym arrays, read surrounding rows with `xlsx.readRangeTsv`, or check multiple sheets.
+2. **Trace + run the what-if (second exec call)** — once you have the output address, call `xlsx.traceToInputs(wb, outputAddr)` to confirm the user's input actually drives it. Trace results can contain hundreds of cells — filter by `nearbyLabel` matching the user's term instead of printing them all. Then `xlsx.setCells` to make the change and read the answer from `result.touched[outputAddr]`. If the output address is missing from `touched`, the cell didn't recalculate — you likely have the wrong address.
+3. **Report before and after** — always include the baseline value (read before the edit) and the new value from `touched`.
+
+For sweeping multiple values (sensitivity tables), use `scenarios` instead — it runs all combinations in one call and returns structured before/after data.
+
+Common pitfalls:
+
+- Don't search for the output _after_ `setCells` — find it first so you know the exact address to check in `touched`.
+- If `findCells` returns several hits for the same label, use context or `readRangeTsv` to disambiguate (e.g., "Net Income" may appear as both a label and a formula cell on different rows).
+- After `setCells`, verify `result.errors` is empty. New errors mean the edit broke a formula.
+- If the question names a specific metric (e.g., "loss ratio"), don't just search for that term — also check the sheet/row the question references, since models often have multiple versions of the same metric across sheets.
 
 ### Circular reference convergence
 
@@ -281,21 +327,21 @@ The `previewStyles` exec function (see Rendering in the API reference) provides 
 
 ## Error Guide
 
-| Error                                                             | Fix                                                                       |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `exactly one of --code, --script, --stdin, or --expr is required` | Provide exactly one code source flag                                      |
-| `--code, --script, --stdin, and --expr are mutually exclusive`    | Only use one code source flag per invocation                              |
-| `exec code must not be empty`                                     | Provide non-empty code                                                    |
-| `Import statements are not allowed`                               | No `import` in exec scripts; use the `xlsx` global                        |
-| `EXEC_SYNTAX_ERROR`                                               | Fix JavaScript syntax in your script                                      |
-| `EXEC_RUNTIME_ERROR`                                              | Fix runtime error (check the message for details)                         |
-| `EXEC_RESULT_TOO_LARGE`                                           | Return less data; use `print()` for large output instead of return values |
-| `--timeout-ms must be > 0`                                        | Omit the flag (no timeout) or provide a positive value                    |
-| `invalid --input-json`                                            | Provide valid JSON                                                        |
-| `Sheet 'X' not found`                                             | Check the sheet name; use `listSheets` to enumerate                       |
-| Shell quoting errors with sheet names                             | Use `--stdin <<'WITAN'` heredoc — it avoids all shell quoting issues      |
-| `findCells` returns empty                                         | Try synonym arrays, broader search, or check spelling                     |
-| `setCells` result missing expected output                         | The output cell may not be a dependent; trace the formula chain           |
+| Error                                                             | Fix                                                                             |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `exactly one of --code, --script, --stdin, or --expr is required` | Provide exactly one code source flag                                            |
+| `--code, --script, --stdin, and --expr are mutually exclusive`    | Only use one code source flag per invocation                                    |
+| `exec code must not be empty`                                     | Provide non-empty code                                                          |
+| `Import statements are not allowed`                               | No `import` in exec scripts; use the `xlsx` global                              |
+| `EXEC_SYNTAX_ERROR`                                               | Fix JavaScript syntax in your script                                            |
+| `EXEC_RUNTIME_ERROR`                                              | Fix runtime error (check the message for details)                               |
+| `EXEC_RESULT_TOO_LARGE`                                           | Return less data; use `console.log()` for large output instead of return values |
+| `--timeout-ms must be > 0`                                        | Omit the flag (no timeout) or provide a positive value                          |
+| `invalid --input-json`                                            | Provide valid JSON                                                              |
+| `Sheet 'X' not found`                                             | Check the sheet name; use `listSheets` to enumerate                             |
+| Shell quoting errors with sheet names                             | Use `--stdin <<'WITAN'` heredoc — it avoids all shell quoting issues            |
+| `findCells` returns empty                                         | Try synonym arrays, broader search, or check spelling                           |
+| `setCells` result missing expected output                         | The output cell may not be a dependent; trace the formula chain                 |
 
 ### Full Type Definitions
 
@@ -326,26 +372,30 @@ type RangeAddressOrCoordinates =
 type VisibilityType = "visible" | "outsidePrintArea" | "collapsed" | "hidden";
 interface SheetInfo {
   address: string;
-  from: {
-    row: number;
-    col: number;
-  };
-  to: {
-    row: number;
-    col: number;
-  };
   rows: number;
   cols: number;
   sheet: string;
   hidden?: boolean;
   printArea?: string;
+  /** Excel ListObjects / table names in sheet order. */
+  listObjects?: string[];
+  /** Excel What-If Analysis data table block ranges. */
+  dataTables?: string[];
+  /** Sheets this sheet references via formulas */
+  precedents?: string[];
+  /** Sheets that reference this sheet via formulas */
+  dependents?: string[];
 }
 interface WorkbookProperties {
-  sheets: SheetInfo[];
   activeSheetIndex: number;
   defaultFont: {
     name: string;
     size: number;
+  };
+  iterativeCalculation: {
+    enabled: boolean;
+    maxIterations: number;
+    maxChange: number;
   };
   metadata?: {
     author?: string;
@@ -368,9 +418,11 @@ interface WorkbookProperties {
     accent6: string;
     hyperlink: string;
     followedHyperlink: string;
+    majorFont?: string;
+    minorFont?: string;
   };
 }
-/** Get workbook-level properties including sheets, theme, and metadata. */
+/** Get workbook-level properties including theme, and metadata. */
 function getWorkbookProperties(wb): Promise<WorkbookProperties>;
 /**
  * Set workbook-level properties.
@@ -383,6 +435,11 @@ function setWorkbookProperties(
     defaultFont?: {
       name?: string;
       size?: number;
+    };
+    iterativeCalculation?: {
+      enabled?: boolean;
+      maxIterations?: number;
+      maxChange?: number;
     };
     metadata?: {
       author?: string;
@@ -403,13 +460,13 @@ function setWorkbookProperties(
       accent6?: string;
       hyperlink?: string;
       followedHyperlink?: string;
+      majorFont?: string;
+      minorFont?: string;
     };
   },
 ): Promise<void>;
-/** List all sheets with their used ranges and visibility. */
+/** List all sheets with their used ranges, visibility, and cross-sheet dependencies. */
 function listSheets(wb): Promise<SheetInfo[]>;
-/** Get the bounding range of non-empty cells in a sheet. */
-function getUsedRange(wb, sheetName: string): Promise<SheetInfo>;
 interface DefinedName {
   name: string;
   range: string;
@@ -430,6 +487,24 @@ function addSheet(wb, name: string): Promise<string>;
 function deleteSheet(wb, name: string): Promise<void>;
 /** Rename a worksheet. */
 function renameSheet(wb, oldName: string, newName: string): Promise<void>;
+interface CellNoteResponse {
+  author: string;
+  text: string;
+}
+interface CellHyperlinkResponse {
+  type: "internal" | "external";
+  target: string;
+  tooltip?: string;
+}
+interface CellThreadCommentResponse {
+  authorId: string;
+  text: string;
+  createdAt: string;
+}
+interface CellThreadResponse {
+  resolved: boolean;
+  comments: CellThreadCommentResponse[];
+}
 interface Value {
   address: string;
   sheet: string;
@@ -454,6 +529,9 @@ interface Value {
   visibility: VisibilityType;
   /** Self-locating TSV of surrounding cells when context was requested. */
   context?: string;
+  note?: CellNoteResponse;
+  link?: CellHyperlinkResponse;
+  thread?: CellThreadResponse;
 }
 /** Read a single cell's value, formula, and metadata. */
 function readCell(
@@ -522,18 +600,19 @@ declare class SearchResults<T> extends Array<T> {
   truncated?: boolean;
 }
 type MatcherInput = string | string[] | number | boolean | RegExp | RegExp[];
+type ReplaceMatcherInput = string | RegExp;
 /**
  * Search for cells matching a value, substring, or regex pattern.
  * When `formulas` is true, matches against formulas instead of text/values;
  * cells without formulas are skipped.
  * Examples:
- * - text: findCells(wb, "Revenue")
- * - number: findCells(wb, 42)
- * - boolean: findCells(wb, true)
- * - text synonyms: findCells(wb, ["Rev", "Revenue"])
- * - regex: findCells(wb, /rev(enue)?/i)
- * - regex array: findCells(wb, [/invest/i, /sales/i]) // OR matching - matches if any regex matches
- * - formula search: findCells(wb, "SUM", { formulas: true })
+ * - text: xlsx.findCells(wb, "Revenue")
+ * - number: xlsx.findCells(wb, 42)
+ * - boolean: xlsx.findCells(wb, true)
+ * - text synonyms: xlsx.findCells(wb, ["Rev", "Revenue"])
+ * - regex: xlsx.findCells(wb, /rev(enue)?/i)
+ * - regex array: xlsx.findCells(wb, [/invest/i, /sales/i]) // OR matching - matches if any regex matches
+ * - formula search: xlsx.findCells(wb, "SUM", { formulas: true })
  */
 function findCells(
   wb,
@@ -583,19 +662,47 @@ function findRows(
     context?: string;
   }>
 >;
-/** Detect tabular regions by analyzing header patterns across all sheets. */
-function detectTables(wb): Promise<
+interface FindAndReplaceResult {
+  replaced: number;
+  cells: string[];
+  errors: Diagnostic[];
+}
+/**
+ * Replace text in cell values or formulas across a workbook scope.
+ * For formula edits, prefer regex boundaries to avoid accidental partial reference replacements.
+ */
+function findAndReplace(
+  wb,
+  find: ReplaceMatcherInput,
+  replace: string,
+  opts?: {
+    in?: RangeAddressOrCoordinates | string;
+    matchCase?: boolean;
+    wholeCell?: boolean;
+    inFormulas?: boolean;
+    limit?: number;
+  },
+): Promise<FindAndReplaceResult>;
+/** Describe all visible sheets with detected tables and structure maps. */
+function describeSheets(wb): Promise<
   Record<
     string,
     {
-      /** Full range covering the row headers + column headers + data rows */
-      address: string;
-      /** Top labels as TSV with addresses (format: ColRow|Value\tColRow|Value) */
-      headerRows: string;
-      /** Side labels as TSV with addresses (format: ColRow|Value\nColRow|Value), null when no row labels */
-      headerCols: string | null;
-      /** Excel table name for Data Tables, absent for heuristic-detected tables */
-      tableName?: string;
+      tables: Record<
+        string,
+        {
+          /** Full range covering the row headers + column headers + data rows */
+          address: string;
+          /** Top labels as TSV with addresses (format: ColRow|Value\tColRow|Value) */
+          headerRows: string;
+          /** Side labels as TSV with addresses (format: ColRow|Value\nColRow|Value), null when no row labels */
+          headerCols: string | null;
+          /** Excel table name for Data Tables, absent for heuristic-detected tables */
+          tableName?: string;
+        }
+      >;
+      /** Compact ASCII structure map showing cell types per row */
+      structure: string;
     }
   >
 >;
@@ -639,6 +746,29 @@ interface Diagnostic {
   address: string;
   formula?: string;
 }
+interface ScenarioInput {
+  address: CellAddressOrCoordinates;
+  values: (number | string | boolean | null)[];
+}
+interface ScenarioEntry {
+  inputs: Record<string, string>;
+  outputs: Record<string, string>;
+  errors: Diagnostic[];
+}
+interface OutputStats {
+  min: number;
+  max: number;
+  mean: number;
+  count: number;
+}
+interface ScenariosResult {
+  tsv: string;
+  scenarios: ScenarioEntry[];
+  stats?: Record<string, OutputStats>;
+  scenarioCount: number;
+  inputCount: number;
+  outputCount: number;
+}
 interface InvalidatedTile {
   sheet: string;
   tileRow: number;
@@ -675,8 +805,35 @@ function setCells(
     value?: unknown;
     formula?: string;
     format?: string;
+    /** Legacy note payload: `note: { text: "Review this", author: "Agent" }`; clear with `note: null`. */
+    note?: { text?: string; author?: string } | null;
+    /** Hyperlink payload: external `{ url: "https://example.com" }` or internal `{ ref: "Sheet2!B5" }`; clear with `link: null`. */
+    link?: {
+      url?: string;
+      ref?: string;
+      tooltip?: string;
+    } | null;
+    /** Thread payload: append comments via `add`, toggle state via `resolved`, or delete with `delete: true` / `thread: null`. */
+    thread?: {
+      add?: Array<{ author?: string; text: string }>;
+      resolved?: boolean;
+      delete?: boolean;
+    } | null;
   }>,
 ): Promise<SetCellsResult>;
+/**
+ * Run batch what-if scenarios across one or more input cells and collect outputs.
+ * Supports cartesian product or parallel zip semantics.
+ */
+function scenarios(
+  wb,
+  args: {
+    inputs: ScenarioInput[];
+    outputs: (string | CellAddressOrCoordinates)[];
+    mode?: "cartesian" | "parallel";
+    includeStats?: boolean;
+  },
+): Promise<ScenariosResult>;
 /**
  * Multiply all numeric cells in a range by a scale factor.
  * Formula cells are skipped by default.
@@ -717,6 +874,49 @@ function deleteColumns(
   column: number | string,
   count?: number,
 ): Promise<void>;
+/** Auto-fit one or more columns to their visible cell contents. */
+function autoFitColumns(
+  wb,
+  sheetName: string,
+  columns?: Array<number | string>,
+  opts?: {
+    minWidth?: number;
+    maxWidth?: number;
+    padding?: number;
+  },
+): Promise<
+  Record<
+    string,
+    {
+      width: number;
+      previousWidth: number;
+    }
+  >
+>;
+/** Sort rows in a rectangular range by one or more column keys. */
+function sortRange(
+  wb,
+  range: RangeAddressOrCoordinates,
+  keys: Array<{
+    col: number | string;
+    order?: "asc" | "desc";
+  }>,
+  opts?: {
+    hasHeader?: boolean;
+  },
+): Promise<void>;
+/** Copy a source range to a destination anchor, with optional paste behavior. */
+function copyRange(
+  wb,
+  source: RangeAddressOrCoordinates,
+  destination: RangeAddressOrCoordinates,
+  opts?: {
+    pasteType?: "all" | "values" | "formulas" | "formats";
+  },
+): Promise<{
+  destination: string;
+  cellsCopied: number;
+}>;
 type RichTextRun = {
   text: string;
   style?: {
@@ -804,6 +1004,144 @@ function setStyle(
   wb,
   target: CellAddressOrCoordinates | RangeAddressOrCoordinates,
   style: StyleObj,
+): Promise<void>;
+interface CfColorScalePoint {
+  type:
+    | "formula"
+    | "max"
+    | "min"
+    | "num"
+    | "percent"
+    | "percentile"
+    | "autoMin"
+    | "autoMax";
+  value?: number;
+  formula?: string;
+  color?: string;
+}
+interface CfDataBarThreshold {
+  type:
+    | "formula"
+    | "max"
+    | "min"
+    | "num"
+    | "percent"
+    | "percentile"
+    | "autoMin"
+    | "autoMax";
+  value?: number;
+  formula?: string;
+}
+interface CfDataBarConfig {
+  showValue?: boolean;
+  gradient?: boolean;
+  border?: boolean;
+  negativeBarColorSameAsPositive?: boolean;
+  negativeBarBorderColorSameAsPositive?: boolean;
+  axisPosition?: "automatic" | "middle" | "none";
+  direction?: "context" | "leftToRight" | "rightToLeft";
+  fillColor?: string;
+  borderColor?: string;
+  negativeFillColor?: string;
+  negativeBorderColor?: string;
+  axisColor?: string;
+  lowValue?: CfDataBarThreshold;
+  highValue?: CfDataBarThreshold;
+}
+type CfWritableRuleType =
+  | "cellValue"
+  | "containsText"
+  | "notContainsText"
+  | "beginsWith"
+  | "endsWith"
+  | "containsBlanks"
+  | "notContainsBlanks"
+  | "containsErrors"
+  | "notContainsErrors"
+  | "expression"
+  | "timePeriod"
+  | "top"
+  | "bottom"
+  | "aboveAverage"
+  | "belowAverage"
+  | "duplicateValues"
+  | "uniqueValues"
+  | "twoColorScale"
+  | "threeColorScale"
+  | "dataBar";
+type CfReadableRuleType = CfWritableRuleType | "iconSet";
+interface CfRuleShared {
+  address: string;
+  priority?: number;
+  stopIfTrue?: boolean;
+  style?: StyleObj;
+  operator?:
+    | "equal"
+    | "notEqual"
+    | "greaterThan"
+    | "greaterThanOrEqual"
+    | "lessThan"
+    | "lessThanOrEqual"
+    | "between"
+    | "notBetween"
+    | "above"
+    | "aboveOrEqual"
+    | "below"
+    | "belowOrEqual";
+  formula?: string;
+  formula2?: string;
+  text?: string;
+  rank?: number;
+  percent?: boolean;
+  bottom?: boolean;
+  stdDev?: number;
+  lowValue?: CfColorScalePoint;
+  midValue?: CfColorScalePoint;
+  highValue?: CfColorScalePoint;
+  dataBar?: CfDataBarConfig;
+  timePeriod?:
+    | "today"
+    | "yesterday"
+    | "tomorrow"
+    | "last7Days"
+    | "thisWeek"
+    | "lastWeek"
+    | "nextWeek"
+    | "thisMonth"
+    | "lastMonth"
+    | "nextMonth";
+}
+interface CfReadableRule extends CfRuleShared {
+  index?: number;
+  type: CfReadableRuleType;
+}
+interface CfWritableRule extends CfRuleShared {
+  type: CfWritableRuleType;
+}
+type CfRule = CfReadableRule;
+/** Get all conditional formatting rules on a sheet. */
+function getConditionalFormatting(
+  wb,
+  sheetName: string,
+): Promise<CfReadableRule[]>;
+/**
+ * Add conditional formatting rules to a sheet.
+ * Use opts.clear=true to replace all existing rules first.
+ * iconSet rules are read-only and are not accepted by this method.
+ */
+function setConditionalFormatting(
+  wb,
+  sheetName: string,
+  rules: CfWritableRule[],
+  opts?: {
+    clear?: boolean;
+  },
+): Promise<void>;
+/** Remove conditional formatting rules by index. */
+function removeConditionalFormatting(
+  wb,
+  sheetName: string,
+  indices: number[],
 ): Promise<void>;
 interface SheetProperties {
   view: {
@@ -1059,4 +1397,4 @@ function previewStyles(wb, range: RangeAddressOrCoordinates): Promise<void>;
 
 ## Scope
 
-This skill is for reading and manipulating Excel spreadsheets (.xlsx, .xlsm) only. It does not handle non-spreadsheet documents (PDF, DOCX, PPTX, HTML, text).
+This skill is for reading and manipulating Excel spreadsheets (.xls, .xlsx, .xlsm) only. It does not handle non-spreadsheet documents (PDF, DOCX, PPTX, HTML, text).

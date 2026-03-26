@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // FileResponse is the response from POST /v0/files.
@@ -98,10 +98,7 @@ func buildMultipartPayload(filePath string) ([]byte, string, error) {
 	writer := multipart.NewWriter(&buf)
 
 	filename := filepath.Base(filePath)
-	mimeType := mime.TypeByExtension(filepath.Ext(filePath))
-	if mimeType == "" {
-		mimeType = "application/octet-stream"
-	}
+	mimeType := detectContentType(filePath)
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
 	h.Set("Content-Type", mimeType)
@@ -214,6 +211,39 @@ func cacheEntryFromUpload(resp *FileResponse) CacheEntry {
 		RevisionID: resp.RevisionID,
 		Bytes:      resp.Bytes,
 		Filename:   resp.Filename,
+	}
+}
+
+// knownMIMEType returns the MIME type for file extensions we handle, without
+// consulting the system MIME database. Returns "" for unknown extensions.
+func knownMIMEType(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".xlsx":
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".xls":
+		return "application/vnd.ms-excel"
+	case ".xlsm":
+		return "application/vnd.ms-excel.sheet.macroEnabled.12"
+	case ".csv":
+		return "text/csv"
+	case ".pdf":
+		return "application/pdf"
+	case ".docx":
+		return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	case ".doc":
+		return "application/msword"
+	case ".pptx":
+		return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	case ".ppt":
+		return "application/vnd.ms-powerpoint"
+	case ".json":
+		return "application/json"
+	case ".xml":
+		return "application/xml"
+	case ".html", ".htm":
+		return "text/html"
+	default:
+		return ""
 	}
 }
 

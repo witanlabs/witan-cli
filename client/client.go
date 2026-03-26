@@ -497,17 +497,10 @@ func parseAPIError(statusCode int, body []byte, retryAfter string) error {
 }
 
 func detectContentType(filePath string) string {
-	lower := strings.ToLower(filePath)
-	switch {
-	case strings.HasSuffix(lower, ".xlsx"):
-		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	case strings.HasSuffix(lower, ".xls"):
-		return "application/vnd.ms-excel"
-	case strings.HasSuffix(lower, ".xlsm"):
-		return "application/vnd.ms-excel.sheet.macroEnabled.12"
-	default:
-		return "application/octet-stream"
+	if mt := knownMIMEType(filepath.Ext(filePath)); mt != "" {
+		return mt
 	}
+	return "application/octet-stream"
 }
 
 func (c *Client) setCommonHeaders(req *http.Request) {

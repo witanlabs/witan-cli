@@ -156,7 +156,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to exchange session for JWT: %w", err)
 	}
 
-	orgs, err := listOrgs(mgmtURL, jwt)
+	orgs, err := listOrgsByJWT(mgmtURL, jwt)
 	if err != nil {
 		return fmt.Errorf("failed to list organizations: %w", err)
 	}

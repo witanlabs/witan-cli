@@ -119,7 +119,7 @@ func resolveAPIKeyOrgID(rawAPIKey string) (string, error) {
 		}
 	}
 
-	orgs, err := listOrgs(resolveManagementAPIURL(), rawAPIKey)
+	orgs, err := listOrgsByAPIKey(resolveManagementAPIURL(), rawAPIKey)
 	if err != nil {
 		return "", fmt.Errorf("resolving org for API key: %w", err)
 	}
@@ -145,14 +145,22 @@ type orgEntry struct {
 	Name string `json:"name"`
 }
 
+func listOrgsByJWT(mgmtURL, jwt string) ([]orgEntry, error) {
+	return listOrgs(mgmtURL, "Bearer "+jwt)
+}
+
+func listOrgsByAPIKey(mgmtURL, key string) ([]orgEntry, error) {
+	return listOrgs(mgmtURL, "ApiKey "+key)
+}
+
 // listOrgs calls GET {mgmtURL}/v0/orgs and returns the list of organizations.
-func listOrgs(mgmtURL, bearerToken string) ([]orgEntry, error) {
+func listOrgs(mgmtURL, authHeader string) ([]orgEntry, error) {
 	req, err := http.NewRequest("GET", mgmtURL+"/v0/orgs", nil)
 	if err != nil {
 		return nil, err
 	}
 	setCLIUserAgent(req)
-	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("Authorization", authHeader)
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	resp, err := httpClient.Do(req)

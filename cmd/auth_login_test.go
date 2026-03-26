@@ -54,7 +54,7 @@ func TestListOrgs_UsesJWTNotSessionToken(t *testing.T) {
 	}
 
 	// List orgs with the JWT (not the session token)
-	orgs, err := listOrgs(mgmt.URL, jwt)
+	orgs, err := listOrgsByJWT(mgmt.URL, jwt)
 	if err != nil {
 		t.Fatalf("listOrgs failed: %v", err)
 	}

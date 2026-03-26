@@ -239,8 +239,8 @@ Read the output value from `result.touched["Sheet!Address"]`. Never compute the 
 
 For questions like "what happens to Y if X changes?", follow this sequence. **Steps 1 and 2 should be separate `exec` calls** — review the output of step 1 before proceeding.
 
-1. **Find the output cell (separate exec call)** — search for what the user is asking about (e.g., "net income", "reserve"). Use `findCells` with `context: 2` and review the candidates. Labels and formula cells often share the same text — pick the formula cell, not the label. This step may take more than one attempt: try synonym arrays, read surrounding rows with `readRangeTsv`, or check multiple sheets.
-2. **Trace + run the what-if (second exec call)** — once you have the output address, call `traceToInputs(wb, outputAddr)` to confirm the user's input actually drives it. Trace results can contain hundreds of cells — filter by `nearbyLabel` matching the user's term instead of printing them all. Then `setCells` to make the change and read the answer from `result.touched[outputAddr]`. If the output address is missing from `touched`, the cell didn't recalculate — you likely have the wrong address.
+1. **Find the output cell (separate exec call)** — search for what the user is asking about (e.g., "net income", "reserve"). Use `xlsx.findCells` with `context: 2` and review the candidates. Labels and formula cells often share the same text — pick the formula cell, not the label. This step may take more than one attempt: try synonym arrays, read surrounding rows with `xlsx.readRangeTsv`, or check multiple sheets.
+2. **Trace + run the what-if (second exec call)** — once you have the output address, call `xlsx.traceToInputs(wb, outputAddr)` to confirm the user's input actually drives it. Trace results can contain hundreds of cells — filter by `nearbyLabel` matching the user's term instead of printing them all. Then `xlsx.setCells` to make the change and read the answer from `result.touched[outputAddr]`. If the output address is missing from `touched`, the cell didn't recalculate — you likely have the wrong address.
 3. **Report before and after** — always include the baseline value (read before the edit) and the new value from `touched`.
 
 For sweeping multiple values (sensitivity tables), use `scenarios` instead — it runs all combinations in one call and returns structured before/after data.
@@ -606,13 +606,13 @@ type ReplaceMatcherInput = string | RegExp;
  * When `formulas` is true, matches against formulas instead of text/values;
  * cells without formulas are skipped.
  * Examples:
- * - text: findCells(wb, "Revenue")
- * - number: findCells(wb, 42)
- * - boolean: findCells(wb, true)
- * - text synonyms: findCells(wb, ["Rev", "Revenue"])
- * - regex: findCells(wb, /rev(enue)?/i)
- * - regex array: findCells(wb, [/invest/i, /sales/i]) // OR matching - matches if any regex matches
- * - formula search: findCells(wb, "SUM", { formulas: true })
+ * - text: xlsx.findCells(wb, "Revenue")
+ * - number: xlsx.findCells(wb, 42)
+ * - boolean: xlsx.findCells(wb, true)
+ * - text synonyms: xlsx.findCells(wb, ["Rev", "Revenue"])
+ * - regex: xlsx.findCells(wb, /rev(enue)?/i)
+ * - regex array: xlsx.findCells(wb, [/invest/i, /sales/i]) // OR matching - matches if any regex matches
+ * - formula search: xlsx.findCells(wb, "SUM", { formulas: true })
  */
 function findCells(
   wb,

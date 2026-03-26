@@ -96,7 +96,7 @@ The typical flow for reading source material and populating a spreadsheet:
 1. **Explore** — `witan read source.pdf --outline` to understand structure
 2. **Read** — `witan read source.pdf --pages 3-8` to get the data
 3. **Parse** — extract values from the text (LLM or regex)
-4. **Write** — `witan xlsx exec model.xlsx --input-json '...'` to populate the spreadsheet
+4. **Write** — `witan xlsx exec model.xlsx --code 'return await xlsx.setCells(wb, [{ address: "Inputs!B3", value: 123 }])'` to populate the spreadsheet
 
 ## Output Format
 

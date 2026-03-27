@@ -57,7 +57,6 @@ Output:
   - --json prints the full response envelope.
     Success shape:
       {"ok":true,"stdout":"...","result":<json>,"writes_detected":<bool>,"accesses":[...]}
-      {"ok":true,...,"file":"<base64>"} when --save in stateless mode and writes are detected
       {"ok":true,...,"revision_id":"<id>"} when --save in files-backed mode and writes are detected
     Failure shape:
       {"ok":false,"stdout":"...","error":{"type":"...","code":"...","message":"..."}}
@@ -189,6 +188,8 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	if jsonOutput {
+		// File is a transport detail used for local writeback, not CLI JSON output.
+		result.File = nil
 		if err := jsonPrint(result); err != nil {
 			return err
 		}

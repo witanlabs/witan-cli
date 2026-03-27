@@ -218,6 +218,7 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 	disallowed := []string{
 		"/v0/orgs/org_test/xlsx/exec",
 		"/v0/files/:id/xlsx/exec",
+		`"file":"<base64>"`,
 	}
 	if slices.ContainsFunc(disallowed, func(needle string) bool {
 		return strings.Contains(xlsxExecCmd.Long, needle)
@@ -593,6 +594,62 @@ func TestRunExec_JSONOutputRawEnvelope(t *testing.T) {
 	}
 	if _, ok := envelope["result"]; !ok {
 		t.Fatalf("result missing from envelope: %#v", envelope)
+	}
+}
+
+func TestRunExec_JSONOutputSaveWritesWorkbookAndOmitsFile(t *testing.T) {
+	resetExecTestGlobals(t)
+	filePath, _ := writeWorkbookForExecTest(t)
+	newBytes := []byte{0x50, 0x4b, 0x03, 0x04, 'j', 's', 'o', 'n'}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(
+			w,
+			`{"ok":true,"stdout":"","result":{"ok":true},"writes_detected":true,"file":"%s"}`,
+			base64.StdEncoding.EncodeToString(newBytes),
+		)
+	}))
+	defer server.Close()
+
+	stateless = true
+	apiURL = server.URL
+	apiKey = "test-key"
+	jsonOutput = true
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return true;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("save", "true"); err != nil {
+		t.Fatalf("setting --save: %v", err)
+	}
+
+	output, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{filePath})
+	})
+	if err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	after, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("reading workbook after exec: %v", err)
+	}
+	if string(after) != string(newBytes) {
+		t.Fatalf("workbook bytes were not updated: got %v want %v", after, newBytes)
+	}
+
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(output), &envelope); err != nil {
+		t.Fatalf("output should be valid JSON, got %q: %v", output, err)
+	}
+	if _, ok := envelope["file"]; ok {
+		t.Fatalf("file should be omitted from CLI JSON output: %#v", envelope)
 	}
 }
 

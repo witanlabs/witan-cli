@@ -22,6 +22,8 @@ var (
 	stateless bool
 )
 
+const versionHealthRequestTimeout = 5 * time.Second
+
 var rootCmd = &cobra.Command{
 	Use:   "witan",
 	Short: "Witan CLI - spreadsheet tools for agents",
@@ -54,9 +56,74 @@ Limits:
 }
 
 func init() {
+	cobra.AddTemplateFunc("witanVersionDetails", versionDetails)
+	rootCmd.SetVersionTemplate(`{{witanVersionDetails .}}`)
+
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for Witan requests (env: WITAN_API_KEY)")
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Override the Witan API base URL (env: WITAN_API_URL)")
 	rootCmd.PersistentFlags().BoolVar(&stateless, "stateless", false, "Send workbook bytes on every request; do not reuse uploaded revisions (env: WITAN_STATELESS)")
+}
+
+type healthResponse struct {
+	Meta struct {
+		Version string `json:"VERSION"`
+	} `json:"meta"`
+}
+
+func versionDetails(cmd *cobra.Command) string {
+	return formatVersionDetails(cmd.DisplayName(), cmd.Version, resolveAPIURL())
+}
+
+func formatVersionDetails(displayName, cliVersion, baseURL string) string {
+	name := strings.TrimSpace(displayName)
+	if name == "" {
+		name = "witan"
+	}
+
+	version := strings.TrimSpace(cliVersion)
+	if version == "" {
+		version = "dev"
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s version %s\n", name, version)
+
+	apiVersion, err := fetchHealthVersion(baseURL)
+	if err != nil || apiVersion == "" {
+		b.WriteString("API version: unavailable\n")
+		return b.String()
+	}
+
+	fmt.Fprintf(&b, "API version: %s\n", apiVersion)
+	return b.String()
+}
+
+func fetchHealthVersion(baseURL string) (string, error) {
+	req, err := http.NewRequest("GET", strings.TrimRight(baseURL, "/")+"/health", nil)
+	if err != nil {
+		return "", err
+	}
+	setCLIUserAgent(req)
+
+	httpClient := &http.Client{Timeout: versionHealthRequestTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	var result healthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(result.Meta.Version) == "" {
+		return "", fmt.Errorf("missing meta.VERSION in response")
+	}
+	return result.Meta.Version, nil
 }
 
 func resolveStateless() bool {

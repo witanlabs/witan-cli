@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/pflag"
 )
 
 func TestResolveStateless_ForcesWithoutCredentials(t *testing.T) {
@@ -191,6 +194,89 @@ func TestExchangeSessionForJWT_SendsUserAgentHeader(t *testing.T) {
 	}
 }
 
+func TestVersionFlag_PrintsHealthVersion(t *testing.T) {
+	origVersion := Version
+	origRootVersion := rootCmd.Version
+	origAPIURL := apiURL
+	t.Cleanup(func() {
+		Version = origVersion
+		rootCmd.Version = origRootVersion
+		apiURL = origAPIURL
+		resetRootCommandForTest()
+	})
+
+	Version = "1.2.3"
+	rootCmd.Version = Version
+	apiURL = ""
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/health" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.Header.Get("User-Agent"); got != "witan-cli/1.2.3" {
+			t.Fatalf("unexpected user-agent header: %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"ok","meta":{"VERSION":"v2.11.1"}}`)
+	}))
+	defer server.Close()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	rootCmd.SetArgs([]string{"--api-url", server.URL, "--version"})
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+
+	if got := stdout.String(); got != "witan version 1.2.3\nAPI version: v2.11.1\n" {
+		t.Fatalf("unexpected version output: %q", got)
+	}
+	if got := stderr.String(); got != "" {
+		t.Fatalf("expected no stderr output, got %q", got)
+	}
+}
+
+func TestVersionFlag_PrintsUnavailableWhenHealthFails(t *testing.T) {
+	origVersion := Version
+	origRootVersion := rootCmd.Version
+	origAPIURL := apiURL
+	t.Cleanup(func() {
+		Version = origVersion
+		rootCmd.Version = origRootVersion
+		apiURL = origAPIURL
+		resetRootCommandForTest()
+	})
+
+	Version = "1.2.3"
+	rootCmd.Version = Version
+	apiURL = ""
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	rootCmd.SetArgs([]string{"--api-url", server.URL, "--version"})
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+
+	if got := stdout.String(); got != "witan version 1.2.3\nAPI version: unavailable\n" {
+		t.Fatalf("unexpected version output: %q", got)
+	}
+	if got := stderr.String(); got != "" {
+		t.Fatalf("expected no stderr output, got %q", got)
+	}
+}
+
 // mockMgmtOrgsServer starts a mock management API that returns a single org
 // for GET /v0/orgs and sets WITAN_MANAGEMENT_API_URL. Call t.Cleanup to tear it down.
 func mockMgmtOrgsServer(t *testing.T) {
@@ -276,4 +362,21 @@ func TestSkillDocs_UseValidExecExamples(t *testing.T) {
 			t.Fatalf("xlsx-code-mode skill should contain documented exec API example: %s", good)
 		}
 	}
+}
+
+func resetRootCommandForTest() {
+	rootCmd.SetArgs(nil)
+	rootCmd.SetOut(nil)
+	rootCmd.SetErr(nil)
+	resetCommandFlag(rootCmd.Flags(), "version", "false")
+	resetCommandFlag(rootCmd.PersistentFlags(), "api-url", "")
+}
+
+func resetCommandFlag(flagSet interface{ Lookup(string) *pflag.Flag }, name, value string) {
+	flag := flagSet.Lookup(name)
+	if flag == nil {
+		return
+	}
+	_ = flag.Value.Set(value)
+	flag.Changed = false
 }

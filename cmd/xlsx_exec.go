@@ -362,12 +362,17 @@ func resolveExecLocale(cmd *cobra.Command) (string, error) {
 		return locale, nil
 	}
 
-	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
-		raw := os.Getenv(key)
-		if raw == "" {
+	if raw, ok := os.LookupEnv("LC_ALL"); ok && strings.TrimSpace(raw) != "" {
+		locale, _ := normalizeLocale(raw)
+		return locale, nil
+	}
+
+	for _, key := range []string{"LC_MESSAGES", "LANG"} {
+		raw, ok := os.LookupEnv(key)
+		if !ok || strings.TrimSpace(raw) == "" {
 			continue
 		}
-		if locale, ok := normalizeLocale(raw); ok {
+		if locale, valid := normalizeLocale(raw); valid {
 			return locale, nil
 		}
 	}

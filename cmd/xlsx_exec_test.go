@@ -299,6 +299,9 @@ func TestRunExec_RejectsNonPositiveLimits(t *testing.T) {
 func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 	resetExecTestGlobals(t)
 	filePath, originalBytes := writeWorkbookForExecTest(t)
+	t.Setenv("WITAN_LOCALE", "")
+	t.Setenv("LC_ALL", "")
+	t.Setenv("LC_MESSAGES", "")
 	t.Setenv("LANG", "en_GB.UTF-8")
 
 	var gotExecCode string
@@ -853,6 +856,38 @@ func TestResolveExecLocale(t *testing.T) {
 		}
 		if locale != "" {
 			t.Fatalf("expected empty locale, got %q", locale)
+		}
+	})
+
+	t.Run("LC_ALL generic suppresses lower-priority locales", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "")
+		t.Setenv("LC_ALL", "C.UTF-8")
+		t.Setenv("LC_MESSAGES", "en_US.UTF-8")
+		t.Setenv("LANG", "fr_FR.UTF-8")
+		cmd := newExecTestCommand()
+
+		locale, err := resolveExecLocale(cmd)
+		if err != nil {
+			t.Fatalf("resolveExecLocale failed: %v", err)
+		}
+		if locale != "" {
+			t.Fatalf("expected empty locale, got %q", locale)
+		}
+	})
+
+	t.Run("invalid lower-priority locales are ignored", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "")
+		t.Setenv("LC_ALL", "")
+		t.Setenv("LC_MESSAGES", "*")
+		t.Setenv("LANG", "fr_FR.UTF-8")
+		cmd := newExecTestCommand()
+
+		locale, err := resolveExecLocale(cmd)
+		if err != nil {
+			t.Fatalf("resolveExecLocale failed: %v", err)
+		}
+		if locale != "fr-FR" {
+			t.Fatalf("unexpected locale: %q", locale)
 		}
 	})
 

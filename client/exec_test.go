@@ -35,6 +35,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		if got := r.Header.Get("User-Agent"); got != defaultUserAgent {
 			t.Fatalf("unexpected user-agent header: %q", got)
 		}
+		if got := r.Header.Get("Accept-Language"); got != "en-GB" {
+			t.Fatalf("unexpected accept-language header: %q", got)
+		}
 
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			t.Fatalf("parsing multipart form: %v", err)
@@ -80,6 +83,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		if payload["max_output_chars"] != float64(128) {
 			t.Fatalf("unexpected max_output_chars: %#v", payload["max_output_chars"])
 		}
+		if payload["locale"] != "en-GB" {
+			t.Fatalf("unexpected locale: %#v", payload["locale"])
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, `{"ok":true,"stdout":"hello\n","result":{"value":42},"images":["data:image/png;base64,aGVsbG8="],"accesses":[{"operation":"read","address":"Sheet1!A1"}]}`)
@@ -92,6 +98,7 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 	resp, err := c.Exec(filePath, ExecRequest{
 		Code:           "return input.x;",
 		Input:          map[string]any{"x": 7},
+		Locale:         "en-GB",
 		TimeoutMS:      2500,
 		MaxOutputChars: 128,
 	}, false)
@@ -219,6 +226,9 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 		if got := r.Header.Get("User-Agent"); got != defaultUserAgent {
 			t.Fatalf("unexpected user-agent header: %q", got)
 		}
+		if got := r.Header.Get("Accept-Language"); got != "fr-FR" {
+			t.Fatalf("unexpected accept-language header: %q", got)
+		}
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -231,6 +241,9 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 		if payload["code"] != "return 1;" {
 			t.Fatalf("unexpected code: %#v", payload["code"])
 		}
+		if payload["locale"] != "fr-FR" {
+			t.Fatalf("unexpected locale: %#v", payload["locale"])
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, `{"ok":true,"stdout":"done\n","result":{"ok":true}}`)
@@ -240,7 +253,7 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 	c := New(server.URL, "test-key", "", false)
 	c.maxAttempts = 1
 
-	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;"}, false)
+	resp, err := c.FilesExec("file_123", "rev_9", ExecRequest{Code: "return 1;", Locale: "fr-FR"}, false)
 	if err != nil {
 		t.Fatalf("FilesExec failed: %v", err)
 	}

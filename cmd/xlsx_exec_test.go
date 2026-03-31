@@ -205,6 +205,8 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 		`{"ok":true,"stdout":"...","result":<json>`,
 		`{"ok":false,"stdout":"...","error":{"type":"...","code":"...","message":"..."}}`,
 		"--input-json is omitted, input defaults to {}.",
+		"--locale sets the workbook execution locale explicitly.",
+		"If --locale is omitted, the CLI tries WITAN_LOCALE, then LC_ALL / LC_MESSAGES / LANG.",
 		"--timeout-ms=0 means no explicit timeout override.",
 		"--stdin-timeout-ms=2000 aborts --stdin reads that never reach EOF; set 0 to disable.",
 		"--max-output-chars=0 means no explicit stdout cap override.",
@@ -297,11 +299,16 @@ func TestRunExec_RejectsNonPositiveLimits(t *testing.T) {
 func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 	resetExecTestGlobals(t)
 	filePath, originalBytes := writeWorkbookForExecTest(t)
+	t.Setenv("LANG", "en_GB.UTF-8")
 
 	var gotExecCode string
+	var gotLocale string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v0/orgs/org_test/xlsx/exec" {
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.Header.Get("Accept-Language"); got != "en-GB" {
+			t.Fatalf("unexpected Accept-Language header: %q", got)
 		}
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			t.Fatalf("parsing multipart form: %v", err)
@@ -311,6 +318,7 @@ func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 			t.Fatalf("parsing exec payload: %v", err)
 		}
 		gotExecCode, _ = payload["code"].(string)
+		gotLocale, _ = payload["locale"].(string)
 
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, `{"ok":true,"stdout":"hello\n","result":{"answer":42}}`)
@@ -334,6 +342,9 @@ func TestRunExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 	}
 	if gotExecCode != "return 42;" {
 		t.Fatalf("unexpected exec code sent: %q", gotExecCode)
+	}
+	if gotLocale != "en-GB" {
+		t.Fatalf("unexpected locale sent: %q", gotLocale)
 	}
 	if output != "hello\n{\n  \"answer\": 42\n}\n" {
 		t.Fatalf("unexpected output:\n%s", output)
@@ -781,6 +792,93 @@ func TestRunExec_ImagesWebpExtension(t *testing.T) {
 	os.Remove(imgPath)
 }
 
+func TestResolveExecLocale(t *testing.T) {
+	resetExecTestGlobals(t)
+
+	t.Run("explicit flag wins and normalizes", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "fr_FR")
+		cmd := newExecTestCommand()
+		if err := cmd.Flags().Set("locale", "en_GB.UTF-8"); err != nil {
+			t.Fatalf("setting --locale: %v", err)
+		}
+
+		locale, err := resolveExecLocale(cmd)
+		if err != nil {
+			t.Fatalf("resolveExecLocale failed: %v", err)
+		}
+		if locale != "en-GB" {
+			t.Fatalf("unexpected locale: %q", locale)
+		}
+	})
+
+	t.Run("uses WITAN_LOCALE before ambient env", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "fr_FR.UTF-8")
+		t.Setenv("LC_ALL", "de_DE.UTF-8")
+		cmd := newExecTestCommand()
+
+		locale, err := resolveExecLocale(cmd)
+		if err != nil {
+			t.Fatalf("resolveExecLocale failed: %v", err)
+		}
+		if locale != "fr-FR" {
+			t.Fatalf("unexpected locale: %q", locale)
+		}
+	})
+
+	t.Run("falls back to ambient locale env", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "")
+		t.Setenv("LC_ALL", "")
+		t.Setenv("LC_MESSAGES", "sr_Latn_RS.UTF-8")
+		cmd := newExecTestCommand()
+
+		locale, err := resolveExecLocale(cmd)
+		if err != nil {
+			t.Fatalf("resolveExecLocale failed: %v", err)
+		}
+		if locale != "sr-Latn-RS" {
+			t.Fatalf("unexpected locale: %q", locale)
+		}
+	})
+
+	t.Run("ignores generic ambient locale", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "")
+		t.Setenv("LC_ALL", "C.UTF-8")
+		t.Setenv("LC_MESSAGES", "")
+		t.Setenv("LANG", "")
+		cmd := newExecTestCommand()
+
+		locale, err := resolveExecLocale(cmd)
+		if err != nil {
+			t.Fatalf("resolveExecLocale failed: %v", err)
+		}
+		if locale != "" {
+			t.Fatalf("expected empty locale, got %q", locale)
+		}
+	})
+
+	t.Run("rejects invalid explicit locale", func(t *testing.T) {
+		cmd := newExecTestCommand()
+		if err := cmd.Flags().Set("locale", "en-GB!"); err != nil {
+			t.Fatalf("setting --locale: %v", err)
+		}
+
+		_, err := resolveExecLocale(cmd)
+		if err == nil || !strings.Contains(err.Error(), "invalid --locale") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("rejects invalid WITAN_LOCALE", func(t *testing.T) {
+		t.Setenv("WITAN_LOCALE", "*")
+		cmd := newExecTestCommand()
+
+		_, err := resolveExecLocale(cmd)
+		if err == nil || !strings.Contains(err.Error(), "invalid WITAN_LOCALE") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
 func resetExecTestGlobals(t *testing.T) {
 	origAPIKey := apiKey
 	origAPIURL := apiURL
@@ -791,6 +889,7 @@ func resetExecTestGlobals(t *testing.T) {
 	origExecStdin := execStdin
 	origExecExpr := execExpr
 	origExecInputJSON := execInputJSON
+	origExecLocale := execLocale
 	origExecStdinTimeoutMS := execStdinTimeoutMS
 	origExecTimeoutMS := execTimeoutMS
 	origExecMaxOutputChars := execMaxOutputChars
@@ -806,6 +905,7 @@ func resetExecTestGlobals(t *testing.T) {
 		execStdin = origExecStdin
 		execExpr = origExecExpr
 		execInputJSON = origExecInputJSON
+		execLocale = origExecLocale
 		execStdinTimeoutMS = origExecStdinTimeoutMS
 		execTimeoutMS = origExecTimeoutMS
 		execMaxOutputChars = origExecMaxOutputChars
@@ -822,6 +922,7 @@ func resetExecTestGlobals(t *testing.T) {
 	execStdin = false
 	execExpr = ""
 	execInputJSON = ""
+	execLocale = ""
 	execStdinTimeoutMS = defaultExecStdinTimeoutMS
 	execTimeoutMS = 0
 	execMaxOutputChars = 0
@@ -835,6 +936,7 @@ func newExecTestCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&execStdin, "stdin", false, "")
 	cmd.Flags().StringVar(&execExpr, "expr", "", "")
 	cmd.Flags().StringVar(&execInputJSON, "input-json", "", "")
+	cmd.Flags().StringVar(&execLocale, "locale", "", "")
 	cmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "")
 	cmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "")
 	cmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "")

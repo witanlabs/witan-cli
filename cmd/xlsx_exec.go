@@ -20,6 +20,7 @@ var (
 	execStdin          bool
 	execExpr           string
 	execInputJSON      string
+	execLocale         string
 	execStdinTimeoutMS int
 	execTimeoutMS      int
 	execMaxOutputChars int
@@ -42,9 +43,11 @@ Contract:
 Inputs:
   - <file> is the workbook to execute against.
   - --input-json passes any JSON value to the script as input.
+  - --locale sets the workbook execution locale explicitly.
   - If --input-json is omitted, input defaults to {}.
 
 Defaults:
+  - If --locale is omitted, the CLI tries WITAN_LOCALE, then LC_ALL / LC_MESSAGES / LANG.
   - --timeout-ms=0 means no explicit timeout override.
   - --stdin-timeout-ms=2000 aborts --stdin reads that never reach EOF; set 0 to disable.
   - --max-output-chars=0 means no explicit stdout cap override.
@@ -85,6 +88,7 @@ func init() {
 	xlsxExecCmd.Flags().BoolVar(&execStdin, "stdin", false, "Read JavaScript source from stdin")
 	xlsxExecCmd.Flags().StringVar(&execExpr, "expr", "", `Single-expression shorthand; wraps as return (<expr>);`)
 	xlsxExecCmd.Flags().StringVar(&execInputJSON, "input-json", "", "JSON value passed as input to the script")
+	xlsxExecCmd.Flags().StringVar(&execLocale, "locale", "", "Execution locale (env: WITAN_LOCALE; otherwise LC_ALL / LC_MESSAGES / LANG)")
 	xlsxExecCmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "Maximum time to wait for EOF when reading --stdin (0 disables)")
 	xlsxExecCmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
 	xlsxExecCmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "Maximum stdout characters to capture (> 0)")
@@ -123,9 +127,15 @@ func runExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	locale, err := resolveExecLocale(cmd)
+	if err != nil {
+		return err
+	}
+
 	req := client.ExecRequest{
 		Code:           code,
 		Input:          input,
+		Locale:         locale,
 		TimeoutMS:      execTimeoutMS,
 		MaxOutputChars: execMaxOutputChars,
 	}
@@ -333,6 +343,108 @@ func parseExecInput(raw string, provided bool) (any, error) {
 		return nil, fmt.Errorf("invalid --input-json: %w", err)
 	}
 	return input, nil
+}
+
+func resolveExecLocale(cmd *cobra.Command) (string, error) {
+	if cmd.Flags().Changed("locale") {
+		locale, ok := normalizeLocale(execLocale)
+		if !ok {
+			return "", fmt.Errorf("invalid --locale %q", execLocale)
+		}
+		return locale, nil
+	}
+
+	if raw, ok := os.LookupEnv("WITAN_LOCALE"); ok && strings.TrimSpace(raw) != "" {
+		locale, valid := normalizeLocale(raw)
+		if !valid {
+			return "", fmt.Errorf("invalid WITAN_LOCALE %q", raw)
+		}
+		return locale, nil
+	}
+
+	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		raw := os.Getenv(key)
+		if raw == "" {
+			continue
+		}
+		if locale, ok := normalizeLocale(raw); ok {
+			return locale, nil
+		}
+	}
+
+	return "", nil
+}
+
+func normalizeLocale(raw string) (string, bool) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", true
+	}
+
+	if idx := strings.IndexByte(value, '.'); idx >= 0 {
+		value = value[:idx]
+	}
+	if idx := strings.IndexByte(value, '@'); idx >= 0 {
+		value = value[:idx]
+	}
+
+	value = strings.TrimSpace(strings.ReplaceAll(value, "_", "-"))
+	if value == "" {
+		return "", true
+	}
+
+	upper := strings.ToUpper(value)
+	if upper == "C" || upper == "POSIX" || value == "*" {
+		return "", false
+	}
+
+	parts := strings.Split(value, "-")
+	for i, part := range parts {
+		if part == "" || !isLocaleToken(part) {
+			return "", false
+		}
+		switch {
+		case i == 0:
+			parts[i] = strings.ToLower(part)
+		case len(part) == 4 && isAlpha(part):
+			parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
+		case len(part) == 2 && isAlpha(part):
+			parts[i] = strings.ToUpper(part)
+		case len(part) == 3 && isNumeric(part):
+			parts[i] = part
+		default:
+			parts[i] = strings.ToLower(part)
+		}
+	}
+
+	return strings.Join(parts, "-"), true
+}
+
+func isLocaleToken(s string) bool {
+	for _, r := range s {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') {
+			return false
+		}
+	}
+	return true
+}
+
+func isAlpha(s string) bool {
+	for _, r := range s {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
+			return false
+		}
+	}
+	return true
+}
+
+func isNumeric(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func validateExecPositiveFlag(cmd *cobra.Command, name string, value int) error {

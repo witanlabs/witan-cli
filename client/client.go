@@ -378,6 +378,9 @@ func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecRespons
 		}
 		httpReq.Header.Set("Content-Type", contentType)
 		c.setCommonHeaders(httpReq)
+		if req.Locale != "" {
+			httpReq.Header.Set("Accept-Language", req.Locale)
+		}
 		return httpReq, nil
 	})
 	if err != nil {

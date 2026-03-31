@@ -353,6 +353,9 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool
 		}
 		httpReq.Header.Set("Content-Type", "application/json")
 		c.setCommonHeaders(httpReq)
+		if req.Locale != "" {
+			httpReq.Header.Set("Accept-Language", req.Locale)
+		}
 		return httpReq, nil
 	})
 	if err != nil {

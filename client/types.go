@@ -51,6 +51,7 @@ type CalcResponse struct {
 type ExecRequest struct {
 	Code           string `json:"code"`
 	Input          any    `json:"input,omitempty"`
+	Locale         string `json:"locale,omitempty"`
 	TimeoutMS      int    `json:"timeout_ms,omitempty"`
 	MaxOutputChars int    `json:"max_output_chars,omitempty"`
 }

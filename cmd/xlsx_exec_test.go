@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -699,6 +700,15 @@ func TestRunExec_ImagesWrittenToTempFiles(t *testing.T) {
 	}
 	if string(written) != string(imgBytes) {
 		t.Fatalf("temp file content mismatch: got %v, want %v", written, imgBytes)
+	}
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(imgPath)
+		if err != nil {
+			t.Fatalf("stating temp image file: %v", err)
+		}
+		if got := info.Mode().Perm(); got != 0o600 {
+			t.Fatalf("temp file permissions = %03o, want 600", got)
+		}
 	}
 
 	os.Remove(imgPath)

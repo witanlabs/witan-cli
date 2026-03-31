@@ -221,10 +221,14 @@ func runExec(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("creating temp image file: %w", err)
 			}
 			tmpPath := f.Name()
-			f.Close()
-			if err := os.WriteFile(tmpPath, decoded, 0o644); err != nil {
+			if _, err := f.Write(decoded); err != nil {
+				f.Close()
 				os.Remove(tmpPath)
 				return fmt.Errorf("writing exec image: %w", err)
+			}
+			if err := f.Close(); err != nil {
+				os.Remove(tmpPath)
+				return fmt.Errorf("closing exec image file: %w", err)
 			}
 			fmt.Println(tmpPath)
 		}

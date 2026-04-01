@@ -210,6 +210,8 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 		"--timeout-ms=0 means no explicit timeout override.",
 		"--stdin-timeout-ms=2000 aborts --stdin reads that never reach EOF; set 0 to disable.",
 		"--max-output-chars=0 means no explicit stdout cap override.",
+		"--create starts a new workbook instead of opening an existing file.",
+		"--create requires a target path ending in .xlsx that does not already exist.",
 	}
 
 	for _, needle := range required {
@@ -228,6 +230,36 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 	}) {
 		t.Fatalf("help text should describe behavior, not endpoint paths")
 	}
+}
+
+func TestResolveExecWorkbookPath_CreateValidation(t *testing.T) {
+	resetExecTestGlobals(t)
+
+	t.Run("rejects non xlsx extension", func(t *testing.T) {
+		_, err := resolveExecWorkbookPath(filepath.Join(t.TempDir(), "book.xls"), true)
+		if err == nil || !strings.Contains(err.Error(), "ending in .xlsx") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("rejects existing path", func(t *testing.T) {
+		target := filepath.Join(t.TempDir(), "book.xlsx")
+		if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
+			t.Fatalf("writing existing file: %v", err)
+		}
+		_, err := resolveExecWorkbookPath(target, true)
+		if err == nil || !strings.Contains(err.Error(), "does not already exist") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("rejects missing parent directory", func(t *testing.T) {
+		target := filepath.Join(t.TempDir(), "missing", "book.xlsx")
+		_, err := resolveExecWorkbookPath(target, true)
+		if err == nil || !strings.Contains(err.Error(), "parent directory does not exist") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }
 
 func TestRunExec_RejectsNonPositiveLimits(t *testing.T) {
@@ -408,6 +440,193 @@ func TestRunExec_StatelessSaveWritesWorkbookAndSetsQuery(t *testing.T) {
 	}
 	if string(after) != string(newBytes) {
 		t.Fatalf("workbook bytes were not updated: got %v want %v", after, newBytes)
+	}
+}
+
+func TestRunExec_CreateWithoutSaveLeavesPathAbsent(t *testing.T) {
+	resetExecTestGlobals(t)
+	targetPath := filepath.Join(t.TempDir(), "created.xlsx")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v0/orgs/org_test/xlsx/exec" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("create"); got != "true" {
+			t.Fatalf("expected create=true, got %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "" {
+			t.Fatalf("expected no save query, got %q", got)
+		}
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("parsing multipart form: %v", err)
+		}
+		if _, _, err := r.FormFile("file"); err == nil {
+			t.Fatal("expected no file part for create mode")
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(r.FormValue("exec")), &payload); err != nil {
+			t.Fatalf("parsing exec payload: %v", err)
+		}
+		if payload["filename"] != "created.xlsx" {
+			t.Fatalf("unexpected filename: %#v", payload["filename"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":{"ok":true}}`)
+	}))
+	defer server.Close()
+
+	stateless = false
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return true;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("create", "true"); err != nil {
+		t.Fatalf("setting --create: %v", err)
+	}
+
+	if _, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{targetPath})
+	}); err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	if _, err := os.Stat(targetPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected target to remain absent, got err=%v", err)
+	}
+}
+
+func TestRunExec_CreateSaveWritesWorkbookAndUsesStatelessTransport(t *testing.T) {
+	resetExecTestGlobals(t)
+	targetPath := filepath.Join(t.TempDir(), "created.xlsx")
+	newBytes := []byte{0x50, 0x4b, 0x03, 0x04, 'n', 'e', 'w'}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v0/orgs/org_test/xlsx/exec" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("create"); got != "true" {
+			t.Fatalf("expected create=true, got %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("parsing multipart form: %v", err)
+		}
+		if _, _, err := r.FormFile("file"); err == nil {
+			t.Fatal("expected no file part for create mode")
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(r.FormValue("exec")), &payload); err != nil {
+			t.Fatalf("parsing exec payload: %v", err)
+		}
+		if payload["filename"] != "created.xlsx" {
+			t.Fatalf("unexpected filename: %#v", payload["filename"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(
+			w,
+			`{"ok":true,"stdout":"","result":{"ok":true},"writes_detected":false,"file":"%s"}`,
+			base64.StdEncoding.EncodeToString(newBytes),
+		)
+	}))
+	defer server.Close()
+
+	stateless = false
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return true;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("create", "true"); err != nil {
+		t.Fatalf("setting --create: %v", err)
+	}
+	if err := cmd.Flags().Set("save", "true"); err != nil {
+		t.Fatalf("setting --save: %v", err)
+	}
+
+	if _, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{targetPath})
+	}); err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	after, err := os.ReadFile(targetPath)
+	if err != nil {
+		t.Fatalf("reading created workbook: %v", err)
+	}
+	if string(after) != string(newBytes) {
+		t.Fatalf("workbook bytes were not updated: got %v want %v", after, newBytes)
+	}
+}
+
+func TestRunExec_CreateJSONOutputWritesWorkbookAndOmitsFile(t *testing.T) {
+	resetExecTestGlobals(t)
+	targetPath := filepath.Join(t.TempDir(), "created.xlsx")
+	newBytes := []byte{0x50, 0x4b, 0x03, 0x04, 'j', 's', 'o', 'n'}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("create"); got != "true" {
+			t.Fatalf("expected create=true, got %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(
+			w,
+			`{"ok":true,"stdout":"","result":{"ok":true},"file":"%s"}`,
+			base64.StdEncoding.EncodeToString(newBytes),
+		)
+	}))
+	defer server.Close()
+
+	stateless = false
+	apiURL = server.URL
+	apiKey = "test-key"
+	jsonOutput = true
+
+	cmd := newExecTestCommand()
+	if err := cmd.Flags().Set("code", "return true;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("create", "true"); err != nil {
+		t.Fatalf("setting --create: %v", err)
+	}
+	if err := cmd.Flags().Set("save", "true"); err != nil {
+		t.Fatalf("setting --save: %v", err)
+	}
+
+	output, err := captureExecStdout(t, func() error {
+		return runExec(cmd, []string{targetPath})
+	})
+	if err != nil {
+		t.Fatalf("runExec failed: %v", err)
+	}
+
+	after, err := os.ReadFile(targetPath)
+	if err != nil {
+		t.Fatalf("reading created workbook: %v", err)
+	}
+	if string(after) != string(newBytes) {
+		t.Fatalf("workbook bytes were not updated: got %v want %v", after, newBytes)
+	}
+
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(output), &envelope); err != nil {
+		t.Fatalf("output should be valid JSON, got %q: %v", output, err)
+	}
+	if _, ok := envelope["file"]; ok {
+		t.Fatalf("file should be omitted from CLI JSON output: %#v", envelope)
 	}
 }
 
@@ -929,6 +1148,7 @@ func resetExecTestGlobals(t *testing.T) {
 	origExecTimeoutMS := execTimeoutMS
 	origExecMaxOutputChars := execMaxOutputChars
 	origExecSave := execSave
+	origExecCreate := execCreate
 
 	t.Cleanup(func() {
 		apiKey = origAPIKey
@@ -945,6 +1165,7 @@ func resetExecTestGlobals(t *testing.T) {
 		execTimeoutMS = origExecTimeoutMS
 		execMaxOutputChars = origExecMaxOutputChars
 		execSave = origExecSave
+		execCreate = origExecCreate
 	})
 
 	mockMgmtOrgsServer(t)
@@ -962,6 +1183,7 @@ func resetExecTestGlobals(t *testing.T) {
 	execTimeoutMS = 0
 	execMaxOutputChars = 0
 	execSave = false
+	execCreate = false
 }
 
 func newExecTestCommand() *cobra.Command {
@@ -975,6 +1197,7 @@ func newExecTestCommand() *cobra.Command {
 	cmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "")
 	cmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "")
 	cmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "")
+	cmd.Flags().BoolVar(&execCreate, "create", false, "")
 	cmd.Flags().BoolVar(&execSave, "save", false, "")
 	return cmd
 }

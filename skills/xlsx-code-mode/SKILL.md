@@ -14,6 +14,13 @@ The CLI automatically converts older .xls files to .xlsx, so it fully supports a
 ## Quick Reference
 
 ```bash
+# Create a new workbook from scratch (.xlsx only)
+witan xlsx exec model.xlsx --create --save --stdin <<'WITAN'
+await xlsx.addSheet(wb, "Inputs")
+await xlsx.setCells(wb, [{ address: "Inputs!A1", value: "Revenue" }])
+return await xlsx.listSheets(wb)
+WITAN
+
 # Read from sheets with spaces, apostrophes, or parentheses — all safe
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const a = await xlsx.readCell(wb, "'Workers' Compensation'!B50")
@@ -69,6 +76,11 @@ witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 
 Runs JavaScript against a workbook via the Witan API. The workbook is opened server-side; scripts interact through the `xlsx` and `wb` globals.
 
+If the target workbook does not exist yet, use `--create` with a new `.xlsx` path.
+
+- Use `--create --save` when you want to produce a real workbook file on disk.
+- Use `--create` without `--save` when you want to prototype workbook structure, test generation logic, inspect returned data, or validate formulas/layout without leaving a file behind.
+
 ### Invocation patterns
 
 **Recommended: `--stdin` with heredoc** — safe for all sheet names, supports multi-line scripts, and batches multiple operations into a single CLI invocation:
@@ -106,6 +118,7 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 | `--input-json`       |       | `{}`    | JSON value passed as `input` to the script                             |
 | `--timeout-ms`       |       | —       | Execution timeout in milliseconds (> 0); omit to use server default    |
 | `--max-output-chars` |       | —       | Maximum stdout characters to capture (> 0); omit to use server default |
+| `--create`           |       | `false` | Create a new `.xlsx` workbook; target path must not exist              |
 | `--save`             |       | `false` | Persist changes to the workbook file                                   |
 | `--json`             |       | `false` | Print the full response envelope as JSON                               |
 
@@ -222,6 +235,8 @@ This means:
 - For independent what-if tests, each `exec` invocation starts from the original file
 
 To persist changes back to the workbook file, pass the `--save` flag.
+
+When `--create` is set, the same ephemeral rule applies to the new workbook session: no local file is created unless `--save` is also passed. New workbook creation is `.xlsx` only.
 
 ### setCells result shape
 

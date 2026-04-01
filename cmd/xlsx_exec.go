@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,6 +27,7 @@ var (
 	execTimeoutMS      int
 	execMaxOutputChars int
 	execSave           bool
+	execCreate         bool
 )
 
 const defaultExecStdinTimeoutMS = 2000
@@ -41,7 +44,7 @@ Contract:
   - Script code must evaluate to JSON-serializable result values.
 
 Inputs:
-  - <file> is the workbook to execute against.
+  - <file> is the workbook to execute against, or the new .xlsx target path when --create is set.
   - --input-json passes any JSON value to the script as input.
   - --locale sets the workbook execution locale explicitly.
   - If --input-json is omitted, input defaults to {}.
@@ -51,6 +54,7 @@ Defaults:
   - --timeout-ms=0 means no explicit timeout override.
   - --stdin-timeout-ms=2000 aborts --stdin reads that never reach EOF; set 0 to disable.
   - --max-output-chars=0 means no explicit stdout cap override.
+  - --create=false means exec expects an existing workbook path.
   - --save=false means no workbook write-back.
 
 Output:
@@ -66,8 +70,11 @@ Output:
 
 Behavior:
   - Works in both stateless and files-backed modes.
+  - --create starts a new workbook instead of opening an existing file.
+  - --create requires a target path ending in .xlsx that does not already exist.
   - By default, does not overwrite the local workbook.
-  - With --save, writes updated workbook bytes only when exec reports writes and the API returns file/revision output.
+  - With --save, writes updated workbook bytes when the API returns file/revision output.
+  - With --create --save, writes the newly created workbook to the target path.
 
 Exit codes:
   - 0: response has ok=true
@@ -77,6 +84,7 @@ Examples:
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
   witan xlsx exec report.xlsx --script ./exec.js --input-json '{"threshold":10}'
   witan xlsx exec report.xlsx --code 'console.log("hi"); return {"ok":true}'
+  witan xlsx exec model.xlsx --create --save --code 'await xlsx.addSheet(wb, "Inputs"); return true'
   cat script.js | witan xlsx exec report.xlsx --stdin`,
 	Args: cobra.ExactArgs(1),
 	RunE: runExec,
@@ -92,14 +100,15 @@ func init() {
 	xlsxExecCmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "Maximum time to wait for EOF when reading --stdin (0 disables)")
 	xlsxExecCmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
 	xlsxExecCmd.Flags().IntVar(&execMaxOutputChars, "max-output-chars", 0, "Maximum stdout characters to capture (> 0)")
-	xlsxExecCmd.Flags().BoolVar(&execSave, "save", false, "Persist exec writes and overwrite local workbook when writes are detected")
+	xlsxExecCmd.Flags().BoolVar(&execCreate, "create", false, "Create a new .xlsx workbook instead of opening an existing file; target path must not exist")
+	xlsxExecCmd.Flags().BoolVar(&execSave, "save", false, "Write returned workbook bytes to the target path")
 	xlsxCmd.AddCommand(xlsxExecCmd)
 }
 
 func runExec(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	filePath, err := fixExcelExtension(args[0])
+	filePath, err := resolveExecWorkbookPath(args[0], execCreate)
 	if err != nil {
 		return err
 	}
@@ -135,9 +144,13 @@ func runExec(cmd *cobra.Command, args []string) error {
 	req := client.ExecRequest{
 		Code:           code,
 		Input:          input,
+		Filename:       "",
 		Locale:         locale,
 		TimeoutMS:      execTimeoutMS,
 		MaxOutputChars: execMaxOutputChars,
+	}
+	if execCreate {
+		req.Filename = filepath.Base(filePath)
 	}
 
 	key, orgID, err := resolveAuth()
@@ -146,10 +159,16 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	c := newAPIClient(key, orgID)
+	if execCreate {
+		c = client.New(resolveAPIURL(), key, orgID, true)
+		c.UserAgent = cliUserAgent()
+	}
 
 	var result *client.ExecResponse
 	var fileID string
-	if c.Stateless {
+	if execCreate {
+		result, err = c.ExecCreate(filePath, req, execSave)
+	} else if c.Stateless {
 		result, err = c.Exec(filePath, req, execSave)
 	} else {
 		var revisionID string
@@ -169,7 +188,21 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	if execSave && result.Ok {
-		if c.Stateless && result.File != nil {
+		if execCreate {
+			if result.File == nil {
+				return fmt.Errorf("creating workbook: expected file bytes in response")
+			}
+			decoded, err := base64.StdEncoding.DecodeString(*result.File)
+			if err != nil {
+				return fmt.Errorf("decoding created file: %w", err)
+			}
+			if err := os.WriteFile(filePath, decoded, 0o644); err != nil {
+				return fmt.Errorf("writing created file: %w", err)
+			}
+			if _, err := fixWritebackExtension(filePath); err != nil {
+				return err
+			}
+		} else if c.Stateless && result.File != nil {
 			decoded, err := base64.StdEncoding.DecodeString(*result.File)
 			if err != nil {
 				return fmt.Errorf("decoding updated file: %w", err)
@@ -248,6 +281,36 @@ func runExec(cmd *cobra.Command, args []string) error {
 		return &ExitError{Code: 1}
 	}
 	return nil
+}
+
+func resolveExecWorkbookPath(filePath string, create bool) (string, error) {
+	if !create {
+		return fixExcelExtension(filePath)
+	}
+
+	if strings.ToLower(filepath.Ext(filePath)) != ".xlsx" {
+		return "", fmt.Errorf("--create requires a target path ending in .xlsx")
+	}
+
+	if _, err := os.Stat(filePath); err == nil {
+		return "", fmt.Errorf("--create requires a target path that does not already exist")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("checking target path: %w", err)
+	}
+
+	parent := filepath.Dir(filePath)
+	info, err := os.Stat(parent)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("parent directory does not exist: %s", parent)
+		}
+		return "", fmt.Errorf("checking parent directory: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("parent path is not a directory: %s", parent)
+	}
+
+	return filePath, nil
 }
 
 func resolveExecCodeSource(cmd *cobra.Command, stdin io.Reader) (string, error) {

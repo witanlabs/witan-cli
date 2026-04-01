@@ -62,6 +62,9 @@ witan xlsx lint report.xlsx
 
 # Run JS against workbook
 witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
+
+# Create a new workbook from scratch
+witan xlsx exec model.xlsx --create --save --code 'await xlsx.addSheet(wb, "Inputs"); return true'
 ```
 
 ## What This CLI Covers
@@ -91,6 +94,8 @@ Modes:
 
 - Stateful (default when authenticated): uploads workbook revisions and reuses them across commands
 - Stateless (`--stateless` or `WITAN_STATELESS=1`): sends workbook bytes on every request, no server-side file reuse
+
+`witan xlsx exec --create` always uses the stateless exec endpoint and only supports new `.xlsx` targets.
 
 Limits:
 

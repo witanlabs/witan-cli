@@ -29,6 +29,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		if got := r.URL.Query().Get("save"); got != "" {
 			t.Fatalf("expected no save query by default, got %q", got)
 		}
+		if got := r.URL.Query().Get("locale"); got != "en-GB" {
+			t.Fatalf("expected locale=en-GB, got %q", got)
+		}
 		if got := r.Header.Get("Authorization"); got != "Bearer test-key" {
 			t.Fatalf("unexpected auth header: %q", got)
 		}
@@ -191,6 +194,9 @@ func TestExecCreate_PostMultipartWithoutFileAndIncludesFilename(t *testing.T) {
 		if got := r.URL.Query().Get("save"); got != "" {
 			t.Fatalf("expected no save query by default, got %q", got)
 		}
+		if got := r.URL.Query().Get("locale"); got != "en-GB" {
+			t.Fatalf("expected locale=en-GB, got %q", got)
+		}
 		if got := r.Header.Get("Accept-Language"); got != "en-GB" {
 			t.Fatalf("unexpected accept-language header: %q", got)
 		}
@@ -305,6 +311,9 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 		}
 		if got := r.Header.Get("User-Agent"); got != defaultUserAgent {
 			t.Fatalf("unexpected user-agent header: %q", got)
+		}
+		if got := r.URL.Query().Get("locale"); got != "fr-FR" {
+			t.Fatalf("expected locale=fr-FR, got %q", got)
 		}
 		if got := r.Header.Get("Accept-Language"); got != "fr-FR" {
 			t.Fatalf("unexpected accept-language header: %q", got)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -264,7 +265,36 @@ func resolveManagementAPIURL() string {
 	if v := os.Getenv("WITAN_MANAGEMENT_API_URL"); v != "" {
 		return v
 	}
+	if derived := deriveManagementAPIURL(resolveAPIURL()); derived != "" {
+		return derived
+	}
 	return "https://management-api.witanlabs.com"
+}
+
+func deriveManagementAPIURL(apiBase string) string {
+	parsed, err := url.Parse(strings.TrimSpace(apiBase))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return ""
+	}
+
+	host := parsed.Hostname()
+	if !strings.HasPrefix(host, "api.") {
+		return ""
+	}
+	rootHost := strings.TrimPrefix(host, "api.")
+	if rootHost != "witanlabs.com" && !strings.HasSuffix(rootHost, ".witanlabs.com") {
+		return ""
+	}
+
+	parsed.Host = "management-api." + rootHost
+	if port := parsed.Port(); port != "" {
+		parsed.Host += ":" + port
+	}
+	parsed.Path = ""
+	parsed.RawPath = ""
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return strings.TrimRight(parsed.String(), "/")
 }
 
 func exchangeSessionForJWT(mgmtURL, sessionToken string) (string, error) {

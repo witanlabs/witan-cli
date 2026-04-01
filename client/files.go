@@ -345,6 +345,9 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool
 		if save {
 			q.Set("save", "true")
 		}
+		if req.Locale != "" {
+			q.Set("locale", req.Locale)
+		}
 		u.RawQuery = q.Encode()
 
 		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(body))

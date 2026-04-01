@@ -366,11 +366,14 @@ func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecRespons
 		if err != nil {
 			return nil, fmt.Errorf("building URL: %w", err)
 		}
+		q := u.Query()
 		if save {
-			q := u.Query()
 			q.Set("save", "true")
-			u.RawQuery = q.Encode()
 		}
+		if req.Locale != "" {
+			q.Set("locale", req.Locale)
+		}
+		u.RawQuery = q.Encode()
 
 		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(payload))
 		if err != nil {
@@ -416,6 +419,9 @@ func (c *Client) ExecCreate(filePath string, req ExecRequest, save bool) (*ExecR
 		q.Set("create", "true")
 		if save {
 			q.Set("save", "true")
+		}
+		if req.Locale != "" {
+			q.Set("locale", req.Locale)
 		}
 		u.RawQuery = q.Encode()
 

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.7.0
+
+
 - New: --create flag in `witan xlsx exec` enables creating and populating a workbook in a single command
 - New: --locale flag in `witan xlsx exec` enables controlling which locale is used for formula calculation, number formatting, string comparison, etc. It accepts values such as en-US, which can also be passed as WITAN_LOCALE env var
 - New: --version flag prints the API version in addition to CLI version

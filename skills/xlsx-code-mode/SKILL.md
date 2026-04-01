@@ -143,7 +143,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
 | `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors, iterative calc) |
-| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (view, format, columns, rows, merges); `filter.columns/rows` to limit |
+| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (visibility, view, format, columns, rows, merges); `filter.columns/rows` to limit |
 | `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
 | `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
 | `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
@@ -221,7 +221,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | `renameSheet`           | `(wb, oldName, newName)`           | Rename a sheet                                                                                         |
 | `addDefinedName`        | `(wb, name, range, scope?)`        | Add a defined name                                                                                     |
 | `setWorkbookProperties` | `(wb, properties)`                 | Set workbook-level properties                                                                          |
-| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (columns, rows, merges, view)                                               |
+| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (visibility, columns, rows, merges, view)                                   |
 | `setStyle`              | `(wb, target, style)`              | Apply styles to a cell or range                                                                        |
 
 ### The ephemeral write contract
@@ -1159,6 +1159,7 @@ function removeConditionalFormatting(
   indices: number[],
 ): Promise<void>;
 interface SheetProperties {
+  visibility: "visible" | "hidden" | "veryHidden";
   view: {
     showGridLines: boolean;
     zoomScale: number;
@@ -1195,6 +1196,7 @@ function setSheetProperties(
   wb,
   sheetName: string,
   properties: {
+    visibility?: "visible" | "hidden" | "veryHidden";
     view?: {
       showGridLines?: boolean;
       zoomScale?: number;

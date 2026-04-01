@@ -277,6 +277,62 @@ func TestVersionFlag_PrintsUnavailableWhenHealthFails(t *testing.T) {
 	}
 }
 
+func TestResolveManagementAPIURL_DerivesFromAPIURL(t *testing.T) {
+	origAPIURL := apiURL
+	t.Cleanup(func() {
+		apiURL = origAPIURL
+	})
+
+	t.Setenv("WITAN_MANAGEMENT_API_URL", "")
+	apiURL = "https://api.dev.witanlabs.com"
+
+	if got := resolveManagementAPIURL(); got != "https://management-api.dev.witanlabs.com" {
+		t.Fatalf("unexpected derived management URL: %q", got)
+	}
+}
+
+func TestResolveManagementAPIURL_UsesExplicitOverride(t *testing.T) {
+	origAPIURL := apiURL
+	t.Cleanup(func() {
+		apiURL = origAPIURL
+	})
+
+	apiURL = "https://api.dev.witanlabs.com"
+	t.Setenv("WITAN_MANAGEMENT_API_URL", "https://override.example.com")
+
+	if got := resolveManagementAPIURL(); got != "https://override.example.com" {
+		t.Fatalf("unexpected management URL: %q", got)
+	}
+}
+
+func TestResolveManagementAPIURL_FallsBackForNonAPIPrefix(t *testing.T) {
+	origAPIURL := apiURL
+	t.Cleanup(func() {
+		apiURL = origAPIURL
+	})
+
+	t.Setenv("WITAN_MANAGEMENT_API_URL", "")
+	apiURL = "https://localhost:8080"
+
+	if got := resolveManagementAPIURL(); got != "https://management-api.witanlabs.com" {
+		t.Fatalf("unexpected fallback management URL: %q", got)
+	}
+}
+
+func TestResolveManagementAPIURL_FallsBackForNonWitanlabsDomain(t *testing.T) {
+	origAPIURL := apiURL
+	t.Cleanup(func() {
+		apiURL = origAPIURL
+	})
+
+	t.Setenv("WITAN_MANAGEMENT_API_URL", "")
+	apiURL = "https://api.example.com"
+
+	if got := resolveManagementAPIURL(); got != "https://management-api.witanlabs.com" {
+		t.Fatalf("unexpected fallback management URL: %q", got)
+	}
+}
+
 // mockMgmtOrgsServer starts a mock management API that returns a single org
 // for GET /v0/orgs and sets WITAN_MANAGEMENT_API_URL. Call t.Cleanup to tear it down.
 func mockMgmtOrgsServer(t *testing.T) {

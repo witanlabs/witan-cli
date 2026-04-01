@@ -174,6 +174,86 @@ func TestExec_SaveQueryParam(t *testing.T) {
 	}
 }
 
+func TestExecCreate_PostMultipartWithoutFileAndIncludesFilename(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "created.xlsx")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/v0/xlsx/exec" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("create"); got != "true" {
+			t.Fatalf("expected create=true, got %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "" {
+			t.Fatalf("expected no save query by default, got %q", got)
+		}
+		if got := r.Header.Get("Accept-Language"); got != "en-GB" {
+			t.Fatalf("unexpected accept-language header: %q", got)
+		}
+
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("parsing multipart form: %v", err)
+		}
+		if _, _, err := r.FormFile("file"); err == nil {
+			t.Fatal("expected no file part for create mode")
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(r.FormValue("exec")), &payload); err != nil {
+			t.Fatalf("decoding exec field: %v", err)
+		}
+		if payload["filename"] != "created.xlsx" {
+			t.Fatalf("unexpected filename: %#v", payload["filename"])
+		}
+		if payload["code"] != "return 1;" {
+			t.Fatalf("unexpected code: %#v", payload["code"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":{"ok":true}}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "test-key", "", true)
+	c.maxAttempts = 1
+
+	resp, err := c.ExecCreate(filePath, ExecRequest{Code: "return 1;", Locale: "en-GB"}, false)
+	if err != nil {
+		t.Fatalf("ExecCreate failed: %v", err)
+	}
+	if !resp.Ok {
+		t.Fatalf("expected ok response, got %#v", resp)
+	}
+}
+
+func TestExecCreate_SaveQueryParam(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "created.xlsx")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("create"); got != "true" {
+			t.Fatalf("expected create=true, got %q", got)
+		}
+		if got := r.URL.Query().Get("save"); got != "true" {
+			t.Fatalf("expected save=true, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":null}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "test-key", "", true)
+	c.maxAttempts = 1
+
+	if _, err := c.ExecCreate(filePath, ExecRequest{Code: "return 1;"}, true); err != nil {
+		t.Fatalf("ExecCreate failed: %v", err)
+	}
+}
+
 func TestExec_Non200ReturnsAPIError(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "book.xlsx")

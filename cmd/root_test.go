@@ -356,6 +356,7 @@ func TestSkillDocs_UseValidExecExamples(t *testing.T) {
 		"`xlsx.setCells` to make the change",
 		"* - text: xlsx.findCells(wb, \"Revenue\")",
 		"* - formula search: xlsx.findCells(wb, \"SUM\", { formulas: true })",
+		"`--create --save`",
 	}
 	for _, good := range requiredCalls {
 		if !strings.Contains(xlsxSkillText, good) {

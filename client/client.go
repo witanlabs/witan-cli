@@ -356,7 +356,7 @@ func (c *Client) Calc(filePath string, params url.Values) (*CalcResponse, error)
 
 // Exec runs JavaScript against a workbook via multipart POST /v0/xlsx/exec.
 func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecResponse, error) {
-	payload, contentType, err := buildExecMultipartPayload(filePath, req)
+	payload, contentType, err := buildExecMultipartPayload(filePath, req, true)
 	if err != nil {
 		return nil, err
 	}
@@ -397,27 +397,76 @@ func (c *Client) Exec(filePath string, req ExecRequest, save bool) (*ExecRespons
 	return &result, nil
 }
 
-func buildExecMultipartPayload(filePath string, req ExecRequest) ([]byte, string, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, "", fmt.Errorf("cannot open file: %w", err)
+// ExecCreate runs JavaScript against a new workbook via multipart POST /v0/xlsx/exec?create=true.
+func (c *Client) ExecCreate(filePath string, req ExecRequest, save bool) (*ExecResponse, error) {
+	if req.Filename == "" {
+		req.Filename = filepath.Base(filePath)
 	}
-	defer f.Close()
+	payload, contentType, err := buildExecMultipartPayload(filePath, req, false)
+	if err != nil {
+		return nil, err
+	}
 
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/xlsx/exec"))
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		q := u.Query()
+		q.Set("create", "true")
+		if save {
+			q.Set("save", "true")
+		}
+		u.RawQuery = q.Encode()
+
+		httpReq, err := http.NewRequest("POST", u.String(), bytes.NewReader(payload))
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		httpReq.Header.Set("Content-Type", contentType)
+		c.setCommonHeaders(httpReq)
+		if req.Locale != "" {
+			httpReq.Header.Set("Accept-Language", req.Locale)
+		}
+		return httpReq, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != 200 {
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+
+	var result ExecResponse
+	if err := json.Unmarshal(raw.Body, &result); err != nil {
+		return nil, fmt.Errorf("parsing exec response: %w", err)
+	}
+	return &result, nil
+}
+
+func buildExecMultipartPayload(filePath string, req ExecRequest, includeFile bool) ([]byte, string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	filename := filepath.Base(filePath)
-	mimeType := detectContentType(filePath)
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
-	h.Set("Content-Type", mimeType)
-	part, err := writer.CreatePart(h)
-	if err != nil {
-		return nil, "", fmt.Errorf("creating form file: %w", err)
-	}
-	if _, err := io.Copy(part, f); err != nil {
-		return nil, "", fmt.Errorf("writing file to form: %w", err)
+	if includeFile {
+		f, err := os.Open(filePath)
+		if err != nil {
+			return nil, "", fmt.Errorf("cannot open file: %w", err)
+		}
+		defer f.Close()
+
+		filename := filepath.Base(filePath)
+		mimeType := detectContentType(filePath)
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
+		h.Set("Content-Type", mimeType)
+		part, err := writer.CreatePart(h)
+		if err != nil {
+			return nil, "", fmt.Errorf("creating form file: %w", err)
+		}
+		if _, err := io.Copy(part, f); err != nil {
+			return nil, "", fmt.Errorf("writing file to form: %w", err)
+		}
 	}
 
 	reqJSON, err := json.Marshal(req)

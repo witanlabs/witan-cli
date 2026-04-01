@@ -2,8 +2,24 @@
 
 ## Unreleased
 
-## 0.6.0
+- New: --create flag in `witan xlsx exec` enables creating and populating a workbook in a single command
+- New: --locale flag in `witan xlsx exec` enables controlling which locale is used for formula calculation, number formatting, string comparison, etc. It accepts values such as en-US, which can also be passed as WITAN_LOCALE env var
+- New: --version flag prints the API version in addition to CLI version
+- New: CELL function is now implemented in calculation engine
+- Updated: Add 3 unit aliases missing in CONVERT function: d, s, L
+- Updated: Rounding functions now coerce empty reference args as 0, matching Excel
+- Updated: COUNTIF/etc criteria functions now reject criteria strings over 255 characters, matching Excel
+- Updated: COUNTIF and D* database functions now handle external workbook ranges as expected
+- New: 3D references are now supported in calculation engine
+- Updated: COUNTIF/SUMIF/AVERAGEIF tilde escaping updated to match Excel behavior
+- Updated: LINEST/LOGEST/TREND/GROWTH regression statistics now match Excel more closely, including exact-fit and near-exact-fit cases
+- Updated: LINEST(..., FALSE, TRUE) now returns Excel-style #N/A in the second-row/second-column stats slot
+- Updated: LOGEST(..., FALSE, TRUE) standard-error output now matches Excel instead of incorrectly exponentiating the slope standard error
+- Updated: MAP/SCAN/BYROW/BYCOL/MAKEARRAY/REDUCE now treat 1x1 lambda results as scalars in array-evaluation contexts, matching Excel
+- Updated: MAKEARRAY now accepts single-cell references for rows/cols arguments, matching Excel
+- Updated: REGEXREPLACE negative occurrence handling now matches Excel, including counting from the end and returning the original text when out of range
 
+## 0.6.0
 
 - New: All API calls are now org-scoped (`/v0/orgs/:org_id/...`) when authenticated, enabling multi-org support
 - New: Login flow prompts for org selection when the user belongs to multiple organizations
@@ -29,7 +45,7 @@
 - New: `autoFitColumns` operation to auto-fit column widths to cell content.
 - New: `findAndReplace` for bulk text substitution with regex and formula support.
 - New: `copyRange` operation to copy ranges with formula reference adjustment.
-- New: `scenarios` operation for batch what-if analysis with compact TSV output.
+- New: `sweepInputs` operation for batch what-if analysis with compact TSV output.
 - New: `getConditionalFormatting`, `setConditionalFormatting`, `removeConditionalFormatting` for reading, adding, and removing conditional formatting rules (`iconSet` currently read-only in write payloads).
 - Breaking: `detectTables` replaced by `describeSheets` — returns per-sheet tables + compact ASCII structure map showing cell types, row collapsing, and inline label annotations.
 - Updated: `readRange`, `readRow`, `readColumn`, `readCell`: now include `note`, `link`, `thread` fields when cells have comments, hyperlinks, or threaded comments.

@@ -18,8 +18,6 @@
 - Updated: MAP/SCAN/BYROW/BYCOL/MAKEARRAY/REDUCE now treat 1x1 lambda results as scalars in array-evaluation contexts, matching Excel
 - Updated: MAKEARRAY now accepts single-cell references for rows/cols arguments, matching Excel
 - Updated: REGEXREPLACE negative occurrence handling now matches Excel, including counting from the end and returning the original text when out of range
-- Updated: SUM/AVERAGE/COUNT/MIN/MAX/PRODUCT/SUMSQ/AVEDEV/STDEV*/VAR* reference-text coercion now matches Excel for numeric-looking text cells
-- Updated: AVERAGEA/MAXA/MINA/STDEVA/VARA/VARPA and related *A functions now distinguish plain text, quote-prefixed text, and formula-text in references the same way Excel does
 
 ## 0.6.0
 

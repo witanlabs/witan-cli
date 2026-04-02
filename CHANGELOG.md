@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.8.0
+
+
 - New: `previewStyles` now renders bar, line, area, pie and combo charts, including Excel-styled axes, titles, legends, data labels, trendlines, gridlines, error bars, and chart styles/colors.
 - Updated: The calculation engine now performs array-aware lazy evaluation for IF/IFERROR/IFNA/IFS/SWITCH/CHOOSE, fixing Excel-style aggregate formulas such as `SUM(IF(range,...))` while still avoiding evaluation of untaken branches.
 

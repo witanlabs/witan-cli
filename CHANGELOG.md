@@ -2,8 +2,10 @@
 
 ## Unreleased
 
-## 0.7.0
+- New: `previewStyles` now renders bar, line, area, pie and combo charts, including Excel-styled axes, titles, legends, data labels, trendlines, gridlines, error bars, and chart styles/colors.
+- Updated: The calculation engine now performs array-aware lazy evaluation for IF/IFERROR/IFNA/IFS/SWITCH/CHOOSE, fixing Excel-style aggregate formulas such as `SUM(IF(range,...))` while still avoiding evaluation of untaken branches.
 
+## 0.7.0
 
 - New: --create flag in `witan xlsx exec` enables creating and populating a workbook in a single command
 - New: --locale flag in `witan xlsx exec` enables controlling which locale is used for formula calculation, number formatting, string comparison, etc. It accepts values such as en-US, which can also be passed as WITAN_LOCALE env var
@@ -13,7 +15,7 @@
 - Updated: Add 3 unit aliases missing in CONVERT function: d, s, L
 - Updated: Rounding functions now coerce empty reference args as 0, matching Excel
 - Updated: COUNTIF/etc criteria functions now reject criteria strings over 255 characters, matching Excel
-- Updated: COUNTIF and D* database functions now handle external workbook ranges as expected
+- Updated: COUNTIF and D\* database functions now handle external workbook ranges as expected
 - New: 3D references are now supported in calculation engine
 - Updated: COUNTIF/SUMIF/AVERAGEIF tilde escaping updated to match Excel behavior
 - Updated: LINEST/LOGEST/TREND/GROWTH regression statistics now match Excel more closely, including exact-fit and near-exact-fit cases

@@ -8,6 +8,7 @@
 - New: --create flag in `witan xlsx exec` enables creating and populating a workbook in a single command
 - New: --locale flag in `witan xlsx exec` enables controlling which locale is used for formula calculation, number formatting, string comparison, etc. It accepts values such as en-US, which can also be passed as WITAN_LOCALE env var
 - New: --version flag prints the API version in addition to CLI version
+- Updated: set/getSheetProperties gained a visibility field to control sheet visibility
 - New: CELL function is now implemented in calculation engine
 - Updated: Add 3 unit aliases missing in CONVERT function: d, s, L
 - Updated: Rounding functions now coerce empty reference args as 0, matching Excel
@@ -21,6 +22,11 @@
 - Updated: MAP/SCAN/BYROW/BYCOL/MAKEARRAY/REDUCE now treat 1x1 lambda results as scalars in array-evaluation contexts, matching Excel
 - Updated: MAKEARRAY now accepts single-cell references for rows/cols arguments, matching Excel
 - Updated: REGEXREPLACE negative occurrence handling now matches Excel, including counting from the end and returning the original text when out of range
+- Updated: BESSELI/BESSELJ/BESSELK/BESSELY calculations now match Excel more closely
+- Updated: IMCSC and IMCSCH now match Excel more closely for edge-case complex-number text outputs
+- Updated: ASC now respects locale-specific Excel behavior, leaving text unchanged outside Japanese locales
+- Updated: Standard normal / error-function based statistical functions now match Excel more closely through a more accurate inverse-normal and error-function implementation
+- Updated: VLOOKUP/HLOOKUP now support wildcard search, matching Excel
 
 ## 0.6.0
 

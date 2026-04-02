@@ -26,6 +26,7 @@
 - Updated: IMCSC and IMCSCH now match Excel more closely for edge-case complex-number text outputs
 - Updated: ASC now respects locale-specific Excel behavior, leaving text unchanged outside Japanese locales
 - Updated: Standard normal / error-function based statistical functions now match Excel more closely through a more accurate inverse-normal and error-function implementation
+- Updated: VLOOKUP/HLOOKUP now support wildcard search, matching Excel
 
 ## 0.6.0
 

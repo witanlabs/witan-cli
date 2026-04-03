@@ -143,7 +143,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
 | `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors, iterative calc) |
-| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (visibility, view, format, columns, rows, merges); `filter.columns/rows` to limit |
+| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (visibility, view, outline, format, columns, rows, merges); `filter.columns/rows` to limit |
 | `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
 | `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
 | `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
@@ -220,8 +220,11 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | `deleteSheet`           | `(wb, name)`                       | Delete a sheet                                                                                         |
 | `renameSheet`           | `(wb, oldName, newName)`           | Rename a sheet                                                                                         |
 | `addDefinedName`        | `(wb, name, range, scope?)`        | Add a defined name                                                                                     |
+| `deleteDefinedName`     | `(wb, name, scope?)`               | Delete a defined name                                                                                  |
 | `setWorkbookProperties` | `(wb, properties)`                 | Set workbook-level properties                                                                          |
-| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (visibility, columns, rows, merges, view)                                   |
+| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (visibility, view, outline, format, merges)                                 |
+| `setRowProperties`      | `(wb, sheet, fromRow, toRow, properties)` | Set row-range properties (height, hidden, outlineLevel, collapsed)                               |
+| `setColumnProperties`   | `(wb, sheet, fromCol, toCol, properties)` | Set column-range properties (width, hidden, outlineLevel, collapsed)                             |
 | `setStyle`              | `(wb, target, style)`              | Apply styles to a cell or range                                                                        |
 
 ### The ephemeral write contract
@@ -494,6 +497,12 @@ function addDefinedName(
   wb,
   name: string,
   range: string,
+  scope?: string,
+): Promise<DefinedName>;
+/** Delete a named range, optionally scoped to a sheet. */
+function deleteDefinedName(
+  wb,
+  name: string,
   scope?: string,
 ): Promise<DefinedName>;
 /** Add a new worksheet to the workbook. */
@@ -1164,6 +1173,11 @@ interface SheetProperties {
     showGridLines: boolean;
     zoomScale: number;
   };
+  outline: {
+    summaryRowsBelow: boolean;
+    summaryColumnsRight: boolean;
+    showSymbols: boolean;
+  };
   format: {
     defaultRowHeight: number;
     defaultColWidth: number;
@@ -1177,6 +1191,9 @@ interface SheetProperties {
     {
       col: string;
       width: number;
+      hidden?: boolean;
+      outlineLevel?: number;
+      collapsed?: boolean;
     }
   >;
   rows: Record<
@@ -1184,6 +1201,9 @@ interface SheetProperties {
     {
       row: number;
       height: number;
+      hidden?: boolean;
+      outlineLevel?: number;
+      collapsed?: boolean;
     }
   >;
   merges?: string[] | null;
@@ -1201,6 +1221,11 @@ function setSheetProperties(
       showGridLines?: boolean;
       zoomScale?: number;
     };
+    outline?: {
+      summaryRowsBelow?: boolean;
+      summaryColumnsRight?: boolean;
+      showSymbols?: boolean;
+    };
     format?: {
       defaultRowHeight?: number;
       defaultColWidth?: number;
@@ -1209,19 +1234,33 @@ function setSheetProperties(
         size?: number;
       };
     };
-    columns?: Record<
-      number | string,
-      {
-        width: number;
-      }
-    >;
-    rows?: Record<
-      number,
-      {
-        height: number;
-      }
-    >;
     merges?: string[];
+  },
+): Promise<void>;
+/** Set properties for a contiguous row range. */
+function setRowProperties(
+  wb,
+  sheetName: string,
+  fromRow: number,
+  toRow: number,
+  properties: {
+    height?: number;
+    hidden?: boolean;
+    outlineLevel?: number;
+    collapsed?: boolean;
+  },
+): Promise<void>;
+/** Set properties for a contiguous column range. */
+function setColumnProperties(
+  wb,
+  sheetName: string,
+  fromCol: number | string,
+  toCol: number | string,
+  properties: {
+    width?: number;
+    hidden?: boolean;
+    outlineLevel?: number;
+    collapsed?: boolean;
   },
 ): Promise<void>;
 /**

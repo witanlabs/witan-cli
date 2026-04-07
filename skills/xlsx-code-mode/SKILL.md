@@ -337,29 +337,76 @@ For questions like "what happens to Y if X changes?", follow this sequence. **St
 
 For sweeping multiple values (sensitivity tables), use `sweepInputs` instead — it runs all combinations in one call and returns structured before/after data.
 
-Common pitfalls:
+Practical tips:
 
 - Don't search for the output _after_ `setCells` — find it first so you know the exact address to check in `touched`.
 - If `findCells` returns several hits for the same label, use context or `readRangeTsv` to disambiguate (e.g., "Net Income" may appear as both a label and a formula cell on different rows).
-- After `setCells`, verify `result.errors` is empty. New errors mean the edit broke a formula.
+- After `setCells`, verify `result.errors` is empty. New errors mean the edit introduced or surfaced a calculation problem downstream.
 - If the question names a specific metric (e.g., "loss ratio"), don't just search for that term — also check the sheet/row the question references, since models often have multiple versions of the same metric across sheets.
 
-### Circular reference convergence
+### Iterative / circular models
 
-When a workbook has **iterative calculation** enabled (circular references between
-cells), `setCells` returns **partially-converged intermediate values** in
-`result.touched` — this is expected and not an error. Do not try to debug or
-"fix" these intermediate values.
+When a workbook has **iterative calculation** enabled, `setCells` recalculates
+the edited cells and downstream dependents using the workbook's iterative
+settings. If the model does not converge within `maxIterations`, the result
+includes convergence errors.
 
-To fully converge circular references after setting formulas, run:
+Use `witan xlsx calc` when you want a standalone seeded or full-workbook
+verification pass, or when you want CLI reporting of all calculation errors or
+changed cells. `--show-touched` only changes output verbosity.
+
+### calc — Full-workbook verification
+
+`setCells` already recalculates the edited cells and all downstream dependents,
+so you do **not** need `witan xlsx calc` after every normal edit. Use `calc`
+mainly as a standalone verification/reporting command:
+
+- See every formula error in one CLI call
+- In `--verify` mode, see which cell values changed without modifying the file
+- Run a workbook-wide verification pass outside your `exec` script
 
 ```bash
+# Recalculate the workbook and print all formula errors, if any
+witan xlsx calc model.xlsx
+
+# Verification pass only — no file write, but prints changed addresses
+witan xlsx calc model.xlsx --verify
+
+# Verbose output — every touched cell with formula/value or error code
 witan xlsx calc model.xlsx --show-touched
 ```
 
-This recalculates all formulas with iterative solving and saves the converged
-values back to the file. After running calc, inspect the output to verify that
-all cells have the expected values.
+Default output is concise:
+
+- If there are no formula errors, it prints a one-line summary like `428 cells recalculated, 0 errors, 3 changed`
+- If there are formula errors, it prints **all** of them, not just a count
+- Without `--verify`, it still exits with code `2` if any formula errors are found
+- With `--verify`, it also prints a sorted `Changed (N):` list of addresses
+- `--show-touched` is the verbose mode when you need every recalculated cell
+
+Example error output:
+
+```text
+2 errors:
+  Summary!C18          =A18/B18                      #DIV/0!
+  Revenue!F42          =VLOOKUP(A42,$A$2:$C$10,3,0) #N/A
+```
+
+Example verify output:
+
+```text
+428 cells recalculated, 0 errors, 3 changed
+
+Changed (3):
+  Inputs!B5
+  Revenue!F42
+  Summary!C18
+```
+
+`witan xlsx calc` exits with code `2` if any formula errors are found.
+`witan xlsx calc --verify` also exits with code `2` if any computed values
+changed. That makes `--verify` useful as a final audit step after fixing a
+workbook.
 
 ### Response format
 

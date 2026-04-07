@@ -31,13 +31,13 @@ WITAN
 # Multi-input sweep — compare several input values at once
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const result = await xlsx.sweepInputs(wb, {
-  inputs: [
-    { address: "Inputs!B5", values: [0.02, 0.04, 0.06] },
-    { address: "Inputs!B6", values: [0.08, 0.10, 0.12] },
-  ],
-  outputs: ["Output!C30", "Output!C45"],
-  mode: "cartesian",
-  includeStats: true,
+	inputs: [
+		{ address: "Inputs!B5", values: [0.02, 0.04, 0.06] },
+		{ address: "Inputs!B6", values: [0.08, 0.10, 0.12] },
+	],
+	outputs: ["Output!C30", "Output!C45"],
+	mode: "cartesian",
+	includeStats: true,
 })
 console.log(result.tsv)
 WITAN
@@ -45,41 +45,41 @@ WITAN
 # Conditional formatting — add a highlight rule and a color scale
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.setConditionalFormatting(wb, "Sheet1", [
-  {
-    type: "cellValue",
-    address: "A1:A100",
-    operator: "greaterThan",
-    formula: "100",
-    style: { fill: { color: "#FF0000" } }
-  },
-  {
-    type: "twoColorScale",
-    address: "B1:B100",
-    lowValue: { type: "min", color: "#FFFFFF" },
-    highValue: { type: "max", color: "#FF0000" }
-  }
+	{
+		type: "cellValue",
+		address: "A1:A100",
+		operator: "greaterThan",
+		formula: "100",
+		style: { fill: { color: "#FF0000" } }
+	},
+	{
+		type: "twoColorScale",
+		address: "B1:B100",
+		lowValue: { type: "min", color: "#FFFFFF" },
+		highValue: { type: "max", color: "#FF0000" }
+	}
 ])
 WITAN
 
 # Chart authoring — add an embedded chart and verify the rendered result
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addChart(wb, "Sheet1", {
-  name: "Revenue",
-  position: { from: { cell: "F2" }, to: { cell: "N18" } },
-  groups: [
-    {
-      type: "column",
-      series: [
-        {
-          name: { ref: "Sheet1!B1" },
-          categories: "Sheet1!A2:A9",
-          values: "Sheet1!B2:B9"
-        }
-      ]
-    }
-  ],
-  title: { text: "Revenue" },
-  legend: { position: "right" }
+	name: "Revenue",
+	position: { from: { cell: "F2" }, to: { cell: "N18" } },
+	groups: [
+		{
+			type: "column",
+			series: [
+				{
+					name: { ref: "Sheet1!B1" },
+					categories: "Sheet1!A2:A9",
+					values: "Sheet1!B2:B9"
+				}
+			]
+		}
+	],
+	title: { text: "Revenue" },
+	legend: { position: "right" }
 })
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
@@ -87,33 +87,33 @@ WITAN
 # ListObject authoring — create an Excel table and read it back by table name
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addListObject(wb, "Sheet1", {
-  name: "SalesTable",
-  ref: "A1:C4",
-  showTotalsRow: true,
-  columns: [
-    { name: "Region", totalsRowLabel: "Total" },
-    { name: "Sales", totalsRowFunction: "sum" },
-    { name: "DoubleSales", calculatedColumnFormula: "=B2*2" }
-  ],
-  rows: [
-    [{ value: "North" }, { value: 10 }, {}],
-    [{ value: "South" }, { value: 20 }, {}]
-  ]
+	name: "SalesTable",
+	ref: "A1:C4",
+	showTotalsRow: true,
+	columns: [
+		{ name: "Region", totalsRowLabel: "Total" },
+		{ name: "Sales", totalsRowFunction: "sum" },
+		{ name: "DoubleSales", calculatedColumnFormula: "=B2*2" }
+	],
+	rows: [
+		[{ value: "North" }, { value: 10 }, {}],
+		[{ value: "South" }, { value: 20 }, {}]
+	]
 })
 return {
-  meta: await xlsx.getListObject(wb, "SalesTable"),
-  data: await xlsx.readRange(wb, "SalesTable")
+	meta: await xlsx.getListObject(wb, "SalesTable"),
+	data: await xlsx.readRange(wb, "SalesTable")
 }
 WITAN
 
 # What-If Data Table authoring — create a visible one-variable table block
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addDataTable(wb, "Sheet1", {
-  type: "oneVariableColumn",
-  ref: "E1:F4",
-  columnInputCell: "H1",
-  inputValues: [5, 10, 15],
-  formulas: ["=H1*2"]
+	type: "oneVariableColumn",
+	ref: "E1:F4",
+	columnInputCell: "H1",
+	inputValues: [5, 10, 15],
+	formulas: ["=H1*2"]
 })
 return await xlsx.getDataTable(wb, "Sheet1!E1:F4")
 WITAN
@@ -124,10 +124,8 @@ witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 
 ## Exit Codes
 
-| Command | Code | Meaning                                                             |
-| ------- | ---- | ------------------------------------------------------------------- |
-| `exec`  | `0`  | Script completed successfully (`ok: true`)                          |
-| `exec`  | `1`  | Transport/API error, invalid request, or script error (`ok: false`) |
+- `exec` `0`: script completed successfully (`ok: true`)
+- `exec` `1`: transport/API error, invalid request, or script error (`ok: false`)
 
 ## exec — Workbook Scripting
 
@@ -166,27 +164,23 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 
 ### Flags
 
-| Flag                 | Short | Default | Description                                                            |
-| -------------------- | ----- | ------- | ---------------------------------------------------------------------- |
-| `--expr`             |       | —       | Expression shorthand; wraps as `return (<expr>);`                      |
-| `--code`             |       | —       | Inline JavaScript source                                               |
-| `--script`           |       | —       | Path to a JavaScript file                                              |
-| `--stdin`            |       | —       | Read JavaScript source from stdin                                      |
-| `--input-json`       |       | `{}`    | JSON value passed as `input` to the script                             |
-| `--timeout-ms`       |       | —       | Execution timeout in milliseconds (> 0); omit to use server default    |
-| `--max-output-chars` |       | —       | Maximum stdout characters to capture (> 0); omit to use server default |
-| `--create`           |       | `false` | Create a new `.xlsx` workbook; target path must not exist              |
-| `--save`             |       | `false` | Persist changes to the workbook file                                   |
-| `--json`             |       | `false` | Print the full response envelope as JSON                               |
+- `--expr`: expression shorthand; wraps as `return (<expr>);`
+- `--code`: inline JavaScript source
+- `--script`: path to a JavaScript file
+- `--stdin`: read JavaScript source from stdin
+- `--input-json` (default `{}`): JSON value passed as `input`
+- `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
+- `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
+- `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
+- `--save` (default `false`): persist changes to the workbook file
+- `--json` (default `false`): print the full response envelope as JSON
 
 ### Runtime globals
 
-| Name    | Type            | Description                                                         |
-| ------- | --------------- | ------------------------------------------------------------------- |
-| `xlsx`  | object          | Curated API surface — all functions listed below                    |
-| `wb`    | WorkbookContext | The opened workbook handle; pass as first arg to all `xlsx.*` calls |
-| `input` | any             | Parsed value from `--input-json` (defaults to `{}`)                 |
-| `print` | function        | Output to stdout (like `console.log` but captured in response)      |
+- `xlsx` (`object`): curated API surface; all functions listed below
+- `wb` (`WorkbookContext`): opened workbook handle; pass as first arg to all `xlsx.*` calls
+- `input` (`any`): parsed value from `--input-json` (defaults to `{}`)
+- `print` (`function`): output to stdout, like `console.log` but captured in the response
 
 Top-level `await` is supported. No imports allowed (static or dynamic).
 
@@ -196,110 +190,69 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Reading**
 
-| Function                | Signature                 | Description                                                                                |
-| ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
-| `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors, iterative calc) |
-| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (visibility, view, outline, format, columns, rows, merges); `filter.columns/rows` to limit |
-| `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
-| `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
-| `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
-| `readRow`               | `(wb, sheet, row, opts?)` | Read a row; `opts.startCol/endCol` to limit                                                |
-| `readColumn`            | `(wb, sheet, col, opts?)` | Read a column; `opts.startRow/endRow` to limit                                             |
-| `readRangeTsv`          | `(wb, range, opts?)`      | Read range as TSV text; `opts.includeEmpty`, `includeFormulas`                             |
-| `readColumnTsv`         | `(wb, sheet, col, opts?)` | Read column as TSV text; `opts.startRow/endRow`, `includeEmpty`, `includeFormulas`         |
-| `readRowTsv`            | `(wb, sheet, row, opts?)` | Read row as TSV text; `opts.startCol/endCol`, `includeEmpty`, `includeFormulas`            |
-| `getStyle`              | `(wb, cell)`              | Get style properties (fill, font, alignment, border, numberFormat, richText) of a cell     |
+- `listSheets`: sheet inventory with used ranges, visibility, and cross-sheet dependencies
+- `getWorkbookProperties`, `getSheetProperties`: workbook/sheet metadata, formatting, view, outline, and merge info
+- `listDefinedNames`: workbook and sheet-scoped names
+- `readCell`, `readRange`, `readRow`, `readColumn`: structured cell reads
+- `readRangeTsv`, `readRowTsv`, `readColumnTsv`: TSV reads for prompt-friendly extraction
+- `getStyle`: resolved style properties for a cell
 
 **Searching**
 
-| Function         | Signature                                | Description                                                                         |
-| ---------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `findCells`      | `(wb, matcher, opts?)`                   | Find cells by value or pattern; `opts.in`, `context`, `limit`, `offset`, `formulas` |
-| `findRows`       | `(wb, matcher, opts?)`                   | Find rows by value or pattern; `opts.in`, `context`, `limit`, `offset`              |
-| `describeSheets` | `(wb)`                                   | Per-sheet structure map + detected tables                                           |
-| `tableLookup`    | `(wb, { table, rowLabel, columnLabel })` | Look up a value by row and column labels                                            |
-| `getListObject`  | `(wb, name)`                              | Get metadata for an Excel ListObject by name                                        |
-| `getDataTable`   | `(wb, address)`                           | Get metadata for a What-If Data Table by visible footprint address                  |
+- `findCells`, `findRows`: fuzzy search by value or pattern
+- `describeSheets`: sheet structure map with detected tables
+- `tableLookup`: lookup by row and column labels inside a table
+- `getListObject`, `getDataTable`: metadata for existing Excel table / What-If Data Table objects
 
-`matcher` accepts: string, string array (OR match), number, boolean, RegExp, or RegExp array. Searches are fuzzy and case-insensitive by default.
+`matcher` may be a string, string array, number, boolean, `RegExp`, or `RegExp[]`. Searches are fuzzy and case-insensitive by default.
 
 **Tracing**
 
-| Function            | Signature               | Description                                           |
-| ------------------- | ----------------------- | ----------------------------------------------------- |
-| `getCellPrecedents` | `(wb, address, depth?)` | Cells that feed into this cell; `depth` defaults to 1 |
-| `getCellDependents` | `(wb, address, depth?)` | Cells that depend on this cell                        |
-| `traceToInputs`     | `(wb, cell)`            | Trace all the way to leaf input cells (no formula)    |
-| `traceToOutputs`    | `(wb, cell)`            | Trace all the way to terminal output cells            |
+- `getCellPrecedents`, `getCellDependents`: local dependency traversal; `depth` defaults to `1`
+- `traceToInputs`, `traceToOutputs`: full graph tracing to leaf inputs or terminal outputs
 
 **Computing**
 
-| Function           | Signature                                         | Description                                        |
-| ------------------ | ------------------------------------------------- | -------------------------------------------------- |
-| `sweepInputs`      | `(wb, { inputs, outputs, mode?, includeStats? })` | Batch what-if sweeps with TSV + structured outputs |
-| `evaluateFormula`  | `(wb, sheet, formula)`                            | Evaluate a formula string in a sheet context       |
-| `evaluateFormulas` | `(wb, sheet, formulas)`                           | Evaluate multiple formulas at once                 |
+- `sweepInputs`: batch what-if sweeps with TSV and structured outputs
+- `evaluateFormula`, `evaluateFormulas`: evaluate one or more formulas in sheet context
 
 **Validating**
 
-| Function | Signature        | Description           |
-| -------- | ---------------- | --------------------- |
-| `lint`   | `(wb, options?)` | Find potential issues |
+- `lint`: potential workbook issues and diagnostics
 
 **Rendering**
 
-| Function        | Signature     | Description                                                         |
-| --------------- | ------------- | ------------------------------------------------------------------- |
-| `previewStyles` | `(wb, range)` | Generate a PNG screenshot of a cell range; image is auto-registered |
+- `previewStyles`: generate a PNG screenshot for a range; image is auto-registered
 
 **Charts**
 
-| Function       | Signature                          | Description                                             |
-| -------------- | ---------------------------------- | ------------------------------------------------------- |
-| `listCharts`   | `(wb, options?)`                   | List chart summaries for the workbook or a single sheet |
-| `getChart`     | `(wb, sheet, name)`                | Get the canonical spec for an existing chart            |
-| `addChart`     | `(wb, sheet, chart)`               | Add a new embedded chart                                |
-| `setChart`     | `(wb, sheet, name, chart)`         | Replace the spec of an existing chart                   |
-| `deleteChart`  | `(wb, sheet, name)`                | Delete an embedded chart                                |
+- `listCharts`: chart summaries for the workbook or a single sheet
+- `getChart`: canonical spec for an existing chart
+- `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
 
 **Conditional Formatting**
 
-| Function                      | Signature                   | Description                                          |
-| ----------------------------- | --------------------------- | ---------------------------------------------------- |
-| `getConditionalFormatting`    | `(wb, sheet)`               | Get all CF rules on a sheet (`iconSet` is read-only) |
-| `setConditionalFormatting`    | `(wb, sheet, rules, opts?)` | Add writable CF rules; `opts.clear` to replace all   |
-| `removeConditionalFormatting` | `(wb, sheet, indices)`      | Remove rules by index                                |
+- `getConditionalFormatting`: read all sheet rules; `iconSet` is read-only
+- `setConditionalFormatting`: add writable rules; `opts.clear` replaces all rules
+- `removeConditionalFormatting`: remove rules by index
 
 **Writing (ephemeral)**
 
-| Function                | Signature                          | Description                                                                                            |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `setCells`              | `(wb, cells)`                      | Write values/formulas to cells; returns `{ touched, changed, errors }`                                 |
-| `findAndReplace`        | `(wb, find, replace, opts?)`       | Bulk text replacement in values or formulas; supports regex/capture groups                             |
-| `scaleRange`            | `(wb, range, factor, opts?)`       | Multiply numeric cells by a factor; `opts.skipFormulas` (default true)                                 |
-| `insertRowAfter`        | `(wb, sheet, row, count?)`         | Insert rows after a given row                                                                          |
-| `deleteRows`            | `(wb, sheet, row, count?)`         | Delete rows starting at a given row                                                                    |
-| `insertColumnAfter`     | `(wb, sheet, col, count?)`         | Insert columns after a given column                                                                    |
-| `deleteColumns`         | `(wb, sheet, col, count?)`         | Delete columns starting at a given column                                                              |
-| `autoFitColumns`        | `(wb, sheet, columns?, opts?)`     | Auto-fit column widths to content; `opts.minWidth/maxWidth/padding`                                    |
-| `sortRange`             | `(wb, range, keys, opts?)`         | Sort rows in a range by one or more keys; `opts.hasHeader` defaults to `true`                          |
-| `copyRange`             | `(wb, source, destination, opts?)` | Copy a range to a destination anchor; `opts.pasteType` supports `all`, `values`, `formulas`, `formats` |
-| `addSheet`              | `(wb, name)`                       | Add a new sheet                                                                                        |
-| `deleteSheet`           | `(wb, name)`                       | Delete a sheet                                                                                         |
-| `renameSheet`           | `(wb, oldName, newName)`           | Rename a sheet                                                                                         |
-| `addDefinedName`        | `(wb, name, range, scope?)`        | Add a defined name                                                                                     |
-| `deleteDefinedName`     | `(wb, name, scope?)`               | Delete a defined name                                                                                  |
-| `setWorkbookProperties` | `(wb, properties)`                 | Set workbook-level properties                                                                          |
-| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (visibility, view, outline, format, merges)                                 |
-| `setRowProperties`      | `(wb, sheet, fromRow, toRow, properties)` | Set row-range properties (height, hidden, outlineLevel, collapsed)                               |
-| `setColumnProperties`   | `(wb, sheet, fromCol, toCol, properties)` | Set column-range properties (width, hidden, outlineLevel, collapsed)                             |
-| `setStyle`              | `(wb, target, style)`              | Apply styles to a cell or range                                                                        |
-| `addListObject`         | `(wb, sheet, listObject)`          | Create a ListObject including headers, rows, calculated columns, and totals                           |
-| `setListObject`         | `(wb, name, listObject)`           | Replace ListObject structure/properties on an existing table                                           |
-| `deleteListObject`      | `(wb, name)`                       | Delete the ListObject object while leaving the underlying cells                                        |
-| `addDataTable`          | `(wb, sheet, dataTable)`           | Create a What-If Data Table including its visible scaffold cells                                       |
-| `deleteDataTable`       | `(wb, address)`                    | Delete a What-If Data Table and clear its visible footprint                                            |
+- Cells/ranges: `setCells`, `findAndReplace`, `scaleRange`, `copyRange`, `sortRange`
+- Structure: `insertRowAfter`, `deleteRows`, `insertColumnAfter`, `deleteColumns`, `autoFitColumns`
+- Sheets/names: `addSheet`, `deleteSheet`, `renameSheet`, `addDefinedName`, `deleteDefinedName`
+- Properties/styles: `setWorkbookProperties`, `setSheetProperties`, `setRowProperties`, `setColumnProperties`, `setStyle`
+- Objects: `addListObject`, `setListObject`, `deleteListObject`, `addDataTable`, `deleteDataTable`
+
+Common option patterns:
+
+- Search: `opts.in`, `context`, `limit`, `offset`; `findCells` also supports `formulas`
+- Row/column reads: `startRow/endRow` or `startCol/endCol`
+- TSV reads: `includeEmpty`, `includeFormulas`
+- `scaleRange`: `opts.skipFormulas` defaults to `true`
+- `sortRange`: `opts.hasHeader` defaults to `true`
+- `copyRange`: `opts.pasteType` supports `all`, `values`, `formulas`, `formats`
+- `setConditionalFormatting`: `opts.clear` replaces all existing rules
 
 ### The ephemeral write contract
 
@@ -321,7 +274,7 @@ When `--create` is set, the same ephemeral rule applies to the new workbook sess
 {
   touched: Record<string, string>  // address → formatted text value
   changed: string[]                // addresses whose values changed
-  errors: Diagnostic[]             // cells that errored after recalc
+  errors: Diag[]             // cells that errored after recalc
 }
 ```
 
@@ -454,1291 +407,615 @@ witan xlsx render report.xlsx -r "Sheet1!A1:F10" --dpr 2
 witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png
 ```
 
-| Flag       | Short | Default | Description                                         |
-| ---------- | ----- | ------- | --------------------------------------------------- |
-| `--range`  | `-r`  | —       | Sheet-qualified range to render (**required**)      |
-| `--output` | `-o`  | —       | Output path (default: temporary file)               |
-| `--dpr`    |       | auto    | Device pixel ratio 1-3                              |
-| `--format` |       | `png`   | Output format: `png` or `webp`                      |
-| `--diff`   |       | —       | Compare against a baseline PNG and write diff image |
+- `--range`, `-r`: sheet-qualified range to render; required
+- `--output`, `-o`: output path; defaults to a temporary file
+- `--dpr` (default `auto`): device pixel ratio `1`-`3`
+- `--format` (default `png`): `png` or `webp`
+- `--diff`: compare against a baseline PNG and write a diff image
 
 The `previewStyles` exec function (see Rendering in the API reference) provides the same capability from within a script.
 
 ## Error Guide
 
-| Error                                                             | Fix                                                                             |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `exactly one of --code, --script, --stdin, or --expr is required` | Provide exactly one code source flag                                            |
-| `--code, --script, --stdin, and --expr are mutually exclusive`    | Only use one code source flag per invocation                                    |
-| `exec code must not be empty`                                     | Provide non-empty code                                                          |
-| `Import statements are not allowed`                               | No `import` in exec scripts; use the `xlsx` global                              |
-| `EXEC_SYNTAX_ERROR`                                               | Fix JavaScript syntax in your script                                            |
-| `EXEC_RUNTIME_ERROR`                                              | Fix runtime error (check the message for details)                               |
-| `EXEC_RESULT_TOO_LARGE`                                           | Return less data; use `console.log()` for large output instead of return values |
-| `--timeout-ms must be > 0`                                        | Omit the flag (no timeout) or provide a positive value                          |
-| `invalid --input-json`                                            | Provide valid JSON                                                              |
-| `Sheet 'X' not found`                                             | Check the sheet name; use `listSheets` to enumerate                             |
-| Shell quoting errors with sheet names                             | Use `--stdin <<'WITAN'` heredoc — it avoids all shell quoting issues            |
-| `findCells` returns empty                                         | Try synonym arrays, broader search, or check spelling                           |
-| `setCells` result missing expected output                         | The output cell may not be a dependent; trace the formula chain                 |
+- `exactly one of --code, --script, --stdin, or --expr is required`: provide exactly one code source flag
+- `--code, --script, --stdin, and --expr are mutually exclusive`: use only one code source flag per invocation
+- `exec code must not be empty`: provide non-empty code
+- `Import statements are not allowed`: no `import` in exec scripts; use the `xlsx` global
+- `EXEC_SYNTAX_ERROR`: fix JavaScript syntax in your script
+- `EXEC_RUNTIME_ERROR`: fix the runtime error; check the message for details
+- `EXEC_RESULT_TOO_LARGE`: return less data; use `console.log()` for large output instead of return values
+- `--timeout-ms must be > 0`: omit the flag or provide a positive value
+- `invalid --input-json`: provide valid JSON
+- `Sheet 'X' not found`: check the sheet name; use `listSheets` to enumerate
+- `Shell quoting errors with sheet names`: use `--stdin <<'WITAN'`; it avoids shell quoting issues
+- `findCells` returns empty: try synonym arrays, broader search, or check spelling
+- `setCells` result missing expected output: the output cell may not be a dependent; trace the formula chain
 
 ### Full Type Definitions
 
 ````ts
-type CellAddressOrCoordinates =
-  | string
-  | {
-      sheet: string;
-      row: number;
-      col: number | string;
-    };
-type RangeAddressOrCoordinates =
-  | string
-  | {
-      sheet: string;
-    }
-  | {
-      sheet: string;
-      from: {
-        row?: number;
-        col?: number | string;
-      };
-      to: {
-        row?: number;
-        col?: number | string;
-      };
-    };
-type VisibilityType = "visible" | "outsidePrintArea" | "collapsed" | "hidden";
-interface SheetInfo {
-  address: string;
-  rows: number;
-  cols: number;
-  sheet: string;
-  hidden?: boolean;
-  printArea?: string;
-  /** Excel ListObjects / table names in sheet order. */
-  listObjects?: string[];
-  /** Excel What-If Analysis data table block ranges. */
-  dataTables?: string[];
-  /** Sheets this sheet references via formulas */
-  precedents?: string[];
-  /** Sheets that reference this sheet via formulas */
-  dependents?: string[];
-}
-interface WorkbookProperties {
-  activeSheetIndex: number;
-  defaultFont: {
-    name: string;
-    size: number;
-  };
-  iterativeCalculation: {
-    enabled: boolean;
-    maxIterations: number;
-    maxChange: number;
-  };
-  metadata?: {
-    author?: string;
-    title?: string;
-    subject?: string;
-    company?: string;
-    created?: string;
-    modified?: string;
-  };
-  themeColors?: {
-    dark1: string;
-    light1: string;
-    dark2: string;
-    light2: string;
-    accent1: string;
-    accent2: string;
-    accent3: string;
-    accent4: string;
-    accent5: string;
-    accent6: string;
-    hyperlink: string;
-    followedHyperlink: string;
-    majorFont?: string;
-    minorFont?: string;
-  };
-}
-/** Get workbook-level properties including theme, and metadata. */
-function getWorkbookProperties(wb): Promise<WorkbookProperties>;
-/**
- * Set workbook-level properties.
- * Supports partial updates - only specified properties are modified.
- */
-function setWorkbookProperties(
-  wb,
-  properties: {
-    activeSheetIndex?: number;
-    defaultFont?: {
-      name?: string;
-      size?: number;
-    };
-    iterativeCalculation?: {
-      enabled?: boolean;
-      maxIterations?: number;
-      maxChange?: number;
-    };
-    metadata?: {
-      author?: string;
-      title?: string;
-      subject?: string;
-      company?: string;
-    };
-    themeColors?: {
-      dark1?: string;
-      light1?: string;
-      dark2?: string;
-      light2?: string;
-      accent1?: string;
-      accent2?: string;
-      accent3?: string;
-      accent4?: string;
-      accent5?: string;
-      accent6?: string;
-      hyperlink?: string;
-      followedHyperlink?: string;
-      majorFont?: string;
-      minorFont?: string;
-    };
-  },
-): Promise<void>;
-/** List all sheets with their used ranges, visibility, and cross-sheet dependencies. */
-function listSheets(wb): Promise<SheetInfo[]>;
-type ChartType =
-  | "column"
-  | "bar"
-  | "line"
-  | "area"
-  | "pie"
-  | "doughnut"
-  | "scatter"
-  | "bubble";
-type ChartGrouping = "standard" | "stacked" | "percentStacked";
-type ChartAxisBinding = "primary" | "secondary";
-type ChartLegendPosition =
-  | "left"
-  | "right"
-  | "top"
-  | "bottom"
-  | "topRight";
-type ChartMarkerStyle =
-  | "auto"
-  | "none"
-  | "circle"
-  | "dash"
-  | "diamond"
-  | "dot"
-  | "picture"
-  | "plus"
-  | "square"
-  | "star"
-  | "triangle"
-  | "x";
-type ChartDataLabelPosition =
-  | "bestFit"
-  | "center"
-  | "insideBase"
-  | "insideEnd"
-  | "outsideEnd"
-  | "left"
-  | "right"
-  | "top"
-  | "bottom";
-type ChartCategoryAxisType = "category" | "date";
-type ChartTimeUnit = "days" | "months" | "years";
-/** Exactly one of `text` or `ref` should be provided. */
-interface ChartTextSource {
-  text?: string;
-  ref?: string;
-}
-interface ChartPositionAnchor {
-  cell: string;
-  xOffsetPts?: number;
-  yOffsetPts?: number;
-}
-interface ChartPositionInput {
-  from: ChartPositionAnchor;
-  to: ChartPositionAnchor;
-}
-interface ChartPosition extends ChartPositionInput {
-  sheet: string;
-}
-interface ChartMarkerSpec {
-  style?: ChartMarkerStyle;
-  size?: number;
-  fillColor?: string;
-  borderColor?: string;
-}
-interface ChartDataLabelsSpec {
-  showValue?: boolean;
-  showCategory?: boolean;
-  showSeriesName?: boolean;
-  showPercent?: boolean;
-  position?: ChartDataLabelPosition;
-}
-interface ChartSeriesSpec {
-  name?: ChartTextSource;
-  categories?: string;
-  categoriesRefType?: "string" | "number";
-  values?: string;
-  xValues?: string;
-  yValues?: string;
-  bubbleSizes?: string;
-  fillColor?: string;
-  lineColor?: string;
-  lineWidth?: number;
-  lineDashStyle?: string;
-  smooth?: boolean;
-  marker?: ChartMarkerSpec;
-  dataLabels?: ChartDataLabelsSpec;
-}
-interface ChartGroupSpec {
-  type: ChartType;
-  grouping?: ChartGrouping;
-  axis?: ChartAxisBinding;
-  gapWidth?: number;
-  overlap?: number;
-  varyColors?: boolean;
-  smooth?: boolean;
-  firstSliceAngle?: number;
-  holeSize?: number;
-  series: ChartSeriesSpec[];
-}
-interface ChartTitleSpec extends ChartTextSource {
-  overlay?: boolean;
-}
-interface ChartLegendSpec {
-  visible?: boolean;
-  position?: ChartLegendPosition;
-  overlay?: boolean;
-}
+type CellRef=string|{sheet:string;row:number;col:number|string}
+type RangeRef=string|{sheet:string}|{sheet:string;from:{row?:number;col?:number|string};to:{row?:number;col?:number|string}}
+type Visibility="visible"|"outsidePrintArea"|"collapsed"|"hidden"
+function getWorkbookProperties(wb):Promise<{
+	activeSheetIndex:number;
+	defaultFont:{
+		name:string;
+		size:number;
+	};
+	iterativeCalculation:{
+		enabled:boolean;
+		maxIterations:number;
+		maxChange:number;
+	};
+	metadata?:{
+		author?:string;
+		title?:string;
+		subject?:string;
+		company?:string;
+		created?:string;
+		modified?:string;
+	};
+	themeColors?:{
+		dark1:string;
+		light1:string;
+		dark2:string;
+		light2:string;
+		accent1:string;
+		accent2:string;
+		accent3:string;
+		accent4:string;
+		accent5:string;
+		accent6:string;
+		hyperlink:string;
+		followedHyperlink:string;
+		majorFont?:string;
+		minorFont?:string;
+	};
+}>;
+function setWorkbookProperties(wb,properties:{
+	activeSheetIndex?:number;
+	defaultFont?:{
+		name?:string;
+		size?:number;
+	};
+	iterativeCalculation?:{
+		enabled?:boolean;
+		maxIterations?:number;
+		maxChange?:number;
+	};
+	metadata?:{
+		author?:string;
+		title?:string;
+		subject?:string;
+		company?:string;
+	};
+	themeColors?:{
+		dark1?:string;
+		light1?:string;
+		dark2?:string;
+		light2?:string;
+		accent1?:string;
+		accent2?:string;
+		accent3?:string;
+		accent4?:string;
+		accent5?:string;
+		accent6?:string;
+		hyperlink?:string;
+		followedHyperlink?:string;
+		majorFont?:string;
+		minorFont?:string;
+	};
+}):Promise<void>;
+function listSheets(wb):Promise<Array<{
+	address:string;
+	rows:number;
+	cols:number;
+	sheet:string;
+	hidden?:boolean;
+	printArea?:string;
+	listObjects?:string[];
+	dataTables?:string[];
+	precedents?:string[];
+	dependents?:string[];
+}>>;
+type TimeUnit="days"|"months"|"years"
+/** Use exactly one of `text` or `ref`. */
+interface ChartTextSource {text?:string;ref?:string}
+interface ChartPositionAnchor {cell:string;xOffsetPts?:number;yOffsetPts?:number}
+interface ChartPosIn {from:ChartPositionAnchor;to:ChartPositionAnchor}
+interface ChartPos extends ChartPosIn {sheet:string}
 interface ChartAxisSpec {
-  title?: ChartTextSource;
-  visible?: boolean;
-  categoryType?: ChartCategoryAxisType;
-  min?: number;
-  max?: number;
-  majorUnit?: number;
-  minorUnit?: number;
-  baseTimeUnit?: ChartTimeUnit;
-  majorTimeUnit?: ChartTimeUnit;
-  minorTimeUnit?: ChartTimeUnit;
-  numberFormat?: string;
-  reversed?: boolean;
-  majorGridlines?: boolean;
-  minorGridlines?: boolean;
-  position?: "left" | "right" | "top" | "bottom";
-}
-interface ChartAxesSpec {
-  category?: ChartAxisSpec;
-  value?: ChartAxisSpec;
-  secondaryCategory?: ChartAxisSpec;
-  secondaryValue?: ChartAxisSpec;
+	title?:ChartTextSource;
+	visible?:boolean;
+	categoryType?:"category"|"date";
+	min?:number;
+	max?:number;
+	majorUnit?:number;
+	minorUnit?:number;
+	baseTimeUnit?:TimeUnit;
+	majorTimeUnit?:TimeUnit;
+	minorTimeUnit?:TimeUnit;
+	numberFormat?:string;
+	reversed?:boolean;
+	majorGridlines?:boolean;
+	minorGridlines?:boolean;
+	position?:"left"|"right"|"top"|"bottom";
 }
 interface ChartSpec {
-  name: string;
-  position: ChartPositionInput;
-  groups: ChartGroupSpec[];
-  title?: ChartTitleSpec;
-  legend?: ChartLegendSpec;
-  axes?: ChartAxesSpec;
-  displayBlanksAs?: "gap" | "span" | "zero";
-  styleId?: number;
+	name:string;
+	position:ChartPosIn;
+	groups:{
+		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble";
+		grouping?:"standard"|"stacked"|"percentStacked";
+		axis?:"primary"|"secondary";
+		gapWidth?:number;
+		overlap?:number;
+		varyColors?:boolean;
+		smooth?:boolean;
+		firstSliceAngle?:number;
+		holeSize?:number;
+		series:{
+			name?:ChartTextSource;
+			categories?:string;
+			categoriesRefType?:"string"|"number";
+			values?:string;
+			xValues?:string;
+			yValues?:string;
+			bubbleSizes?:string;
+			fillColor?:string;
+			lineColor?:string;
+			lineWidth?:number;
+			lineDashStyle?:string;
+			smooth?:boolean;
+			marker?:{
+				style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";
+				size?:number;
+				fillColor?:string;
+				borderColor?:string;
+			};
+			dataLabels?:{
+				showValue?:boolean;
+				showCategory?:boolean;
+				showSeriesName?:boolean;
+				showPercent?:boolean;
+				position?:"bestFit"|"center"|"insideBase"|"insideEnd"|"outsideEnd"|"left"|"right"|"top"|"bottom";
+			};
+		}[];
+	}[];
+	title?:ChartTextSource&{overlay?:boolean};
+	legend?:{visible?:boolean;position?:"left"|"right"|"top"|"bottom"|"topRight";overlay?:boolean};
+	axes?:{category?:ChartAxisSpec;value?:ChartAxisSpec;secondaryCategory?:ChartAxisSpec;secondaryValue?:ChartAxisSpec};
+	displayBlanksAs?:"gap"|"span"|"zero";
+	styleId?:number;
 }
-interface ChartInfo extends Omit<ChartSpec, "position"> {
-  position: ChartPosition;
-}
-interface ChartSummary {
-  sheet: string;
-  name: string;
-  type: string;
-  groupCount: number;
-  seriesCount: number;
-  position: ChartPosition;
-}
-/** List charts in the workbook or on a specific sheet. */
-function listCharts(wb, options?: { sheet?: string }): Promise<ChartSummary[]>;
-/** Get the canonical chart spec for an existing chart. */
-function getChart(wb, sheet: string, name: string): Promise<ChartInfo>;
-/** Add a new chart to a worksheet. */
-function addChart(wb, sheet: string, chart: ChartSpec): Promise<ChartSpec>;
-/** Replace the spec of an existing chart. */
-function setChart(
-  wb,
-  sheet: string,
-  name: string,
-  chart: ChartSpec,
-): Promise<ChartSpec>;
-/** Delete a chart from a worksheet. */
-function deleteChart(wb, sheet: string, name: string): Promise<void>;
-interface DefinedName {
-  name: string;
-  range: string;
-  scope: string | null;
-}
-/** List all named ranges in the workbook. */
-function listDefinedNames(wb): Promise<DefinedName[]>;
-/** Create a named range, optionally scoped to a sheet. */
-function addDefinedName(
-  wb,
-  name: string,
-  range: string,
-  scope?: string,
-): Promise<DefinedName>;
-/** Delete a named range, optionally scoped to a sheet. */
-function deleteDefinedName(
-  wb,
-  name: string,
-  scope?: string,
-): Promise<DefinedName>;
-/** Add a new worksheet to the workbook. */
-function addSheet(wb, name: string): Promise<string>;
-/** Remove a worksheet from the workbook. */
-function deleteSheet(wb, name: string): Promise<void>;
-/** Rename a worksheet. */
-function renameSheet(wb, oldName: string, newName: string): Promise<void>;
-interface CellNoteResponse {
-  author: string;
-  text: string;
-}
-interface CellHyperlinkResponse {
-  type: "internal" | "external";
-  target: string;
-  tooltip?: string;
-}
-interface CellThreadCommentResponse {
-  authorId: string;
-  text: string;
-  createdAt: string;
-}
-interface CellThreadResponse {
-  resolved: boolean;
-  comments: CellThreadCommentResponse[];
-}
+function listCharts(wb,options?:{ sheet?:string }):Promise<Array<{
+	sheet:string;
+	name:string;
+	type:string;
+	groupCount:number;
+	seriesCount:number;
+	position:ChartPos;
+}>>;
+function getChart(wb,sheet:string,name:string):Promise<Omit<ChartSpec,"position">&{ position:ChartPos }>;
+function addChart(wb,sheet:string,chart:ChartSpec):Promise<ChartSpec>;
+function setChart(wb,sheet:string,name:string,chart:ChartSpec):Promise<ChartSpec>;
+function deleteChart(wb,sheet:string,name:string):Promise<void>;
+interface NameDef {name:string;range:string;scope:string|null}
+function listDefinedNames(wb):Promise<NameDef[]>;
+function addDefinedName(wb,name:string,range:string,scope?:string):Promise<NameDef>;
+function deleteDefinedName(wb,name:string,scope?:string):Promise<NameDef>;
+function addSheet(wb,name:string):Promise<string>;
+function deleteSheet(wb,name:string):Promise<void>;
+function renameSheet(wb,oldName:string,newName:string):Promise<void>;
 interface Value {
-  address: string;
-  sheet: string;
-  row: number;
-  col: number;
-  colLetter: string;
-  value: string | number | boolean | null;
-  formula?: string;
-  type: "string" | "number" | "bool" | "date" | "error" | "blank";
-  text: string;
-  format?: string;
-  /** Format-derived numeric classification (e.g., percent, currency). */
-  numberType?:
-    | "currency"
-    | "percent"
-    | "fraction"
-    | "exponential"
-    | "date"
-    | "text"
-    | "number";
-  /** Cell visibility: visible, hidden, collapsed, or outsidePrintArea */
-  visibility: VisibilityType;
-  /** Self-locating TSV of surrounding cells when context was requested. */
-  context?: string;
-  note?: CellNoteResponse;
-  link?: CellHyperlinkResponse;
-  thread?: CellThreadResponse;
+	address:string;
+	sheet:string;
+	row:number;
+	col:number;
+	colLetter:string;
+	value:string|number|boolean|null;
+	formula?:string;
+	type:"string"|"number"|"bool"|"date"|"error"|"blank";
+	text:string;
+	format?:string;
+	numberType?:"currency"|"percent"|"fraction"|"exponential"|"date"|"text"|"number";
+	visibility:Visibility;
+	context?:string;
+	note?:{author:string;text:string};
+	link?:{type:"internal"|"external";target:string;tooltip?:string};
+	thread?:{
+		resolved:boolean;
+		comments:{authorId:string;text:string;createdAt:string}[];
+	};
 }
-/** Read a single cell's value, formula, and metadata. */
-function readCell(
-  wb,
-  cell: CellAddressOrCoordinates,
-  opts?: {
-    context?: number;
-  },
-): Promise<Value>;
-/** Read a rectangular range of cells as a 2D array. */
-function readRange(wb, range: RangeAddressOrCoordinates): Promise<Value[][]>;
-/** Read all cells in a column within the used range. */
-function readColumn(
-  wb,
-  sheetName: string,
-  col: number | string,
-  opts?: {
-    startRow?: number;
-    endRow?: number;
-  },
-): Promise<Value[]>;
-/** Read all cells in a row within the used range. */
-function readRow(
-  wb,
-  sheetName: string,
-  row: number,
-  opts?: {
-    startCol?: number;
-    endCol?: number;
-  },
-): Promise<Value[]>;
-/** Read a range as tab-separated values with row/column headers. */
-function readRangeTsv(
-  wb,
-  range: RangeAddressOrCoordinates,
-  opts?: {
-    includeEmpty?: boolean;
-    includeFormulas?: boolean;
-  },
-): Promise<string>;
-/** Read a column as tab-separated values. */
-function readColumnTsv(
-  wb,
-  sheetName: string,
-  col: number | string,
-  opts?: {
-    startRow?: number;
-    endRow?: number;
-    includeEmpty?: boolean;
-    includeFormulas?: boolean;
-  },
-): Promise<string>;
-/** Read a row as tab-separated values. */
-function readRowTsv(
-  wb,
-  sheetName: string,
-  row: number,
-  opts?: {
-    startCol?: number;
-    endCol?: number;
-    includeEmpty?: boolean;
-    includeFormulas?: boolean;
-  },
-): Promise<string>;
-declare class SearchResults<T> extends Array<T> {
-  truncated?: boolean;
-}
-type MatcherInput = string | string[] | number | boolean | RegExp | RegExp[];
-type ReplaceMatcherInput = string | RegExp;
-/**
- * Search for cells matching a value, substring, or regex pattern.
- * When `formulas` is true, matches against formulas instead of text/values;
- * cells without formulas are skipped.
- * Examples:
- * - text: xlsx.findCells(wb, "Revenue")
- * - number: xlsx.findCells(wb, 42)
- * - boolean: xlsx.findCells(wb, true)
- * - text synonyms: xlsx.findCells(wb, ["Rev", "Revenue"])
- * - regex: xlsx.findCells(wb, /rev(enue)?/i)
- * - regex array: xlsx.findCells(wb, [/invest/i, /sales/i]) // OR matching - matches if any regex matches
- * - formula search: xlsx.findCells(wb, "SUM", { formulas: true })
- */
-function findCells(
-  wb,
-  matcher: MatcherInput,
-  opts?: {
-    in?: RangeAddressOrCoordinates | string;
-    context?: number;
-    limit?: number;
-    offset?: number;
-    formulas?: boolean;
-  },
-): Promise<
-  SearchResults<{
-    type: "cell";
-    address: string;
-    value: any;
-    text: string;
-    formula?: string;
-    row: number;
-    col: number;
-    colLetter: string;
-    sheet: string;
-    visibility: VisibilityType;
-    context?: string;
-    role: string;
-  }>
->;
-/** Search for rows containing a matching cell; returns full row data. */
-function findRows(
-  wb,
-  matcher: MatcherInput,
-  opts?: {
-    in?: RangeAddressOrCoordinates | string;
-    context?: number;
-    limit?: number;
-    offset?: number;
-  },
-): Promise<
-  SearchResults<{
-    type: "row";
-    row: number;
-    sheet: string;
-    matchedAt: string;
-    range: string;
-    tsv: string;
-    visibility: VisibilityType;
-    context?: string;
-  }>
->;
-interface FindAndReplaceResult {
-  replaced: number;
-  cells: string[];
-  errors: Diagnostic[];
-}
-/**
- * Replace text in cell values or formulas across a workbook scope.
- * For formula edits, prefer regex boundaries to avoid accidental partial reference replacements.
- */
-function findAndReplace(
-  wb,
-  find: ReplaceMatcherInput,
-  replace: string,
-  opts?: {
-    in?: RangeAddressOrCoordinates | string;
-    matchCase?: boolean;
-    wholeCell?: boolean;
-    inFormulas?: boolean;
-    limit?: number;
-  },
-): Promise<FindAndReplaceResult>;
-/** Describe all visible sheets with detected tables and structure maps. */
-function describeSheets(wb): Promise<
-  Record<
-    string,
-    {
-      tables: Record<
-        string,
-        {
-          /** Full range covering the row headers + column headers + data rows */
-          address: string;
-          /** Top labels as TSV with addresses (format: ColRow|Value\tColRow|Value) */
-          headerRows: string;
-          /** Side labels as TSV with addresses (format: ColRow|Value\nColRow|Value), null when no row labels */
-          headerCols: string | null;
-          /** Excel table name for Data Tables, absent for heuristic-detected tables */
-          tableName?: string;
-        }
-      >;
-      /** Compact ASCII structure map showing cell types per row */
-      structure: string;
-    }
-  >
->;
-/**
- * Look up values in a table by row and column labels.
- *
- * Searches the first column for rowLabel and the first row for columnLabel,
- * returning all matching intersections sorted by match quality.
- */
-function tableLookup(
-  wb,
-  args: {
-    /** Range address for the table (eg. "Sheet1!A1:D10") */
-    table: string;
-    /** Row label to search for in the first column */
-    rowLabel: string | number | boolean;
-    /** Column label to search for in the first row */
-    columnLabel: string | number | boolean;
-  },
-): Promise<
-  {
-    address: string;
-    value: any;
-    text: string;
-    row: number;
-    col: number;
-    colLetter: string;
-    sheet: string;
-    visibility: VisibilityType;
-    rowLabelFoundAt: string;
-    /** Text of the cell that matched the row label */
-    rowLabelFound: string;
-    columnLabelFoundAt: string;
-    /** Text of the cell that matched the column label */
-    columnLabelFound: string;
-  }[]
->;
-interface Diagnostic {
-  code: string;
-  detail?: string;
-  address: string;
-  formula?: string;
-}
-interface SweepInput {
-  address: CellAddressOrCoordinates;
-  values: (number | string | boolean | null)[];
-}
-interface SweepEntry {
-  inputs: Record<string, string>;
-  outputs: Record<string, string>;
-  errors: Diagnostic[];
-}
-interface OutputStats {
-  min: number;
-  max: number;
-  mean: number;
-  count: number;
-}
-interface SweepInputsResult {
-  tsv: string;
-  sweeps: SweepEntry[];
-  stats?: Record<string, OutputStats>;
-  sweepCount: number;
-  inputCount: number;
-  outputCount: number;
-}
-interface InvalidatedTile {
-  sheet: string;
-  tileRow: number;
-  tileCol: number;
-}
-interface UpdatedSheetInfo {
-  name: string;
-  usedRange: {
-    startRow: number;
-    startCol: number;
-    endRow: number;
-    endCol: number;
-  } | null;
-  tileRowCount: number;
-  tileColCount: number;
-}
-interface SetCellsResult {
-  /** Map of cell address to formatted text value */
-  touched: Record<string, string>;
-  /** Cell addresses whose values or formulas were changed by this operation */
-  changed: string[];
-  /** Cells that resulted in error values after calculation */
-  errors: Diagnostic[];
-  /** Tiles that need re-rendering */
-  invalidatedTiles: InvalidatedTile[];
-  /** Updated sheet metadata for affected sheets */
-  updatedSheets: UpdatedSheetInfo[];
-}
-/** Write to one or more cells in a single operation. */
-function setCells(
-  wb,
-  cells: Array<{
-    address: CellAddressOrCoordinates;
-    value?: unknown;
-    formula?: string;
-    format?: string;
-    /** Legacy note payload: `note: { text: "Review this", author: "Agent" }`; clear with `note: null`. */
-    note?: { text?: string; author?: string } | null;
-    /** Hyperlink payload: external `{ url: "https://example.com" }` or internal `{ ref: "Sheet2!B5" }`; clear with `link: null`. */
-    link?: {
-      url?: string;
-      ref?: string;
-      tooltip?: string;
-    } | null;
-    /** Thread payload: append comments via `add`, toggle state via `resolved`, or delete with `delete: true` / `thread: null`. */
-    thread?: {
-      add?: Array<{ author?: string; text: string }>;
-      resolved?: boolean;
-      delete?: boolean;
-    } | null;
-  }>,
-): Promise<SetCellsResult>;
-/**
- * Run a batch what-if input sweep across one or more input cells and collect outputs.
- * Supports cartesian product or parallel zip semantics.
- */
-function sweepInputs(
-  wb,
-  args: {
-    inputs: SweepInput[];
-    outputs: (string | CellAddressOrCoordinates)[];
-    mode?: "cartesian" | "parallel";
-    includeStats?: boolean;
-  },
-): Promise<SweepInputsResult>;
-/**
- * Multiply all numeric cells in a range by a scale factor.
- * Formula cells are skipped by default.
- */
-function scaleRange(
-  wb,
-  range: RangeAddressOrCoordinates,
-  factor: number,
-  opts?: {
-    skipFormulas?: boolean;
-  },
-): Promise<SetCellsResult | null>;
-/** Insert one or more rows after the specified row. */
-function insertRowAfter(
-  wb,
-  sheetName: string,
-  row: number,
-  count?: number,
-): Promise<void>;
-/** Delete one or more rows starting at the specified row. */
-function deleteRows(
-  wb,
-  sheetName: string,
-  row: number,
-  count?: number,
-): Promise<void>;
-/** Insert one or more columns after the specified column. */
-function insertColumnAfter(
-  wb,
-  sheetName: string,
-  column: number | string,
-  count?: number,
-): Promise<void>;
-/** Delete one or more columns starting at the specified column. */
-function deleteColumns(
-  wb,
-  sheetName: string,
-  column: number | string,
-  count?: number,
-): Promise<void>;
-/** Auto-fit one or more columns to their visible cell contents. */
-function autoFitColumns(
-  wb,
-  sheetName: string,
-  columns?: Array<number | string>,
-  opts?: {
-    minWidth?: number;
-    maxWidth?: number;
-    padding?: number;
-  },
-): Promise<
-  Record<
-    string,
-    {
-      width: number;
-      previousWidth: number;
-    }
-  >
->;
-/** Sort rows in a rectangular range by one or more column keys. */
-function sortRange(
-  wb,
-  range: RangeAddressOrCoordinates,
-  keys: Array<{
-    col: number | string;
-    order?: "asc" | "desc";
-  }>,
-  opts?: {
-    hasHeader?: boolean;
-  },
-): Promise<void>;
-/** Copy a source range to a destination anchor, with optional paste behavior. */
-function copyRange(
-  wb,
-  source: RangeAddressOrCoordinates,
-  destination: RangeAddressOrCoordinates,
-  opts?: {
-    pasteType?: "all" | "values" | "formulas" | "formats";
-  },
-): Promise<{
-  destination: string;
-  cellsCopied: number;
+function readCell(wb,cell:CellRef,opts?:{
+	context?:number;
+}):Promise<Value>;
+function readRange(wb,range:RangeRef):Promise<Value[][]>;
+function readColumn(wb,sheetName:string,col:number|string,opts?:{
+	startRow?:number;
+	endRow?:number;
+}):Promise<Value[]>;
+function readRow(wb,sheetName:string,row:number,opts?:{
+	startCol?:number;
+	endCol?:number;
+}):Promise<Value[]>;
+function readRangeTsv(wb,range:RangeRef,opts?:{
+	includeEmpty?:boolean;
+	includeFormulas?:boolean;
+}):Promise<string>;
+function readColumnTsv(wb,sheetName:string,col:number|string,opts?:{
+	startRow?:number;
+	endRow?:number;
+	includeEmpty?:boolean;
+	includeFormulas?:boolean;
+}):Promise<string>;
+function readRowTsv(wb,sheetName:string,row:number,opts?:{
+	startCol?:number;
+	endCol?:number;
+	includeEmpty?:boolean;
+	includeFormulas?:boolean;
+}):Promise<string>;
+declare class SearchResults<T> extends Array<T> {truncated?:boolean}
+type Matcher=string|string[]|number|boolean|RegExp|RegExp[]
+/** Cell search by scalar, string list, or regex; `formulas:true` matches formulas only. */
+function findCells(wb,matcher:Matcher,opts?:{in?:RangeRef|string;context?:number;limit?:number;offset?:number;formulas?:boolean}):Promise<{
+	type:"cell";
+	address:string;
+	value:any;
+	text:string;
+	formula?:string;
+	row:number;
+	col:number;
+	colLetter:string;
+	sheet:string;
+	visibility:Visibility;
+	context?:string;
+	role:string;
+}[]>;
+function findRows(wb,matcher:Matcher,opts?:{in?:RangeRef|string;context?:number;limit?:number;offset?:number}):Promise<{
+	type:"row";
+	row:number;
+	sheet:string;
+	matchedAt:string;
+	range:string;
+	tsv:string;
+	visibility:Visibility;
+	context?:string;
+}[]>;
+/** Replace text in values or formulas; use regex boundaries for formula edits. */
+function findAndReplace(wb,find:string|RegExp,replace:string,opts?:{
+		in?:RangeRef|string;
+		matchCase?:boolean;
+		wholeCell?:boolean;
+		inFormulas?:boolean;
+		limit?:number;
+	}):Promise<{
+	replaced:number;
+	cells:string[];
+	errors:Diag[];
 }>;
-type RichTextRun = {
-  text: string;
-  style?: {
-    name?: string;
-    size?: number;
-    color?: string;
-    bold?: boolean;
-    italic?: boolean;
-    strike?: boolean;
-    underline?: string;
-    verticalAlign?: string;
-  };
+function describeSheets(wb):Promise<Record<string,{
+	tables:Record<string,{address:string;headerRows:string;headerCols:string|null;tableName?:string}>;
+	structure:string; // Compact ASCII structure map
+}>>;
+function tableLookup(wb,args:{
+	table:string;
+	rowLabel:string|number|boolean;
+	columnLabel:string|number|boolean;
+}):Promise<{
+	address:string;
+	value:any;
+	text:string;
+	row:number;
+	col:number;
+	colLetter:string;
+	sheet:string;
+	visibility:Visibility;
+	rowLabelFoundAt:string;
+	rowLabelFound:string;
+	columnLabelFoundAt:string;
+	columnLabelFound:string;
+}[]>;
+interface Diag {code:string;detail?:string;address:string;formula?:string}
+interface WriteResult {
+	touched:Record<string,string>;
+	changed:string[];
+	errors:Diag[];
+	invalidatedTiles:{
+		sheet:string;
+		tileRow:number;
+		tileCol:number;
+	}[];
+	updatedSheets:{
+		name:string;
+		usedRange:{
+			startRow:number;
+			startCol:number;
+			endRow:number;
+			endCol:number;
+		}|null;
+		tileRowCount:number;
+		tileColCount:number;
+	}[];
+}
+function setCells(wb,cells:Array<{
+	address:CellRef;
+	value?:unknown;
+	formula?:string;
+	format?:string;
+	/** Legacy note payload; `null` clears. */
+	note?:{text?:string;author?:string}|null;
+	/** Hyperlink payload; `null` clears. */
+	link?:{url?:string;ref?:string;tooltip?:string}|null;
+	/** Thread payload: append via `add`, set `resolved`, or delete. */
+	thread?:{add?:Array<{author?:string;text:string}>;resolved?:boolean;delete?:boolean}|null;
+}>):Promise<WriteResult>;
+function sweepInputs(wb,args:{
+	inputs:{address:CellRef;values:(number|string|boolean|null)[]}[];
+	outputs:(string|CellRef)[];
+	mode?:"cartesian"|"parallel";
+	includeStats?:boolean;
+}):Promise<{
+	tsv:string;
+	sweeps:{inputs:Record<string,string>;outputs:Record<string,string>;errors:Diag[];}[];
+	stats?:Record<string,{min:number;max:number;mean:number;count:number}>;
+	sweepCount:number;
+	inputCount:number;
+	outputCount:number;
+}>;
+function scaleRange(wb,range:RangeRef,factor:number,opts?:{skipFormulas?:boolean}):Promise<WriteResult|null>;
+function insertRowAfter(wb,sheetName:string,row:number,count?:number):Promise<void>;
+function deleteRows(wb,sheetName:string,row:number,count?:number):Promise<void>;
+function insertColumnAfter(wb,sheetName:string,column:number|string,count?:number):Promise<void>;
+function deleteColumns(wb,sheetName:string,column:number|string,count?:number):Promise<void>;
+function autoFitColumns(wb,sheetName:string,columns?:Array<number|string>,opts?:{
+	minWidth?:number;
+	maxWidth?:number;
+	padding?:number;
+}):Promise<Record<string,{width:number;previousWidth:number}>>;
+function sortRange(wb,range:RangeRef,keys:Array<{
+	col:number|string;
+	order?:"asc"|"desc";
+}>,opts?:{hasHeader?:boolean}):Promise<void>;
+function copyRange(wb,source:RangeRef,destination:RangeRef,opts?:{
+	pasteType?:"all"|"values"|"formulas"|"formats";
+}):Promise<{destination:string;cellsCopied:number;}>;
+type StyleObj={
+	fill?:{
+		color?:string;
+		pattern?:string;
+		patternColor?:string;
+		gradient?:{
+			type:string;
+			degree?:number;
+			color1:string;
+			color2:string;
+			top?:number;
+			bottom?:number;
+			left?:number;
+			right?:number;
+		};
+	};
+	font?:{
+		name?:string;
+		size?:number;
+		color?:string;
+		bold?:boolean;
+		italic?:boolean;
+		strike?:boolean;
+		underline?:string;
+		verticalAlign?:string;
+	};
+	alignment?:{
+		horizontal?:string;
+		vertical?:string;
+		rotation?:number;
+		wrapText?:boolean;
+		shrinkToFit?:boolean;
+		indent?:number;
+	};
+	border?:{
+		top?:{
+			style:string;
+			color:string;
+		};
+		bottom?:{
+			style:string;
+			color:string;
+		};
+		left?:{
+			style:string;
+			color:string;
+		};
+		right?:{
+			style:string;
+			color:string;
+		};
+		diagonal?:{
+			style:string;
+			color?:string;
+			up?:boolean;
+			down?:boolean;
+		};
+	};
+	numberFormat?:string;
+	centerContinuousSpan?:number;
+	richText?:{
+		text:string;
+		style?:{
+			name?:string;
+			size?:number;
+			color?:string;
+			bold?:boolean;
+			italic?:boolean;
+			strike?:boolean;
+			underline?:string;
+			verticalAlign?:string;
+		};
+	}[];
 };
-type StyleObj = {
-  fill?: {
-    color?: string;
-    pattern?: string;
-    patternColor?: string;
-    gradient?: {
-      type: string;
-      degree?: number;
-      color1: string;
-      color2: string;
-      top?: number;
-      bottom?: number;
-      left?: number;
-      right?: number;
-    };
-  };
-  font?: {
-    name?: string;
-    size?: number;
-    color?: string;
-    bold?: boolean;
-    italic?: boolean;
-    strike?: boolean;
-    underline?: string;
-    verticalAlign?: string;
-  };
-  alignment?: {
-    horizontal?: string;
-    vertical?: string;
-    rotation?: number;
-    wrapText?: boolean;
-    shrinkToFit?: boolean;
-    indent?: number;
-  };
-  border?: {
-    top?: {
-      style: string;
-      color: string;
-    };
-    bottom?: {
-      style: string;
-      color: string;
-    };
-    left?: {
-      style: string;
-      color: string;
-    };
-    right?: {
-      style: string;
-      color: string;
-    };
-    diagonal?: {
-      style: string;
-      color?: string;
-      up?: boolean;
-      down?: boolean;
-    };
-  };
-  numberFormat?: string;
-  centerContinuousSpan?: number;
-  richText?: RichTextRun[];
-};
-/** Get the style properties of a cell. */
-function getStyle(wb, cell: CellAddressOrCoordinates): Promise<StyleObj>;
-/**
- * Apply style properties to a cell or range.
- * Available fields: bold/italic/underline (booleans), color/background (hex strings),
- * align/valign (horizontal/vertical alignment), format (number format string),
- * border (thin|medium|thick), wrapText (boolean), fontSize/fontName, and indent (number).
- */
-function setStyle(
-  wb,
-  target: CellAddressOrCoordinates | RangeAddressOrCoordinates,
-  style: StyleObj,
-): Promise<void>;
-interface CfColorScalePoint {
-  type:
-    | "formula"
-    | "max"
-    | "min"
-    | "num"
-    | "percent"
-    | "percentile"
-    | "autoMin"
-    | "autoMax";
-  value?: number;
-  formula?: string;
-  color?: string;
-}
-interface CfDataBarThreshold {
-  type:
-    | "formula"
-    | "max"
-    | "min"
-    | "num"
-    | "percent"
-    | "percentile"
-    | "autoMin"
-    | "autoMax";
-  value?: number;
-  formula?: string;
-}
-interface CfDataBarConfig {
-  showValue?: boolean;
-  gradient?: boolean;
-  border?: boolean;
-  negativeBarColorSameAsPositive?: boolean;
-  negativeBarBorderColorSameAsPositive?: boolean;
-  axisPosition?: "automatic" | "middle" | "none";
-  direction?: "context" | "leftToRight" | "rightToLeft";
-  fillColor?: string;
-  borderColor?: string;
-  negativeFillColor?: string;
-  negativeBorderColor?: string;
-  axisColor?: string;
-  lowValue?: CfDataBarThreshold;
-  highValue?: CfDataBarThreshold;
-}
-type CfWritableRuleType =
-  | "cellValue"
-  | "containsText"
-  | "notContainsText"
-  | "beginsWith"
-  | "endsWith"
-  | "containsBlanks"
-  | "notContainsBlanks"
-  | "containsErrors"
-  | "notContainsErrors"
-  | "expression"
-  | "timePeriod"
-  | "top"
-  | "bottom"
-  | "aboveAverage"
-  | "belowAverage"
-  | "duplicateValues"
-  | "uniqueValues"
-  | "twoColorScale"
-  | "threeColorScale"
-  | "dataBar";
-type CfReadableRuleType = CfWritableRuleType | "iconSet";
+function getStyle(wb,cell:CellRef):Promise<StyleObj>;
+function setStyle(wb,target:CellRef|RangeRef,style:StyleObj):Promise<void>;
+interface CfColorScalePoint {type:"formula"|"max"|"min"|"num"|"percent"|"percentile"|"autoMin"|"autoMax";value?:number;formula?:string;color?:string}
+interface CfDataBarThreshold {type:"formula"|"max"|"min"|"num"|"percent"|"percentile"|"autoMin"|"autoMax";value?:number;formula?:string}
+type CfWritableRuleType="cellValue"|"containsText"|"notContainsText"|"beginsWith"|"endsWith"|"containsBlanks"|"notContainsBlanks"|"containsErrors"|"notContainsErrors"|"expression"|"timePeriod"|"top"|"bottom"|"aboveAverage"|"belowAverage"|"duplicateValues"|"uniqueValues"|"twoColorScale"|"threeColorScale"|"dataBar"
 interface CfRuleShared {
-  address: string;
-  priority?: number;
-  stopIfTrue?: boolean;
-  style?: StyleObj;
-  operator?:
-    | "equal"
-    | "notEqual"
-    | "greaterThan"
-    | "greaterThanOrEqual"
-    | "lessThan"
-    | "lessThanOrEqual"
-    | "between"
-    | "notBetween"
-    | "above"
-    | "aboveOrEqual"
-    | "below"
-    | "belowOrEqual";
-  formula?: string;
-  formula2?: string;
-  text?: string;
-  rank?: number;
-  percent?: boolean;
-  bottom?: boolean;
-  stdDev?: number;
-  lowValue?: CfColorScalePoint;
-  midValue?: CfColorScalePoint;
-  highValue?: CfColorScalePoint;
-  dataBar?: CfDataBarConfig;
-  timePeriod?:
-    | "today"
-    | "yesterday"
-    | "tomorrow"
-    | "last7Days"
-    | "thisWeek"
-    | "lastWeek"
-    | "nextWeek"
-    | "thisMonth"
-    | "lastMonth"
-    | "nextMonth";
+	address:string;
+	priority?:number;
+	stopIfTrue?:boolean;
+	style?:StyleObj;
+	operator?:"equal"|"notEqual"|"greaterThan"|"greaterThanOrEqual"|"lessThan"|"lessThanOrEqual"|"between"|"notBetween"|"above"|"aboveOrEqual"|"below"|"belowOrEqual";
+	formula?:string;
+	formula2?:string;
+	text?:string;
+	rank?:number;
+	percent?:boolean;
+	bottom?:boolean;
+	stdDev?:number;
+	lowValue?:CfColorScalePoint;
+	midValue?:CfColorScalePoint;
+	highValue?:CfColorScalePoint;
+	dataBar?:{
+		showValue?:boolean;
+		gradient?:boolean;
+		border?:boolean;
+		negativeBarColorSameAsPositive?:boolean;
+		negativeBarBorderColorSameAsPositive?:boolean;
+		axisPosition?:"automatic"|"middle"|"none";
+		direction?:"context"|"leftToRight"|"rightToLeft";
+		fillColor?:string;
+		borderColor?:string;
+		negativeFillColor?:string;
+		negativeBorderColor?:string;
+		axisColor?:string;
+		lowValue?:CfDataBarThreshold;
+		highValue?:CfDataBarThreshold;
+	};
+	timePeriod?:"today"|"yesterday"|"tomorrow"|"last7Days"|"thisWeek"|"lastWeek"|"nextWeek"|"thisMonth"|"lastMonth"|"nextMonth";
 }
-interface CfReadableRule extends CfRuleShared {
-  index?: number;
-  type: CfReadableRuleType;
-}
-interface CfWritableRule extends CfRuleShared {
-  type: CfWritableRuleType;
-}
-type CfRule = CfReadableRule;
-/** Get all conditional formatting rules on a sheet. */
-function getConditionalFormatting(
-  wb,
-  sheetName: string,
-): Promise<CfReadableRule[]>;
-/**
- * Add conditional formatting rules to a sheet.
- * Use opts.clear=true to replace all existing rules first.
- * iconSet rules are read-only and are not accepted by this method.
- */
-function setConditionalFormatting(
-  wb,
-  sheetName: string,
-  rules: CfWritableRule[],
-  opts?: {
-    clear?: boolean;
-  },
-): Promise<void>;
-/** Remove conditional formatting rules by index. */
-function removeConditionalFormatting(
-  wb,
-  sheetName: string,
-  indices: number[],
-): Promise<void>;
-interface SheetProperties {
-  visibility: "visible" | "hidden" | "veryHidden";
-  view: {
-    showGridLines: boolean;
-    zoomScale: number;
-  };
-  outline: {
-    summaryRowsBelow: boolean;
-    summaryColumnsRight: boolean;
-    showSymbols: boolean;
-  };
-  format: {
-    defaultRowHeight: number;
-    defaultColWidth: number;
-    font?: {
-      name?: string;
-      size?: number;
-    } | null;
-  };
-  columns: Record<
-    string,
-    {
-      col: string;
-      width: number;
-      hidden?: boolean;
-      outlineLevel?: number;
-      collapsed?: boolean;
-    }
-  >;
-  rows: Record<
-    number,
-    {
-      row: number;
-      height: number;
-      hidden?: boolean;
-      outlineLevel?: number;
-      collapsed?: boolean;
-    }
-  >;
-  merges?: string[] | null;
-}
-/**
- * Set worksheet properties using a hierarchical structure.
- * Supports partial updates - only specified properties are modified.
- */
-function setSheetProperties(
-  wb,
-  sheetName: string,
-  properties: {
-    visibility?: "visible" | "hidden" | "veryHidden";
-    view?: {
-      showGridLines?: boolean;
-      zoomScale?: number;
-    };
-    outline?: {
-      summaryRowsBelow?: boolean;
-      summaryColumnsRight?: boolean;
-      showSymbols?: boolean;
-    };
-    format?: {
-      defaultRowHeight?: number;
-      defaultColWidth?: number;
-      font?: {
-        name?: string;
-        size?: number;
-      };
-    };
-    merges?: string[];
-  },
-): Promise<void>;
-/** Set properties for a contiguous row range. */
-function setRowProperties(
-  wb,
-  sheetName: string,
-  fromRow: number,
-  toRow: number,
-  properties: {
-    height?: number;
-    hidden?: boolean;
-    outlineLevel?: number;
-    collapsed?: boolean;
-  },
-): Promise<void>;
-/** Set properties for a contiguous column range. */
-function setColumnProperties(
-  wb,
-  sheetName: string,
-  fromCol: number | string,
-  toCol: number | string,
-  properties: {
-    width?: number;
-    hidden?: boolean;
-    outlineLevel?: number;
-    collapsed?: boolean;
-  },
-): Promise<void>;
-/**
- * Get worksheet properties in a hierarchical structure.
- * Always includes sheet-wide defaults (view/format); columns/rows are returned
- * for the specified filters or for all known dimensions when no filters are provided.
- */
-function getSheetProperties(
-  wb,
-  sheetName: string,
-  filter?: {
-    columns?: (number | string)[];
-    rows?: number[];
-  },
-): Promise<SheetProperties>;
-interface DependencyResult {
-  cells: {
-    address: string;
-    depth: number;
-    formula?: string;
-    referenceType?: "direct" | "range" | "named" | "table";
-  }[];
-  warnings?: Diagnostic[];
-}
-/** Get cells that the given cell depends on (its precedents) */
-function getCellPrecedents(
-  wb,
-  address: CellAddressOrCoordinates,
-  depth?: number,
-): Promise<DependencyResult>;
-/**
- * Get cells that depend on the given cell (its dependents) */
-function getCellDependents(
-  wb,
-  address: CellAddressOrCoordinates,
-  depth?: number,
-): Promise<DependencyResult>;
-/** Trace backwards from a cell to find all input cells that feed into it */
-function traceToInputs(
-  wb,
-  cell: CellAddressOrCoordinates,
-): Promise<
-  {
-    address: string;
-    referenceCount: number;
-    text?: string;
-    /** Label from adjacent cell, left or above (heuristic, may be incorrect) */
-    nearbyLabel?: string;
-    /** TSV of surrounding cells (only present when nearbyLabel is missing) */
-    context?: string;
-  }[]
->;
-/** Trace forwards from a cell to find all output cells that depend on it */
-function traceToOutputs(
-  wb,
-  cell: CellAddressOrCoordinates,
-): Promise<
-  {
-    address: string;
-    formula?: string;
-    text?: string;
-    visibility: VisibilityType;
-    /** Label from adjacent cell, left or above (heuristic, may be incorrect) */
-    nearbyLabel?: string;
-    /** TSV of surrounding cells (only present when nearbyLabel is missing) */
-    context?: string;
-  }[]
->;
-interface FormulaResult {
-  formula: string;
-  /** Computed value: number, string, boolean, null, 2D array, or error string */
-  value: number | string | boolean | null | unknown[][];
-  /** Error details if value is an error */
-  error?: {
-    code: string;
-    detail?: string;
-  };
-}
-/**
- * Evaluate multiple formulas in the context of a specific worksheet.
- * Useful for ad-hoc calculations; formulas are evaluated without modifying any cells.
- *
- * The `sheet` parameter specifies which worksheet the formulas are evaluated in.
- * This affects how unqualified cell references (like `A1`) and sheet-scoped
- * named ranges are resolved.
- *
- * @example
- * ```typescript
- * const results = await evaluateFormulas(wb, "Sheet1", [
- *   "=SUM(A1:A10)",           // Resolved as Sheet1!A1:A10
- *   "=AVERAGE(B:B)",          // Resolved as Sheet1!B:B
- *   "=MAX('Other Sheet'!C1:C100)", // Explicit sheet reference
- * ]);
- * ```
- */
-function evaluateFormulas(
-  wb,
-  sheet: string,
-  formulas: string[],
-): Promise<FormulaResult[]>;
-/**
- * Evaluate a single formula in the context of a specific worksheet.
- * Useful for ad-hoc calculations; the formula is evaluated without modifying any cells.
- *
- * The `sheet` parameter specifies which worksheet the formula is evaluated in.
- * This affects how unqualified cell references (like `A1`) and sheet-scoped
- * named ranges are resolved.
- *
- * @example
- * ```typescript
- * // Unqualified references resolved in Sheet1's context
- * const sum = await evaluateFormula(wb, "Sheet1", "=SUM(A1:A100)");
- * console.log(sum.value); // 1500
- *
- * // Named ranges resolved with sheet scope
- * const total = await evaluateFormula(wb, "Data", "=SUM(Revenue)");
- *
- * // Cross-sheet formulas work with explicit references
- * const diff = await evaluateFormula(wb, "Summary", "='Sheet1'!A1 - 'Sheet2'!A1");
- *
- * // Array formula result
- * const unique = await evaluateFormula(wb, "Sheet1", "=UNIQUE(A1:A10)");
- * console.log(unique.type); // "array"
- * console.log(unique.value); // [["Apple"], ["Banana"], ["Cherry"]]
- * ```
- */
-function evaluateFormula(
-  wb,
-  sheet: string,
-  formula: string,
-): Promise<FormulaResult>;
-/**
- * Lint the workbook to find potential issues and code smells.
- *
- * Returns diagnostics for issues like:
- * - Empty cell coercion (D003)
- * - Non-numeric values in aggregate functions (D005)
- * - Duplicate values in lookup arrays (D007)
- * - Spelling errors (D031)
- *
- * @example
- * ```typescript
- * // Get all diagnostics
- * const result = await lint(wb);
- * console.log(`Found ${result.total} issues`);
- * for (const diag of result.diagnostics) {
- *   console.log(`[${diag.severity}] ${diag.ruleId}: ${diag.message} at ${diag.location}`);
- * }
- *
- * // Lint only specific ranges
- * const rangeResult = await lint(wb, { rangeAddresses: ["Sheet1!A1:B10", "Sheet2!C1:C20"] });
- *
- * // Skip spelling checks
- * const warnings = await lint(wb, { skipRuleIds: ["D031"] });
- *
- * // Only check for empty cell coercion
- * const coercionIssues = await lint(wb, { onlyRuleIds: ["D003"] });
- * ```
- */
-function lint(
-  wb,
-  options?: {
-    /** Array of cell ranges to analyze (e.g., ["Sheet1!A1:B10", "Sheet2!C1:C20"]). If omitted, analyzes entire workbook. */
-    rangeAddresses?: string[];
-    /** Array of rule IDs to skip (e.g., ["D031"] to skip spelling checks) */
-    skipRuleIds?: string[];
-    /** Array of rule IDs to exclusively run (e.g., ["D003"] to only check empty cell coercion) */
-    onlyRuleIds?: string[];
-  },
-): Promise<{
-  diagnostics: {
-    /** Severity level */
-    severity: "Info" | "Warning" | "Error";
-    /** Rule ID that generated this diagnostic (e.g., "D003") */
-    ruleId: string;
-    /** Human-readable description of the issue */
-    message: string;
-    /** Cell location where the issue was found (e.g., "Sheet1!A1"), or null for workbook-level issues */
-    location: string | null;
-    /** Visibility at the diagnostic location cell, or null for workbook-level issues */
-    visibility: VisibilityType | null;
-  }[];
-  total: number;
+function getConditionalFormatting(wb,sheetName:string):Promise<Array<CfRuleShared&{
+	index?:number;
+	type:CfWritableRuleType|"iconSet";
+}>>;
+/** Add conditional formatting rules; `opts.clear` replaces existing rules; `iconSet` is read-only. */
+function setConditionalFormatting(wb,sheetName:string,rules:Array<CfRuleShared&{
+	type:CfWritableRuleType;
+}>,opts?:{clear?:boolean}):Promise<void>;
+function removeConditionalFormatting(wb,sheetName:string,indices:number[]):Promise<void>;
+function setSheetProperties(wb,sheetName:string,properties:{
+	visibility?:"visible"|"hidden"|"veryHidden";
+	view?:{
+		showGridLines?:boolean;
+		zoomScale?:number;
+	};
+	outline?:{
+		summaryRowsBelow?:boolean;
+		summaryColumnsRight?:boolean;
+		showSymbols?:boolean;
+	};
+	format?:{
+		defaultRowHeight?:number;
+		defaultColWidth?:number;
+		font?:{
+			name?:string;
+			size?:number;
+		};
+	};
+	merges?:string[];
+}):Promise<void>;
+function setRowProperties(wb,sheetName:string,fromRow:number,toRow:number,properties:{
+	height?:number;
+	hidden?:boolean;
+	outlineLevel?:number;
+	collapsed?:boolean;
+}):Promise<void>;
+function setColumnProperties(wb,sheetName:string,fromCol:number|string,toCol:number|string,properties:{
+	width?:number;
+	hidden?:boolean;
+	outlineLevel?:number;
+	collapsed?:boolean;
+}):Promise<void>;
+function getSheetProperties(wb,sheetName:string,filter?:{
+	columns?:(number|string)[];
+	rows?:number[];
+}):Promise<{
+	visibility:"visible"|"hidden"|"veryHidden";
+	view:{
+		showGridLines:boolean;
+		zoomScale:number;
+	};
+	outline:{
+		summaryRowsBelow:boolean;
+		summaryColumnsRight:boolean;
+		showSymbols:boolean;
+	};
+	format:{
+		defaultRowHeight:number;
+		defaultColWidth:number;
+		font?:{
+			name?:string;
+			size?:number;
+		}|null;
+	};
+	columns:Record<
+		string,
+		{
+			col:string;
+			width:number;
+			hidden?:boolean;
+			outlineLevel?:number;
+			collapsed?:boolean;
+		}
+	>;
+	rows:Record<
+		number,
+		{
+			row:number;
+			height:number;
+			hidden?:boolean;
+			outlineLevel?:number;
+			collapsed?:boolean;
+		}
+	>;
+	merges?:string[]|null;
 }>;
-/**
- * Generate a PNG screenshot of a specified cell range.
- */
-function previewStyles(wb, range: RangeAddressOrCoordinates): Promise<void>;
+interface Deps {cells:{address:string;depth:number;formula?:string;referenceType?:"direct"|"range"|"named"|"table"}[];warnings?:Diag[]}
+function getCellPrecedents(wb,address:CellRef,depth?:number):Promise<Deps>;
+function getCellDependents(wb,address:CellRef,depth?:number):Promise<Deps>;
+function traceToInputs(wb,cell:CellRef):Promise<{
+	address:string;
+	referenceCount:number;
+	text?:string;
+	nearbyLabel?:string;
+	context?:string;
+}[]>;
+function traceToOutputs(wb,cell:CellRef):Promise<{
+	address:string;
+	formula?:string;
+	text?:string;
+	visibility:Visibility;
+	nearbyLabel?:string;
+	context?:string;
+}[]>;
+interface FormulaEval {formula:string;value:number|string|boolean|null|unknown[][];error?:{code:string;detail?:string}}
+function evaluateFormulas(wb,sheet:string,formulas:string[]):Promise<FormulaEval[]>;
+function evaluateFormula(wb,sheet:string,formula:string):Promise<FormulaEval>;
+function lint(wb,options?:{
+	rangeAddresses?:string[];
+	skipRuleIds?:string[];
+	onlyRuleIds?:string[];
+}):Promise<{
+	diagnostics:{
+		severity:"Info"|"Warning"|"Error";
+		ruleId:string;
+		message:string;
+		location:string|null;
+		visibility:Visibility|null;
+	}[];
+	total:number;
+}>;
+/** Generates a PNG and prints its path to stdout. */
+function previewStyles(wb,range:RangeRef):Promise<void>;
 ````
-
-## Scope
-
-This skill is for reading and manipulating Excel spreadsheets (.xls, .xlsx, .xlsm) only. It does not handle non-spreadsheet documents (PDF, DOCX, PPTX, HTML, text).

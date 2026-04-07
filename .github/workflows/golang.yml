@@ -6,6 +6,31 @@ on:
   pull_request:
 
 jobs:
+  skill-size:
+    name: Skill Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Enforce 40k skill limit
+        run: |
+          limit=40000
+          failed=0
+
+          while IFS= read -r -d '' skill; do
+            count="$(wc -m < "$skill" | tr -d '[:space:]')"
+            echo "$skill: $count chars"
+            if [ "$count" -gt "$limit" ]; then
+              echo "error: $skill exceeds ${limit} characters (${count})" >&2
+              failed=1
+            fi
+          done < <(find skills -name SKILL.md -print0 | sort -z)
+
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+
   build:
     name: Build & Test
     runs-on: ubuntu-latest

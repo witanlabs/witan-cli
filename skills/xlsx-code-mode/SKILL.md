@@ -61,6 +61,63 @@ await xlsx.setConditionalFormatting(wb, "Sheet1", [
 ])
 WITAN
 
+# Chart authoring — add an embedded chart and verify the rendered result
+witan xlsx exec model.xlsx --stdin <<'WITAN'
+await xlsx.addChart(wb, "Sheet1", {
+  name: "Revenue",
+  position: { from: { cell: "F2" }, to: { cell: "N18" } },
+  groups: [
+    {
+      type: "column",
+      series: [
+        {
+          name: { ref: "Sheet1!B1" },
+          categories: "Sheet1!A2:A9",
+          values: "Sheet1!B2:B9"
+        }
+      ]
+    }
+  ],
+  title: { text: "Revenue" },
+  legend: { position: "right" }
+})
+await xlsx.previewStyles(wb, "Sheet1!F2:N18")
+WITAN
+
+# ListObject authoring — create an Excel table and read it back by table name
+witan xlsx exec model.xlsx --stdin <<'WITAN'
+await xlsx.addListObject(wb, "Sheet1", {
+  name: "SalesTable",
+  ref: "A1:C4",
+  showTotalsRow: true,
+  columns: [
+    { name: "Region", totalsRowLabel: "Total" },
+    { name: "Sales", totalsRowFunction: "sum" },
+    { name: "DoubleSales", calculatedColumnFormula: "=B2*2" }
+  ],
+  rows: [
+    [{ value: "North" }, { value: 10 }, {}],
+    [{ value: "South" }, { value: 20 }, {}]
+  ]
+})
+return {
+  meta: await xlsx.getListObject(wb, "SalesTable"),
+  data: await xlsx.readRange(wb, "SalesTable")
+}
+WITAN
+
+# What-If Data Table authoring — create a visible one-variable table block
+witan xlsx exec model.xlsx --stdin <<'WITAN'
+await xlsx.addDataTable(wb, "Sheet1", {
+  type: "oneVariableColumn",
+  ref: "E1:F4",
+  columnInputCell: "H1",
+  inputValues: [5, 10, 15],
+  formulas: ["=H1*2"]
+})
+return await xlsx.getDataTable(wb, "Sheet1!E1:F4")
+WITAN
+
 # Simple one-liner (--expr is fine when there are no special characters)
 witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 ```
@@ -143,7 +200,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `listSheets`            | `(wb)`                    | List all sheets with used ranges, visibility, and cross-sheet dependencies                 |
 | `getWorkbookProperties` | `(wb)`                    | Workbook-level metadata (active sheet, default font, metadata, theme colors, iterative calc) |
-| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (visibility, view, format, columns, rows, merges); `filter.columns/rows` to limit |
+| `getSheetProperties`    | `(wb, sheet, filter?)`    | Get sheet properties (visibility, view, outline, format, columns, rows, merges); `filter.columns/rows` to limit |
 | `listDefinedNames`      | `(wb)`                    | All defined names                                                                          |
 | `readCell`              | `(wb, cell, opts?)`       | Read a single cell; `opts.context` adds surrounding cells                                  |
 | `readRange`             | `(wb, range)`             | Read all cells in a range                                                                  |
@@ -162,6 +219,8 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | `findRows`       | `(wb, matcher, opts?)`                   | Find rows by value or pattern; `opts.in`, `context`, `limit`, `offset`              |
 | `describeSheets` | `(wb)`                                   | Per-sheet structure map + detected tables                                           |
 | `tableLookup`    | `(wb, { table, rowLabel, columnLabel })` | Look up a value by row and column labels                                            |
+| `getListObject`  | `(wb, name)`                              | Get metadata for an Excel ListObject by name                                        |
+| `getDataTable`   | `(wb, address)`                           | Get metadata for a What-If Data Table by visible footprint address                  |
 
 `matcher` accepts: string, string array (OR match), number, boolean, RegExp, or RegExp array. Searches are fuzzy and case-insensitive by default.
 
@@ -194,6 +253,16 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | --------------- | ------------- | ------------------------------------------------------------------- |
 | `previewStyles` | `(wb, range)` | Generate a PNG screenshot of a cell range; image is auto-registered |
 
+**Charts**
+
+| Function       | Signature                          | Description                                             |
+| -------------- | ---------------------------------- | ------------------------------------------------------- |
+| `listCharts`   | `(wb, options?)`                   | List chart summaries for the workbook or a single sheet |
+| `getChart`     | `(wb, sheet, name)`                | Get the canonical spec for an existing chart            |
+| `addChart`     | `(wb, sheet, chart)`               | Add a new embedded chart                                |
+| `setChart`     | `(wb, sheet, name, chart)`         | Replace the spec of an existing chart                   |
+| `deleteChart`  | `(wb, sheet, name)`                | Delete an embedded chart                                |
+
 **Conditional Formatting**
 
 | Function                      | Signature                   | Description                                          |
@@ -220,9 +289,17 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 | `deleteSheet`           | `(wb, name)`                       | Delete a sheet                                                                                         |
 | `renameSheet`           | `(wb, oldName, newName)`           | Rename a sheet                                                                                         |
 | `addDefinedName`        | `(wb, name, range, scope?)`        | Add a defined name                                                                                     |
+| `deleteDefinedName`     | `(wb, name, scope?)`               | Delete a defined name                                                                                  |
 | `setWorkbookProperties` | `(wb, properties)`                 | Set workbook-level properties                                                                          |
-| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (visibility, columns, rows, merges, view)                                   |
+| `setSheetProperties`    | `(wb, sheet, properties)`          | Set sheet-level properties (visibility, view, outline, format, merges)                                 |
+| `setRowProperties`      | `(wb, sheet, fromRow, toRow, properties)` | Set row-range properties (height, hidden, outlineLevel, collapsed)                               |
+| `setColumnProperties`   | `(wb, sheet, fromCol, toCol, properties)` | Set column-range properties (width, hidden, outlineLevel, collapsed)                             |
 | `setStyle`              | `(wb, target, style)`              | Apply styles to a cell or range                                                                        |
+| `addListObject`         | `(wb, sheet, listObject)`          | Create a ListObject including headers, rows, calculated columns, and totals                           |
+| `setListObject`         | `(wb, name, listObject)`           | Replace ListObject structure/properties on an existing table                                           |
+| `deleteListObject`      | `(wb, name)`                       | Delete the ListObject object while leaving the underlying cells                                        |
+| `addDataTable`          | `(wb, sheet, dataTable)`           | Create a What-If Data Table including its visible scaffold cells                                       |
+| `deleteDataTable`       | `(wb, address)`                    | Delete a What-If Data Table and clear its visible footprint                                            |
 
 ### The ephemeral write contract
 
@@ -260,29 +337,76 @@ For questions like "what happens to Y if X changes?", follow this sequence. **St
 
 For sweeping multiple values (sensitivity tables), use `sweepInputs` instead — it runs all combinations in one call and returns structured before/after data.
 
-Common pitfalls:
+Practical tips:
 
 - Don't search for the output _after_ `setCells` — find it first so you know the exact address to check in `touched`.
 - If `findCells` returns several hits for the same label, use context or `readRangeTsv` to disambiguate (e.g., "Net Income" may appear as both a label and a formula cell on different rows).
-- After `setCells`, verify `result.errors` is empty. New errors mean the edit broke a formula.
+- After `setCells`, verify `result.errors` is empty. New errors mean the edit introduced or surfaced a calculation problem downstream.
 - If the question names a specific metric (e.g., "loss ratio"), don't just search for that term — also check the sheet/row the question references, since models often have multiple versions of the same metric across sheets.
 
-### Circular reference convergence
+### Iterative / circular models
 
-When a workbook has **iterative calculation** enabled (circular references between
-cells), `setCells` returns **partially-converged intermediate values** in
-`result.touched` — this is expected and not an error. Do not try to debug or
-"fix" these intermediate values.
+When a workbook has **iterative calculation** enabled, `setCells` recalculates
+the edited cells and downstream dependents using the workbook's iterative
+settings. If the model does not converge within `maxIterations`, the result
+includes convergence errors.
 
-To fully converge circular references after setting formulas, run:
+Use `witan xlsx calc` when you want a standalone seeded or full-workbook
+verification pass, or when you want CLI reporting of all calculation errors or
+changed cells. `--show-touched` only changes output verbosity.
+
+### calc — Full-workbook verification
+
+`setCells` already recalculates the edited cells and all downstream dependents,
+so you do **not** need `witan xlsx calc` after every normal edit. Use `calc`
+mainly as a standalone verification/reporting command:
+
+- See every formula error in one CLI call
+- In `--verify` mode, see which cell values changed without modifying the file
+- Run a workbook-wide verification pass outside your `exec` script
 
 ```bash
+# Recalculate the workbook and print all formula errors, if any
+witan xlsx calc model.xlsx
+
+# Verification pass only — no file write, but prints changed addresses
+witan xlsx calc model.xlsx --verify
+
+# Verbose output — every touched cell with formula/value or error code
 witan xlsx calc model.xlsx --show-touched
 ```
 
-This recalculates all formulas with iterative solving and saves the converged
-values back to the file. After running calc, inspect the output to verify that
-all cells have the expected values.
+Default output is concise:
+
+- If there are no formula errors, it prints a one-line summary like `428 cells recalculated, 0 errors, 3 changed`
+- If there are formula errors, it prints **all** of them, not just a count
+- Without `--verify`, it still exits with code `2` if any formula errors are found
+- With `--verify`, it also prints a sorted `Changed (N):` list of addresses
+- `--show-touched` is the verbose mode when you need every recalculated cell
+
+Example error output:
+
+```text
+2 errors:
+  Summary!C18          =A18/B18                      #DIV/0!
+  Revenue!F42          =VLOOKUP(A42,$A$2:$C$10,3,0) #N/A
+```
+
+Example verify output:
+
+```text
+428 cells recalculated, 0 errors, 3 changed
+
+Changed (3):
+  Inputs!B5
+  Revenue!F42
+  Summary!C18
+```
+
+`witan xlsx calc` exits with code `2` if any formula errors are found.
+`witan xlsx calc --verify` also exits with code `2` if any computed values
+changed. That makes `--verify` useful as a final audit step after fixing a
+workbook.
 
 ### Response format
 
@@ -482,6 +606,173 @@ function setWorkbookProperties(
 ): Promise<void>;
 /** List all sheets with their used ranges, visibility, and cross-sheet dependencies. */
 function listSheets(wb): Promise<SheetInfo[]>;
+type ChartType =
+  | "column"
+  | "bar"
+  | "line"
+  | "area"
+  | "pie"
+  | "doughnut"
+  | "scatter"
+  | "bubble";
+type ChartGrouping = "standard" | "stacked" | "percentStacked";
+type ChartAxisBinding = "primary" | "secondary";
+type ChartLegendPosition =
+  | "left"
+  | "right"
+  | "top"
+  | "bottom"
+  | "topRight";
+type ChartMarkerStyle =
+  | "auto"
+  | "none"
+  | "circle"
+  | "dash"
+  | "diamond"
+  | "dot"
+  | "picture"
+  | "plus"
+  | "square"
+  | "star"
+  | "triangle"
+  | "x";
+type ChartDataLabelPosition =
+  | "bestFit"
+  | "center"
+  | "insideBase"
+  | "insideEnd"
+  | "outsideEnd"
+  | "left"
+  | "right"
+  | "top"
+  | "bottom";
+type ChartCategoryAxisType = "category" | "date";
+type ChartTimeUnit = "days" | "months" | "years";
+/** Exactly one of `text` or `ref` should be provided. */
+interface ChartTextSource {
+  text?: string;
+  ref?: string;
+}
+interface ChartPositionAnchor {
+  cell: string;
+  xOffsetPts?: number;
+  yOffsetPts?: number;
+}
+interface ChartPositionInput {
+  from: ChartPositionAnchor;
+  to: ChartPositionAnchor;
+}
+interface ChartPosition extends ChartPositionInput {
+  sheet: string;
+}
+interface ChartMarkerSpec {
+  style?: ChartMarkerStyle;
+  size?: number;
+  fillColor?: string;
+  borderColor?: string;
+}
+interface ChartDataLabelsSpec {
+  showValue?: boolean;
+  showCategory?: boolean;
+  showSeriesName?: boolean;
+  showPercent?: boolean;
+  position?: ChartDataLabelPosition;
+}
+interface ChartSeriesSpec {
+  name?: ChartTextSource;
+  categories?: string;
+  categoriesRefType?: "string" | "number";
+  values?: string;
+  xValues?: string;
+  yValues?: string;
+  bubbleSizes?: string;
+  fillColor?: string;
+  lineColor?: string;
+  lineWidth?: number;
+  lineDashStyle?: string;
+  smooth?: boolean;
+  marker?: ChartMarkerSpec;
+  dataLabels?: ChartDataLabelsSpec;
+}
+interface ChartGroupSpec {
+  type: ChartType;
+  grouping?: ChartGrouping;
+  axis?: ChartAxisBinding;
+  gapWidth?: number;
+  overlap?: number;
+  varyColors?: boolean;
+  smooth?: boolean;
+  firstSliceAngle?: number;
+  holeSize?: number;
+  series: ChartSeriesSpec[];
+}
+interface ChartTitleSpec extends ChartTextSource {
+  overlay?: boolean;
+}
+interface ChartLegendSpec {
+  visible?: boolean;
+  position?: ChartLegendPosition;
+  overlay?: boolean;
+}
+interface ChartAxisSpec {
+  title?: ChartTextSource;
+  visible?: boolean;
+  categoryType?: ChartCategoryAxisType;
+  min?: number;
+  max?: number;
+  majorUnit?: number;
+  minorUnit?: number;
+  baseTimeUnit?: ChartTimeUnit;
+  majorTimeUnit?: ChartTimeUnit;
+  minorTimeUnit?: ChartTimeUnit;
+  numberFormat?: string;
+  reversed?: boolean;
+  majorGridlines?: boolean;
+  minorGridlines?: boolean;
+  position?: "left" | "right" | "top" | "bottom";
+}
+interface ChartAxesSpec {
+  category?: ChartAxisSpec;
+  value?: ChartAxisSpec;
+  secondaryCategory?: ChartAxisSpec;
+  secondaryValue?: ChartAxisSpec;
+}
+interface ChartSpec {
+  name: string;
+  position: ChartPositionInput;
+  groups: ChartGroupSpec[];
+  title?: ChartTitleSpec;
+  legend?: ChartLegendSpec;
+  axes?: ChartAxesSpec;
+  displayBlanksAs?: "gap" | "span" | "zero";
+  styleId?: number;
+}
+interface ChartInfo extends Omit<ChartSpec, "position"> {
+  position: ChartPosition;
+}
+interface ChartSummary {
+  sheet: string;
+  name: string;
+  type: string;
+  groupCount: number;
+  seriesCount: number;
+  position: ChartPosition;
+}
+/** List charts in the workbook or on a specific sheet. */
+function listCharts(wb, options?: { sheet?: string }): Promise<ChartSummary[]>;
+/** Get the canonical chart spec for an existing chart. */
+function getChart(wb, sheet: string, name: string): Promise<ChartInfo>;
+/** Add a new chart to a worksheet. */
+function addChart(wb, sheet: string, chart: ChartSpec): Promise<ChartSpec>;
+/** Replace the spec of an existing chart. */
+function setChart(
+  wb,
+  sheet: string,
+  name: string,
+  chart: ChartSpec,
+): Promise<ChartSpec>;
+/** Delete a chart from a worksheet. */
+function deleteChart(wb, sheet: string, name: string): Promise<void>;
 interface DefinedName {
   name: string;
   range: string;
@@ -494,6 +785,12 @@ function addDefinedName(
   wb,
   name: string,
   range: string,
+  scope?: string,
+): Promise<DefinedName>;
+/** Delete a named range, optionally scoped to a sheet. */
+function deleteDefinedName(
+  wb,
+  name: string,
   scope?: string,
 ): Promise<DefinedName>;
 /** Add a new worksheet to the workbook. */
@@ -1164,6 +1461,11 @@ interface SheetProperties {
     showGridLines: boolean;
     zoomScale: number;
   };
+  outline: {
+    summaryRowsBelow: boolean;
+    summaryColumnsRight: boolean;
+    showSymbols: boolean;
+  };
   format: {
     defaultRowHeight: number;
     defaultColWidth: number;
@@ -1177,6 +1479,9 @@ interface SheetProperties {
     {
       col: string;
       width: number;
+      hidden?: boolean;
+      outlineLevel?: number;
+      collapsed?: boolean;
     }
   >;
   rows: Record<
@@ -1184,6 +1489,9 @@ interface SheetProperties {
     {
       row: number;
       height: number;
+      hidden?: boolean;
+      outlineLevel?: number;
+      collapsed?: boolean;
     }
   >;
   merges?: string[] | null;
@@ -1201,6 +1509,11 @@ function setSheetProperties(
       showGridLines?: boolean;
       zoomScale?: number;
     };
+    outline?: {
+      summaryRowsBelow?: boolean;
+      summaryColumnsRight?: boolean;
+      showSymbols?: boolean;
+    };
     format?: {
       defaultRowHeight?: number;
       defaultColWidth?: number;
@@ -1209,19 +1522,33 @@ function setSheetProperties(
         size?: number;
       };
     };
-    columns?: Record<
-      number | string,
-      {
-        width: number;
-      }
-    >;
-    rows?: Record<
-      number,
-      {
-        height: number;
-      }
-    >;
     merges?: string[];
+  },
+): Promise<void>;
+/** Set properties for a contiguous row range. */
+function setRowProperties(
+  wb,
+  sheetName: string,
+  fromRow: number,
+  toRow: number,
+  properties: {
+    height?: number;
+    hidden?: boolean;
+    outlineLevel?: number;
+    collapsed?: boolean;
+  },
+): Promise<void>;
+/** Set properties for a contiguous column range. */
+function setColumnProperties(
+  wb,
+  sheetName: string,
+  fromCol: number | string,
+  toCol: number | string,
+  properties: {
+    width?: number;
+    hidden?: boolean;
+    outlineLevel?: number;
+    collapsed?: boolean;
   },
 ): Promise<void>;
 /**

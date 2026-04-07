@@ -65,6 +65,60 @@ witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
 
 # Create a new workbook from scratch
 witan xlsx exec model.xlsx --create --save --code 'await xlsx.addSheet(wb, "Inputs"); return true'
+
+# Author a ListObject table in one call
+witan xlsx exec model.xlsx --save --stdin <<'WITAN'
+await xlsx.addListObject(wb, "Sheet1", {
+  name: "SalesTable",
+  ref: "A1:C4",
+  showTotalsRow: true,
+  columns: [
+    { name: "Region", totalsRowLabel: "Total" },
+    { name: "Sales", totalsRowFunction: "sum" },
+    { name: "DoubleSales", calculatedColumnFormula: "=B2*2" }
+  ],
+  rows: [
+    [{ value: "North" }, { value: 10 }, {}],
+    [{ value: "South" }, { value: 20 }, {}]
+  ]
+})
+return await xlsx.readRange(wb, "SalesTable")
+WITAN
+
+# Author a What-If Data Table block
+witan xlsx exec model.xlsx --save --stdin <<'WITAN'
+await xlsx.addDataTable(wb, "Sheet1", {
+  type: "oneVariableColumn",
+  ref: "E1:F4",
+  columnInputCell: "H1",
+  inputValues: [5, 10, 15],
+  formulas: ["=H1*2"]
+})
+return await xlsx.getDataTable(wb, "Sheet1!E1:F4")
+WITAN
+
+# Author a chart from workbook data
+witan xlsx exec dashboard.xlsx --save --stdin <<'WITAN'
+await xlsx.addChart(wb, "Summary", {
+  name: "Revenue",
+  position: { from: { cell: "F2" }, to: { cell: "N18" } },
+  groups: [
+    {
+      type: "column",
+      series: [
+        {
+          name: { ref: "Data!B1" },
+          categories: "Data!A2:A9",
+          values: "Data!B2:B9"
+        }
+      ]
+    }
+  ],
+  title: { text: "Revenue" },
+  legend: { position: "right" }
+})
+await xlsx.previewStyles(wb, "Summary!F2:N18")
+WITAN
 ```
 
 ## What This CLI Covers

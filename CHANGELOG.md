@@ -2,8 +2,13 @@
 
 ## Unreleased
 
-## 0.8.0
+- New: `listCharts`, `getChart`, `addChart`, `setChart`, and `deleteChart` are now available in `witan xlsx exec` / `xlsx-code-mode` for embedded chart authoring and inspection.
+- New: `getListObject`, `addListObject`, `setListObject`, and `deleteListObject` are now available in `witan xlsx exec` / `xlsx-code-mode` for Excel ListObject table authoring and inspection.
+- New: `getDataTable`, `addDataTable`, and `deleteDataTable` are now available in `witan xlsx exec` / `xlsx-code-mode` for authoring and removing What-If Data Tables by visible footprint.
+- New: `deleteDefinedName` is now available in `witan xlsx exec` / `xlsx-code-mode` for removing workbook-scoped or sheet-scoped defined names.
+- New: `setRowProperties` / `setColumnProperties` expose row/column size/visibility and outline status, and `setSheetProperties` now exposes sheet-wide outline settings.
 
+## 0.8.0
 
 - New: `previewStyles` now renders bar, line, area, pie and combo charts, including Excel-styled axes, titles, legends, data labels, trendlines, gridlines, error bars, and chart styles/colors.
 - Updated: The calculation engine now performs array-aware lazy evaluation for IF/IFERROR/IFNA/IFS/SWITCH/CHOOSE, fixing Excel-style aggregate formulas such as `SUM(IF(range,...))` while still avoiding evaluation of untaken branches.

@@ -19,7 +19,8 @@ read, edit, and create workbooks.
 
 The witan CLI takes a different approach: instead of generating Python code,
 the agent calls a purpose-built spreadsheet API for cell-level reads,
-formula-aware queries, structured rendering, and iterative calculation.
+formula-aware queries, structured rendering, iterative calculation, and chart
+authoring.
 
 ## Using in Claude Code or Codex
 
@@ -97,7 +98,8 @@ pnpm model-builder path/to/spec.md
 ```
 
 Output workbooks are saved to `./output/`. Open them in Excel to inspect the
-result — formulas, formatting, and structure are all agent-generated.
+result — formulas, formatting, structure, and embedded charts are all
+agent-generated.
 
 ### Audit a workbook for formula bugs
 

@@ -24,8 +24,7 @@ const lintRulesHelp = `Available rules:
   D008 (Error): Mixed currencies in additive/aggregate contexts
   D009 (Warning): Mixed percent and non-percent in addition/subtraction
   D023 (Warning): Currency values mixed with non-currency semantic formats (percent/date/time/text)
-  D030 (Warning): Formula references a non-anchor cell in a merged range
-  D031 (Info): Checks spelling of text values in cells`
+  D030 (Warning): Formula references a non-anchor cell in a merged range`
 
 var lintCmd = &cobra.Command{
 	Use:   "lint <file>",
@@ -43,7 +42,7 @@ Behavior:
 Examples:
   witan xlsx lint report.xlsx
   witan xlsx lint report.xlsx -r "Sheet1!A1:Z50"
-  witan xlsx lint report.xlsx --skip-rule D031
+  witan xlsx lint report.xlsx --skip-rule D001
   witan xlsx lint report.xlsx --only-rule D001 --only-rule D030`,
 	Args: cobra.ExactArgs(1),
 	RunE: runLint,

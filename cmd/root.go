@@ -47,7 +47,7 @@ Quick start:
   witan read report.pdf --pages 1-5
   witan xlsx calc report.xlsx
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
-  witan xlsx lint report.xlsx --skip-rule D031
+  witan xlsx lint report.xlsx --skip-rule D001
   witan xlsx render report.xlsx -r "Sheet1!A1:F20" -o preview.png
 
 Limits:

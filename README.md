@@ -135,6 +135,7 @@ The lower-level Witan spreadsheet runtime supports broader workbook operations; 
 ## Auth, Config, and Modes
 
 Authentication can be done via `witan auth login`, `--api-key`, or `WITAN_API_KEY`.
+Use `witan auth status` to inspect the active credential, validation state, and selected organization.
 
 Environment variables:
 

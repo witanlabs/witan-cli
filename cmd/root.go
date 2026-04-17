@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 	Long: `Witan CLI provides spreadsheet workflows for calculation, script-driven read/write automation, linting, and rendering.
 
 Workflows:
-  auth     Sign in or out for organization-backed requests.
+  auth     Sign in, inspect auth status, or sign out for organization-backed requests.
   read     Extract text from documents (PDF, DOCX, PPTX, HTML, text).
   xlsx     Recalculate formulas, run read/write scripts, lint formulas, and render ranges.
 
@@ -43,6 +43,7 @@ Modes:
 
 Quick start:
   witan auth login
+  witan auth status
   witan read report.pdf --outline
   witan read report.pdf --pages 1-5
   witan xlsx calc report.xlsx

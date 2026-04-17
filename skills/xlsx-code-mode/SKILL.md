@@ -22,8 +22,10 @@ return await xlsx.listSheets(wb)
 WITAN
 
 # Read from sheets with spaces, apostrophes, or parentheses — all safe
+# Note: inner apostrophes in a sheet name must be doubled (Excel convention).
+# "Workers' Compensation" → "'Workers'' Compensation'!B50"
 witan xlsx exec model.xlsx --stdin <<'WITAN'
-const a = await xlsx.readCell(wb, "'Workers' Compensation'!B50")
+const a = await xlsx.readCell(wb, "'Workers'' Compensation'!B50")
 const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {row:1,col:1}, to: {row:10,col:5} })
 return { a: a.value, b }
 WITAN
@@ -164,6 +166,8 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 
 ### Flags
 
+Exec-specific:
+
 - `--expr`: expression shorthand; wraps as `return (<expr>);`
 - `--code`: inline JavaScript source
 - `--script`: path to a JavaScript file
@@ -171,9 +175,16 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 - `--input-json` (default `{}`): JSON value passed as `input`
 - `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
 - `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
+- `--stdin-timeout-ms` (default `2000`): abort `--stdin` reads that never reach EOF; `0` disables
+- `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
 - `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
 - `--save` (default `false`): persist changes to the workbook file
-- `--json` (default `false`): print the full response envelope as JSON
+
+Global (apply to every `witan` subcommand):
+
+- `--api-key`, `--api-url`: credentials and endpoint override (also `WITAN_API_KEY`, `WITAN_API_URL`)
+- `--stateless`: send workbook bytes on every request; skip server-side cache (also `WITAN_STATELESS=1`)
+- `--json`: print the full response envelope as JSON instead of the human summary
 
 ### Runtime globals
 
@@ -200,7 +211,8 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Searching**
 
 - `findCells`, `findRows`: fuzzy search by value or pattern
-- `describeSheets`: sheet structure map with detected tables
+- `describeSheets`: sheet structure map with detected tables for every sheet
+- `describeSheet`: same shape as one `describeSheets` entry, scoped to a single sheet by name
 - `tableLookup`: lookup by row and column labels inside a table
 - `getListObject`, `getDataTable`: metadata for existing Excel table / What-If Data Table objects
 
@@ -213,7 +225,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Computing**
 
-- `sweepInputs`: batch what-if sweeps with TSV and structured outputs
+- `sweepInputs`: batch what-if sweeps with TSV and structured outputs. Also exposed as `xlsx.scenarios` (same function — either name works).
 - `evaluateFormula`, `evaluateFormulas`: evaluate one or more formulas in sheet context
 
 **Validating**
@@ -232,8 +244,8 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Conditional Formatting**
 
-- `getConditionalFormatting`: read all sheet rules; `iconSet` is read-only
-- `setConditionalFormatting`: add writable rules; `opts.clear` replaces all rules
+- `getConditionalFormatting`: read all sheet rules (returns `iconSet` rules too)
+- `setConditionalFormatting`: author rules of any `CfWritableRuleType` (see type def); `opts.clear` replaces all existing rules. `iconSet` is not a writable type — if you need icon-style thresholds, author a `threeColorScale` instead.
 - `removeConditionalFormatting`: remove rules by index
 
 **Writing (ephemeral)**
@@ -272,13 +284,15 @@ When `--create` is set, the same ephemeral rule applies to the new workbook sess
 
 ```ts
 {
-  touched: Record<string, string>  // address → formatted text value
-  changed: string[]                // addresses whose values changed
-  errors: Diag[]             // cells that errored after recalc
+  touched: Record<string, string>      // address → formatted text value
+  changed: string[]                    // addresses whose values changed
+  errors: Diag[]                       // cells that errored after recalc
+  invalidatedTiles: { sheet, tileRow, tileCol }[]   // server-side render invalidations
+  updatedSheets: { name, usedRange, tileRowCount, tileColCount }[]  // post-write sheet state
 }
 ```
 
-Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript.
+Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript. `invalidatedTiles` and `updatedSheets` are informational — they exist so callers can refresh UI tiles — you can usually ignore them. `setCells` also implicitly creates a sheet if `address` references one that does not yet exist.
 
 ### What-if / sensitivity workflow
 
@@ -327,7 +341,17 @@ witan xlsx calc model.xlsx --verify
 
 # Verbose output — every touched cell with formula/value or error code
 witan xlsx calc model.xlsx --show-touched
+
+# Seed recalc from one or more ranges; downstream dependents still recalculate.
+# Useful when you want to force a partial recalculation scope.
+witan xlsx calc model.xlsx -r "Inputs!B1:B20" -r "Summary!A1:H10"
 ```
+
+Flags:
+
+- `-r, --range` (repeatable): sheet-qualified range to seed recalculation from
+- `--verify`: no file write; exits `2` if errors exist or any computed value changed
+- `--show-touched`: verbose; print every recalculated cell
 
 Default output is concise:
 
@@ -376,6 +400,8 @@ When `--json` is used, the full response envelope is returned:
   "accesses": [...]
 }
 ```
+
+`writes_detected` and `accesses` are only present when the script performs writes or tracked accesses — a pure-read script returns just `{ ok, stdout, result }`. With `--save` in files-backed mode, a successful write also adds `revision_id`.
 
 **Failure:**
 
@@ -509,6 +535,8 @@ function setWorkbookProperties(wb,properties:{
 }):Promise<void>;
 function listSheets(wb):Promise<Array<{
 	address:string;
+	from:{row:number;col:number};
+	to:{row:number;col:number};
 	rows:number;
 	cols:number;
 	sheet:string;
@@ -696,10 +724,12 @@ function findAndReplace(wb,find:string|RegExp,replace:string,opts?:{
 	cells:string[];
 	errors:Diag[];
 }>;
-function describeSheets(wb):Promise<Record<string,{
+interface SheetDescription {
 	tables:Record<string,{address:string;headerRows:string;headerCols:string|null;tableName?:string}>;
 	structure:string; // Compact ASCII structure map
-}>>;
+}
+function describeSheets(wb):Promise<Record<string,SheetDescription>>;
+function describeSheet(wb,sheetName:string):Promise<SheetDescription>;
 function tableLookup(wb,args:{
 	table:string;
 	rowLabel:string|number|boolean;
@@ -765,6 +795,8 @@ function sweepInputs(wb,args:{
 	inputCount:number;
 	outputCount:number;
 }>;
+/** Alias of `sweepInputs` — same function, either name works. */
+const scenarios:typeof sweepInputs;
 function scaleRange(wb,range:RangeRef,factor:number,opts?:{skipFormulas?:boolean}):Promise<WriteResult|null>;
 function insertRowAfter(wb,sheetName:string,row:number,count?:number):Promise<void>;
 function deleteRows(wb,sheetName:string,row:number,count?:number):Promise<void>;
@@ -779,7 +811,8 @@ function sortRange(wb,range:RangeRef,keys:Array<{
 	col:number|string;
 	order?:"asc"|"desc";
 }>,opts?:{hasHeader?:boolean}):Promise<void>;
-function copyRange(wb,source:RangeRef,destination:RangeRef,opts?:{
+/** `destination` must be a single anchor cell, not a range. */
+function copyRange(wb,source:RangeRef,destination:CellRef,opts?:{
 	pasteType?:"all"|"values"|"formulas"|"formats";
 }):Promise<{destination:string;cellsCopied:number;}>;
 type StyleObj={

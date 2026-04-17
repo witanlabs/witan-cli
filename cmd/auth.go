@@ -8,10 +8,12 @@ var authCmd = &cobra.Command{
 	Long: `Manage authentication for Witan CLI.
 
 Use login to start browser sign-in and save a local session.
+Use status to inspect which credential is active right now.
 Use logout to revoke that session and clear local credentials.
 
 Examples:
   witan auth login
+  witan auth status
   witan auth logout`,
 }
 

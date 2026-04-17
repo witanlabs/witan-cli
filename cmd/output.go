@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 )
 
@@ -11,7 +12,11 @@ type ExitError struct{ Code int }
 func (e *ExitError) Error() string { return "" }
 
 func jsonPrint(v any) error {
-	enc := json.NewEncoder(os.Stdout)
+	return jsonPrintTo(os.Stdout, v)
+}
+
+func jsonPrintTo(w io.Writer, v any) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
 }

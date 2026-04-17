@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.9.0
+
+
 - New: `listCharts`, `getChart`, `addChart`, `setChart`, and `deleteChart` are now available in `witan xlsx exec` / `xlsx-code-mode` for embedded chart authoring and inspection.
 - New: `getListObject`, `addListObject`, `setListObject`, and `deleteListObject` are now available in `witan xlsx exec` / `xlsx-code-mode` for Excel ListObject table authoring and inspection.
 - New: `getDataTable`, `addDataTable`, and `deleteDataTable` are now available in `witan xlsx exec` / `xlsx-code-mode` for authoring and removing What-If Data Tables by visible footprint.

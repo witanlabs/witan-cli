@@ -21,9 +21,7 @@ await xlsx.setCells(wb, [{ address: "Inputs!A1", value: "Revenue" }])
 return await xlsx.listSheets(wb)
 WITAN
 
-# Read from sheets with spaces, apostrophes, or parentheses — all safe
-# Note: inner apostrophes in a sheet name must be doubled (Excel convention).
-# "Workers' Compensation" → "'Workers'' Compensation'!B50"
+# Read from sheets with spaces, apostrophes, or parentheses — note inner apostrophes double (Excel convention)
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const a = await xlsx.readCell(wb, "'Workers'' Compensation'!B50")
 const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {row:1,col:1}, to: {row:10,col:5} })
@@ -166,8 +164,6 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 
 ### Flags
 
-Exec-specific:
-
 - `--expr`: expression shorthand; wraps as `return (<expr>);`
 - `--code`: inline JavaScript source
 - `--script`: path to a JavaScript file
@@ -179,10 +175,7 @@ Exec-specific:
 - `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
 - `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
 - `--save` (default `false`): persist changes to the workbook file
-
-Global (apply to every `witan` subcommand):
-
-- `--json`: print the full response envelope as JSON instead of the human summary
+- `--json` (default `false`): print the full response envelope as JSON (works on any `witan` subcommand)
 
 ### Runtime globals
 
@@ -337,11 +330,6 @@ witan xlsx calc model.xlsx --verify
 # Verbose output — every touched cell with formula/value or error code
 witan xlsx calc model.xlsx --show-touched
 ```
-
-Flags:
-
-- `--verify`: no file write; exits `2` if errors exist or any computed value changed
-- `--show-touched`: verbose; print every recalculated cell
 
 Default output is concise:
 

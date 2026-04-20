@@ -532,8 +532,6 @@ function setWorkbookProperties(wb,properties:{
 }):Promise<void>;
 function listSheets(wb):Promise<Array<{
 	address:string;
-	from:{row:number;col:number};
-	to:{row:number;col:number};
 	rows:number;
 	cols:number;
 	sheet:string;

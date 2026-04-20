@@ -804,7 +804,6 @@ function sortRange(wb,range:RangeRef,keys:Array<{
 	col:number|string;
 	order?:"asc"|"desc";
 }>,opts?:{hasHeader?:boolean}):Promise<void>;
-/** `destination` must be a single anchor cell, not a range. */
 function copyRange(wb,source:RangeRef,destination:CellRef,opts?:{
 	pasteType?:"all"|"values"|"formulas"|"formats";
 }):Promise<{destination:string;cellsCopied:number;}>;

@@ -241,8 +241,8 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Conditional Formatting**
 
-- `getConditionalFormatting`: read all sheet rules (returns `iconSet` rules too)
-- `setConditionalFormatting`: author rules of any `CfWritableRuleType` (see type def); `opts.clear` replaces all existing rules. `iconSet` is not a writable type — if you need icon-style thresholds, author a `threeColorScale` instead.
+- `getConditionalFormatting`: read all sheet rules; `iconSet` is read-only
+- `setConditionalFormatting`: add writable rules; `opts.clear` replaces all rules
 - `removeConditionalFormatting`: remove rules by index
 
 **Writing (ephemeral)**
@@ -398,7 +398,7 @@ When `--json` is used, the full response envelope is returned:
 }
 ```
 
-`writes_detected` and `accesses` are only present when the script performs writes or tracked accesses — a pure-read script returns just `{ ok, stdout, result }`. With `--save` in files-backed mode, a successful write also adds `revision_id`.
+`writes_detected` and `accesses` are only present when the script performs writes or tracked accesses — a pure-read script returns just `{ ok, stdout, result }`.
 
 **Failure:**
 

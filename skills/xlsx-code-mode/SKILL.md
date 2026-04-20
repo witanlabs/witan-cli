@@ -209,7 +209,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Searching**
 
 - `findCells`, `findRows`: fuzzy search by value or pattern
-- `describeSheet`: sheet structure map with detected tables for a single sheet
+- `describeSheet`: sheet structure with detected tables
 - `tableLookup`: lookup by row and column labels inside a table
 - `getListObject`, `getDataTable`: metadata for existing Excel table / What-If Data Table objects
 
@@ -281,15 +281,13 @@ When `--create` is set, the same ephemeral rule applies to the new workbook sess
 
 ```ts
 {
-  touched: Record<string, string>      // address → formatted text value
-  changed: string[]                    // addresses whose values changed
-  errors: Diag[]                       // cells that errored after recalc
-  invalidatedTiles: { sheet, tileRow, tileCol }[]   // server-side render invalidations
-  updatedSheets: { name, usedRange, tileRowCount, tileColCount }[]  // post-write sheet state
+  touched: Record<string, string>  // address → formatted text value
+  changed: string[]                // addresses whose values changed
+  errors: Diag[]                   // cells that errored after recalc
 }
 ```
 
-Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript. `invalidatedTiles` and `updatedSheets` are informational — they exist so callers can refresh UI tiles — you can usually ignore them. `setCells` also implicitly creates a sheet if `address` references one that does not yet exist.
+Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript. `setCells` implicitly creates a sheet if `address` references one that does not yet exist.
 
 ### What-if / sensitivity workflow
 
@@ -338,15 +336,10 @@ witan xlsx calc model.xlsx --verify
 
 # Verbose output — every touched cell with formula/value or error code
 witan xlsx calc model.xlsx --show-touched
-
-# Seed recalc from one or more ranges; downstream dependents still recalculate.
-# Useful when you want to force a partial recalculation scope.
-witan xlsx calc model.xlsx -r "Inputs!B1:B20" -r "Summary!A1:H10"
 ```
 
 Flags:
 
-- `-r, --range` (repeatable): sheet-qualified range to seed recalculation from
 - `--verify`: no file write; exits `2` if errors exist or any computed value changed
 - `--show-touched`: verbose; print every recalculated cell
 
@@ -397,8 +390,6 @@ When `--json` is used, the full response envelope is returned:
   "accesses": [...]
 }
 ```
-
-`writes_detected` and `accesses` are only present when the script performs writes or tracked accesses — a pure-read script returns just `{ ok, stdout, result }`.
 
 **Failure:**
 

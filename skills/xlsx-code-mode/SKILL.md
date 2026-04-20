@@ -171,7 +171,6 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 - `--input-json` (default `{}`): JSON value passed as `input`
 - `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
 - `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
-- `--stdin-timeout-ms` (default `2000`): abort `--stdin` reads that never reach EOF; `0` disables
 - `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
 - `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
 - `--save` (default `false`): persist changes to the workbook file

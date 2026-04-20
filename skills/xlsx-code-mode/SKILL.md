@@ -5,7 +5,7 @@ description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to
 
 ## Setup
 
-Files are cached server-side by content hash so repeated operations skip re-upload. If `WITAN_STATELESS=1` is set (or `--stateless` is passed), files are processed but not stored.
+Files are cached server-side by content hash so repeated operations skip re-upload.
 
 The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
 
@@ -182,7 +182,6 @@ Exec-specific:
 
 Global (apply to every `witan` subcommand):
 
-- `--stateless`: send workbook bytes on every request; skip server-side cache (also `WITAN_STATELESS=1`)
 - `--json`: print the full response envelope as JSON instead of the human summary
 
 ### Runtime globals

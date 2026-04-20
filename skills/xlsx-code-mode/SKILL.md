@@ -21,7 +21,7 @@ await xlsx.setCells(wb, [{ address: "Inputs!A1", value: "Revenue" }])
 return await xlsx.listSheets(wb)
 WITAN
 
-# Read from sheets with spaces, apostrophes, or parentheses — note inner apostrophes double (Excel convention)
+# Read from sheets with spaces, apostrophes, or parentheses — note inner apostrophes are doubled (Excel convention)
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const a = await xlsx.readCell(wb, "'Workers'' Compensation'!B50")
 const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {row:1,col:1}, to: {row:10,col:5} })

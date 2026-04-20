@@ -182,7 +182,6 @@ Exec-specific:
 
 Global (apply to every `witan` subcommand):
 
-- `--api-key`, `--api-url`: credentials and endpoint override (also `WITAN_API_KEY`, `WITAN_API_URL`)
 - `--stateless`: send workbook bytes on every request; skip server-side cache (also `WITAN_STATELESS=1`)
 - `--json`: print the full response envelope as JSON instead of the human summary
 
@@ -225,7 +224,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Computing**
 
-- `sweepInputs`: batch what-if sweeps with TSV and structured outputs. Also exposed as `xlsx.scenarios` (same function — either name works).
+- `sweepInputs`: batch what-if sweeps with TSV and structured outputs
 - `evaluateFormula`, `evaluateFormulas`: evaluate one or more formulas in sheet context
 
 **Validating**
@@ -795,8 +794,6 @@ function sweepInputs(wb,args:{
 	inputCount:number;
 	outputCount:number;
 }>;
-/** Alias of `sweepInputs` — same function, either name works. */
-const scenarios:typeof sweepInputs;
 function scaleRange(wb,range:RangeRef,factor:number,opts?:{skipFormulas?:boolean}):Promise<WriteResult|null>;
 function insertRowAfter(wb,sheetName:string,row:number,count?:number):Promise<void>;
 function deleteRows(wb,sheetName:string,row:number,count?:number):Promise<void>;

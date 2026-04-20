@@ -209,8 +209,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Searching**
 
 - `findCells`, `findRows`: fuzzy search by value or pattern
-- `describeSheets`: sheet structure map with detected tables for every sheet
-- `describeSheet`: same shape as one `describeSheets` entry, scoped to a single sheet by name
+- `describeSheet`: sheet structure map with detected tables for a single sheet
 - `tableLookup`: lookup by row and column labels inside a table
 - `getListObject`, `getDataTable`: metadata for existing Excel table / What-If Data Table objects
 
@@ -722,12 +721,10 @@ function findAndReplace(wb,find:string|RegExp,replace:string,opts?:{
 	cells:string[];
 	errors:Diag[];
 }>;
-interface SheetDescription {
+function describeSheet(wb,sheetName:string):Promise<{
 	tables:Record<string,{address:string;headerRows:string;headerCols:string|null;tableName?:string}>;
 	structure:string; // Compact ASCII structure map
-}
-function describeSheets(wb):Promise<Record<string,SheetDescription>>;
-function describeSheet(wb,sheetName:string):Promise<SheetDescription>;
+}>;
 function tableLookup(wb,args:{
 	table:string;
 	rowLabel:string|number|boolean;

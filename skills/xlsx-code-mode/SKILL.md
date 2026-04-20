@@ -5,7 +5,7 @@ description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to
 
 ## Setup
 
-Files are cached server-side by content hash so repeated operations skip re-upload. If `WITAN_STATELESS=1` is set (or `--stateless` is passed), files are processed but not stored.
+Files are cached server-side by content hash so repeated operations skip re-upload.
 
 The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
 
@@ -21,9 +21,9 @@ await xlsx.setCells(wb, [{ address: "Inputs!A1", value: "Revenue" }])
 return await xlsx.listSheets(wb)
 WITAN
 
-# Read from sheets with spaces, apostrophes, or parentheses — all safe
+# Read from sheets with spaces, apostrophes, or parentheses — note inner apostrophes are doubled (Excel convention)
 witan xlsx exec model.xlsx --stdin <<'WITAN'
-const a = await xlsx.readCell(wb, "'Workers' Compensation'!B50")
+const a = await xlsx.readCell(wb, "'Workers'' Compensation'!B50")
 const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {row:1,col:1}, to: {row:10,col:5} })
 return { a: a.value, b }
 WITAN
@@ -171,9 +171,10 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 - `--input-json` (default `{}`): JSON value passed as `input`
 - `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
 - `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
+- `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
 - `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
 - `--save` (default `false`): persist changes to the workbook file
-- `--json` (default `false`): print the full response envelope as JSON
+- `--json` (default `false`): print the full response envelope as JSON (works on any `witan` subcommand)
 
 ### Runtime globals
 
@@ -200,7 +201,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Searching**
 
 - `findCells`, `findRows`: fuzzy search by value or pattern
-- `describeSheets`: sheet structure map with detected tables
+- `describeSheet`: sheet structure with detected tables
 - `tableLookup`: lookup by row and column labels inside a table
 - `getListObject`, `getDataTable`: metadata for existing Excel table / What-If Data Table objects
 
@@ -274,11 +275,11 @@ When `--create` is set, the same ephemeral rule applies to the new workbook sess
 {
   touched: Record<string, string>  // address → formatted text value
   changed: string[]                // addresses whose values changed
-  errors: Diag[]             // cells that errored after recalc
+  errors: Diag[]                   // cells that errored after recalc
 }
 ```
 
-Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript.
+Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript. `setCells` implicitly creates a sheet if `address` references one that does not yet exist.
 
 ### What-if / sensitivity workflow
 
@@ -696,10 +697,10 @@ function findAndReplace(wb,find:string|RegExp,replace:string,opts?:{
 	cells:string[];
 	errors:Diag[];
 }>;
-function describeSheets(wb):Promise<Record<string,{
+function describeSheet(wb,sheetName:string):Promise<{
 	tables:Record<string,{address:string;headerRows:string;headerCols:string|null;tableName?:string}>;
 	structure:string; // Compact ASCII structure map
-}>>;
+}>;
 function tableLookup(wb,args:{
 	table:string;
 	rowLabel:string|number|boolean;
@@ -779,7 +780,7 @@ function sortRange(wb,range:RangeRef,keys:Array<{
 	col:number|string;
 	order?:"asc"|"desc";
 }>,opts?:{hasHeader?:boolean}):Promise<void>;
-function copyRange(wb,source:RangeRef,destination:RangeRef,opts?:{
+function copyRange(wb,source:RangeRef,destination:CellRef,opts?:{
 	pasteType?:"all"|"values"|"formulas"|"formats";
 }):Promise<{destination:string;cellsCopied:number;}>;
 type StyleObj={

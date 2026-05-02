@@ -14,6 +14,7 @@ Commands:
   exec   Execute JavaScript against existing workbooks or create new .xlsx files with --create.
   lint   Run semantic formula checks and report diagnostics.
   render Render a sheet range as PNG or WebP.
+  rpc    Run newline-delimited xlsx RPC over stdio.
 
 Output:
   default  Human-friendly summaries
@@ -22,6 +23,7 @@ Output:
 Examples:
   witan xlsx calc report.xlsx
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
+  witan xlsx rpc report.xlsx
   witan xlsx --json lint report.xlsx
   witan xlsx render report.xlsx -r "Sheet1!A1:F20"`,
 }

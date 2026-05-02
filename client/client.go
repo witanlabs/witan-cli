@@ -561,6 +561,11 @@ func detectContentType(filePath string) string {
 	return "application/octet-stream"
 }
 
+// DetectContentType returns the MIME type the CLI sends for a local file.
+func DetectContentType(filePath string) string {
+	return detectContentType(filePath)
+}
+
 func (c *Client) setCommonHeaders(req *http.Request) {
 	userAgent := strings.TrimSpace(c.UserAgent)
 	if userAgent == "" {

@@ -67,6 +67,26 @@ async with AsyncWorkbook("report.xlsx") as wb:
     cell = await wb.read_cell("Summary!A1")
 ```
 
+Notebook and REPL sessions can use an explicit close instead of a context manager:
+
+```python
+from witan import Workbook
+
+wb = Workbook("report.xlsx")
+tsv = wb.read_range_tsv("Summary!A1:F20")
+wb.close()
+```
+
+In Jupyter/IPython, async sessions can use top-level `await`:
+
+```python
+from witan import AsyncWorkbook
+
+wb = AsyncWorkbook("report.xlsx")
+cell = await wb.read_cell("Summary!A1")
+await wb.close()
+```
+
 ### From Source
 
 Requires Go (version from `go.mod`):

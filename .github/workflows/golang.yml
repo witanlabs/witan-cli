@@ -52,3 +52,23 @@ jobs:
 
       - name: Vet
         run: go vet ./...
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+
+      - name: Python compile check
+        run: python -m compileall python/witan
+
+      - name: Python tests
+        run: pytest
+
+      - name: Python typecheck
+        run: mypy

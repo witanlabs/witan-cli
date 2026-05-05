@@ -141,6 +141,30 @@ jobs:
           WHEEL="$(ls -1 "${RUNNER_TEMP}/witan-wheels"/witan-*-manylinux_2_17_x86_64.whl | head -n 1)"
           python -m pip install "$WHEEL"
           witan --version
+          python -m witan --version
+          python - <<'PY'
+          import importlib.metadata as md
+          import sys
+          from pathlib import Path
+
+          import witan
+          from witan import AsyncWorkbook, Workbook
+
+          dist = md.distribution("witan")
+          package_dir = Path(witan.__file__).resolve().parent
+          binary = package_dir / "bin" / ("witan.exe" if sys.platform == "win32" else "witan")
+          if not (package_dir / "py.typed").exists():
+              raise SystemExit("py.typed is missing")
+          if not binary.exists():
+              raise SystemExit(f"bundled binary is missing: {binary}")
+          entry_points = [
+              ep for ep in dist.entry_points if ep.group == "console_scripts" and ep.name == "witan"
+          ]
+          if not entry_points:
+              raise SystemExit("console script is missing")
+          assert Workbook
+          assert AsyncWorkbook
+          PY
 
       - name: Show artifacts
         run: |
@@ -188,7 +212,7 @@ jobs:
           packages-dir: ${{ runner.temp }}/witan-wheels
           skip-existing: true
 
-      - name: Verify published PyPI package is CLI
+      - name: Verify published PyPI package is CLI and SDK
         if: steps.version.outputs.stable == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -212,12 +236,18 @@ jobs:
           import importlib.metadata as md
           import os
           import sys
+          from pathlib import Path
+
+          import witan
+          from witan import AsyncWorkbook, Workbook
 
           expected = os.environ["VERSION"].lstrip("v")
           dist = md.distribution("witan")
           version = dist.version
           summary = dist.metadata.get("Summary") or ""
           home_page = dist.metadata.get("Home-page") or ""
+          package_dir = Path(witan.__file__).resolve().parent
+          binary = package_dir / "bin" / ("witan.exe" if sys.platform == "win32" else "witan")
           entry_points = [
               ep for ep in dist.entry_points if ep.group == "console_scripts" and ep.name == "witan"
           ]
@@ -227,6 +257,15 @@ jobs:
               sys.exit(1)
           if not entry_points:
               print("installed PyPI package has no 'witan' console script", file=sys.stderr)
+              sys.exit(1)
+          if not (package_dir / "py.typed").exists():
+              print("installed PyPI package has no py.typed marker", file=sys.stderr)
+              sys.exit(1)
+          if not binary.exists():
+              print(f"installed PyPI package has no bundled binary at {binary}", file=sys.stderr)
+              sys.exit(1)
+          if not Workbook or not AsyncWorkbook:
+              print("installed PyPI package does not export Workbook and AsyncWorkbook", file=sys.stderr)
               sys.exit(1)
           if "cli" not in summary.lower() and "witan-cli" not in home_page:
               print(
@@ -239,6 +278,7 @@ jobs:
           PY
 
           witan --version
+          python -m witan --version
 
       - name: Roll changelog from Unreleased
         continue-on-error: true

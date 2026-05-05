@@ -20,6 +20,7 @@ import (
 var (
 	rpcHint   string
 	rpcLocale string
+	rpcCreate bool
 )
 
 const (
@@ -41,6 +42,9 @@ Input shape:
   {"id":"1","op":"listSheets","args":{}}
   {"id":"2","op":"readRange","args":{"address":"Sheet1!A1:B10"}}
   {"id":"3","op":"save","args":{}}
+
+Use --create to start a new .xlsx workbook session; no local file is written
+until the session receives a save operation.
 
 The CLI owns session setup. Do not include a workbook field. Save metadata
 returned by the API is used for local writeback and omitted from stdout.`,
@@ -72,6 +76,7 @@ type statelessRPCInitMessage struct {
 	ID          string `json:"id"`
 	ContentType string `json:"content_type,omitempty"`
 	File        string `json:"file,omitempty"`
+	Create      bool   `json:"create,omitempty"`
 	Hint        string `json:"hint,omitempty"`
 	Locale      string `json:"locale,omitempty"`
 }
@@ -89,14 +94,13 @@ type rpcSession struct {
 func init() {
 	xlsxRPCCmd.Flags().StringVar(&rpcHint, "hint", "", "Sheet name or address hint for lazy workbook loading")
 	xlsxRPCCmd.Flags().StringVar(&rpcLocale, "locale", "", "Execution locale (env: WITAN_LOCALE; otherwise LC_ALL / LC_MESSAGES / LANG)")
+	xlsxRPCCmd.Flags().BoolVar(&rpcCreate, "create", false, "Create a new .xlsx workbook session; target path must not exist and is written only after save")
 	xlsxCmd.AddCommand(xlsxRPCCmd)
 }
 
 func runRPC(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
-	filePath := args[0]
-
-	filePath, err := fixExcelExtension(filePath)
+	filePath, err := resolveExecWorkbookPath(args[0], rpcCreate)
 	if err != nil {
 		return err
 	}
@@ -111,8 +115,12 @@ func runRPC(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	c := newAPIClient(key, orgID)
+	if rpcCreate {
+		c = client.New(resolveAPIURL(), key, orgID, true)
+		c.UserAgent = cliUserAgent()
+	}
 
-	session, err := openRPCSession(cmd.Context(), c, filePath, rpcHint, locale)
+	session, err := openRPCSession(cmd.Context(), c, filePath, rpcHint, locale, rpcCreate)
 	if err != nil {
 		return err
 	}
@@ -121,9 +129,12 @@ func runRPC(cmd *cobra.Command, args []string) error {
 	return relayRPCStdio(cmd.Context(), session, os.Stdin, os.Stdout)
 }
 
-func openRPCSession(ctx context.Context, c *client.Client, filePath, hint, locale string) (*rpcSession, error) {
+func openRPCSession(ctx context.Context, c *client.Client, filePath, hint, locale string, create bool) (*rpcSession, error) {
 	if c.Stateless {
-		return openStatelessRPCSession(ctx, c, filePath, hint, locale)
+		return openStatelessRPCSession(ctx, c, filePath, hint, locale, create)
+	}
+	if create {
+		return nil, fmt.Errorf("--create requires stateless xlsx RPC transport")
 	}
 	return openFilesRPCSession(ctx, c, filePath, hint, locale)
 }
@@ -154,7 +165,7 @@ func openFilesRPCSession(ctx context.Context, c *client.Client, filePath, hint, 
 	}, nil
 }
 
-func openStatelessRPCSession(ctx context.Context, c *client.Client, filePath, hint, locale string) (*rpcSession, error) {
+func openStatelessRPCSession(ctx context.Context, c *client.Client, filePath, hint, locale string, create bool) (*rpcSession, error) {
 	wsURL, err := c.StatelessXlsxRPCWebSocketURL()
 	if err != nil {
 		return nil, err
@@ -165,18 +176,21 @@ func openStatelessRPCSession(ctx context.Context, c *client.Client, filePath, hi
 	}
 	conn.SetReadLimit(rpcReadLimit)
 
-	b, err := os.ReadFile(filePath)
-	if err != nil {
-		conn.CloseNow()
-		return nil, fmt.Errorf("reading workbook: %w", err)
-	}
 	initMsg := statelessRPCInitMessage{
-		Type:        "init",
-		ID:          "witan-init-1",
-		ContentType: client.DetectContentType(filePath),
-		File:        base64.StdEncoding.EncodeToString(b),
-		Hint:        hint,
-		Locale:      locale,
+		Type:   "init",
+		ID:     "witan-init-1",
+		Hint:   hint,
+		Locale: locale,
+		Create: create,
+	}
+	if !create {
+		b, err := os.ReadFile(filePath)
+		if err != nil {
+			conn.CloseNow()
+			return nil, fmt.Errorf("reading workbook: %w", err)
+		}
+		initMsg.ContentType = client.DetectContentType(filePath)
+		initMsg.File = base64.StdEncoding.EncodeToString(b)
 	}
 	raw, err := json.Marshal(initMsg)
 	if err != nil {

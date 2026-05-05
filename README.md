@@ -27,7 +27,7 @@ install -m 0755 witan /usr/local/bin/witan
 
 ### From PyPI
 
-Install from PyPI (recommended for sandboxed agent environments):
+Install the bundled CLI and Python SDK from PyPI:
 
 ```bash
 # one-shot run without permanent install
@@ -35,6 +35,56 @@ uvx witan --help
 
 # persistent install
 pip install witan
+```
+
+Python SDK example:
+
+```python
+from witan import Workbook
+
+with Workbook("report.xlsx") as wb:
+    sheets = wb.list_sheets()
+    tsv = wb.read_range_tsv("Summary!A1:F20")
+```
+
+Create and save a new workbook:
+
+```python
+from witan import Workbook
+
+with Workbook("model.xlsx", create=True) as wb:
+    wb.add_sheet("Inputs")
+    wb.set_cells([{"address": "Inputs!A1", "value": "Revenue"}])
+    wb.save()
+```
+
+Async sessions are available for asyncio applications:
+
+```python
+from witan import AsyncWorkbook
+
+async with AsyncWorkbook("report.xlsx") as wb:
+    cell = await wb.read_cell("Summary!A1")
+```
+
+Notebook and REPL sessions can use an explicit close instead of a context manager:
+
+```python
+from witan import Workbook
+
+wb = Workbook("report.xlsx")
+tsv = wb.read_range_tsv("Summary!A1:F20")
+wb.close()
+```
+
+In Jupyter/IPython, async sessions can use top-level `await`:
+
+```python
+from witan import AsyncWorkbook
+
+wb = AsyncWorkbook("report.xlsx")
+cell = await wb.read_cell("Summary!A1")
+await wb.close()
 ```
 
 ### From Source
@@ -123,12 +173,14 @@ WITAN
 
 ## What This CLI Covers
 
-`witan-cli` currently exposes four spreadsheet commands:
+`witan-cli` exposes four spreadsheet commands:
 
 - `witan xlsx calc`
 - `witan xlsx exec`
 - `witan xlsx lint`
 - `witan xlsx render`
+
+The PyPI package also exposes `witan.Workbook` and `witan.AsyncWorkbook`, backed by `witan xlsx rpc` subprocess sessions. Public SDK methods use snake_case names matching the `xlsx exec` operation surface, such as `read_range_tsv`, `find_cells`, `sweep_inputs`, `set_cells`, `add_chart`, and `set_conditional_formatting`.
 
 The lower-level Witan spreadsheet runtime supports broader workbook operations; this CLI focuses on the four agent-facing workflows above.
 
@@ -211,10 +263,10 @@ Cutting a release (UI-driven):
 3. Tag push triggers `Witan CLI Release`.
 4. The workflow builds artifacts, attaches them to the GitHub Release, and publishes to PyPI for stable tags.
 5. On successful release, CI runs `scripts/roll-changelog.sh`, pushes the changelog update to a `chore/changelog-release-X.Y.Z` branch, and opens a PR into the default branch.
-6. For stable tags, verify `witan==X.Y.Z` on PyPI and `witan --version`.
+6. For stable tags, verify `witan==X.Y.Z` on PyPI, `witan --version`, `python -m witan --version`, and `from witan import Workbook, AsyncWorkbook`.
 
 Manual `git tag ... && git push ...` is equivalent to UI tag creation and triggers the same workflow.
 
 ## CI
 
-Go CI runs in `.github/workflows/golang.yml` on pushes to `main` and pull requests.
+Go and Python CI runs in `.github/workflows/golang.yml` on pushes to `main` and pull requests. The workflow runs `go test`, `go vet`, `pytest`, `mypy`, and `python -m compileall python/witan`.

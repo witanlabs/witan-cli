@@ -48,6 +48,8 @@ def write_result() -> dict[str, Any]:
 
 
 def result_for(op: str, args: dict[str, Any]) -> Any:
+    if op == "utf8":
+        return {"text": "Café 📈 東京"}
     if op == "listSheets":
         return {
             "sheets": [
@@ -167,6 +169,11 @@ def main() -> int:
             "ok": True,
             "result": result_for(str(request.get("op")), args if isinstance(args, dict) else {}),
         }
+        if mode == "utf8":
+            raw = json.dumps(response, separators=(",", ":"), ensure_ascii=False)
+            sys.stdout.buffer.write((raw + "\n").encode("utf-8"))
+            sys.stdout.buffer.flush()
+            continue
         print(json.dumps(response, separators=(",", ":")), flush=True)
 
     return 0

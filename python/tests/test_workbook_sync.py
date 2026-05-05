@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import stat
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -82,6 +83,27 @@ def test_workbook_invokes_witan_xlsx_rpc_and_maps_pythonic_methods(tmp_path: Pat
     assert ("findCells", {"matcher": {"source": "rev", "flags": "i"}, "in": "Sheet1!A:A", "context": 2, "limit": 20, "offset": 0}) in ops_and_args
     assert ("reduceAddresses", {"addresses": ["Sheet1!A:B"]}) in ops_and_args
     assert requests[-1]["op"] == "save"
+
+
+def test_workbook_sync_transport_uses_utf8_bytes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    real_popen = subprocess.Popen
+    popen_kwargs: dict[str, object] = {}
+
+    def popen(*args: object, **kwargs: object) -> subprocess.Popen[bytes]:
+        popen_kwargs.update(kwargs)
+        return real_popen(*args, **kwargs)
+
+    monkeypatch.setattr("witan._process.subprocess.Popen", popen)
+
+    env, _, _, _ = fake_env(tmp_path, mode="utf8")
+    wb = Workbook(tmp_path / "book.xlsx", binary=fake_binary(), env=env)
+    try:
+        assert wb._request("utf8", "utf8", {}) == {"text": "Café 📈 東京"}
+    finally:
+        wb.close()
+
+    assert "text" not in popen_kwargs
+    assert "encoding" not in popen_kwargs
 
 
 def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> None:

@@ -34,8 +34,7 @@ class StdioRPCProcess:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
+                bufsize=0,
                 env=merged_env,
             )
         except OSError as exc:
@@ -51,13 +50,14 @@ class StdioRPCProcess:
     def _drain_stdout(self) -> None:
         assert self._proc.stdout is not None
         for line in self._proc.stdout:
-            self._responses.put(line.rstrip("\r\n"))
+            text = line.decode("utf-8", errors="replace").rstrip("\r\n")
+            self._responses.put(text)
         self._responses.put(None)
 
     def _drain_stderr(self) -> None:
         assert self._proc.stderr is not None
         for line in self._proc.stderr:
-            text = line.rstrip("\r\n")
+            text = line.decode("utf-8", errors="replace").rstrip("\r\n")
             if text:
                 self._stderr.append(text)
 
@@ -74,7 +74,7 @@ class StdioRPCProcess:
             )
             assert self._proc.stdin is not None
             try:
-                self._proc.stdin.write(payload + "\n")
+                self._proc.stdin.write((payload + "\n").encode("utf-8"))
                 self._proc.stdin.flush()
             except OSError as exc:
                 self.terminate()

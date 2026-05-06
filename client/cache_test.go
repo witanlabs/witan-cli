@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,7 +13,6 @@ func TestProbeWritable(t *testing.T) {
 	if !probeWritable(target) {
 		t.Fatal("expected probeWritable to succeed on temp dir")
 	}
-	// Directory should have been created
 	info, err := os.Stat(target)
 	if err != nil || !info.IsDir() {
 		t.Fatal("expected directory to exist after probeWritable")
@@ -23,211 +23,206 @@ func TestProbeWritable_Readonly(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "readonly")
 	os.MkdirAll(target, 0o555)
-	// Can't write a file inside a 555 dir (on most systems)
 	nested := filepath.Join(target, "nested")
 	if probeWritable(nested) {
-		// On some systems (e.g. running as root), 555 doesn't prevent writes
 		t.Skip("filesystem doesn't enforce readonly permissions")
 	}
 }
 
 func TestFileCache_InMemory(t *testing.T) {
-	fc := &FileCache{
-		inMemory: make(map[string]CacheEntry),
-	}
+	fc := &FileCache{inMemory: make(map[string]CacheEntry)}
 
-	key := "sha256:abc123@http://localhost"
+	path := "/tmp/test.xlsx"
+	baseURL := "http://localhost:3000"
 
-	// Miss
-	_, ok := fc.Get(key)
-	if ok {
+	if _, ok := fc.Get(path, baseURL, ""); ok {
 		t.Fatal("expected cache miss")
 	}
 
-	// Put
-	entry := CacheEntry{FileID: "file_1", RevisionID: "rev_1", Bytes: 100, Filename: "test.xlsx"}
-	fc.Put(key, entry)
+	entry := CacheEntry{FileID: "file_1", RevisionID: "rev_1", ContentHash: "sha256:abc", Bytes: 100, Filename: "test.xlsx"}
+	fc.Put(path, baseURL, "", entry)
 
-	// Hit
-	got, ok := fc.Get(key)
+	got, ok := fc.Get(path, baseURL, "")
 	if !ok {
 		t.Fatal("expected cache hit")
 	}
-	if got.FileID != "file_1" {
-		t.Fatalf("expected file_1, got %s", got.FileID)
+	if got.FileID != "file_1" || got.ContentHash != "sha256:abc" {
+		t.Fatalf("unexpected entry: %+v", got)
 	}
 
-	// Evict
-	fc.Evict(key)
-	_, ok = fc.Get(key)
-	if ok {
+	fc.Evict(path, baseURL, "")
+	if _, ok := fc.Get(path, baseURL, ""); ok {
 		t.Fatal("expected cache miss after evict")
 	}
 }
 
 func TestFileCache_Disk(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "witan-test-cache")
-
 	fc := &FileCache{dir: dir, inMemory: make(map[string]CacheEntry)}
 	fc.load()
 
-	key := "sha256:deadbeef@http://localhost"
-	entry := CacheEntry{FileID: "file_2", RevisionID: "rev_2", Bytes: 200, Filename: "data.xlsx"}
+	path := filepath.Join(t.TempDir(), "data.xlsx")
+	baseURL := "http://localhost:3000"
+	entry := CacheEntry{FileID: "file_2", RevisionID: "rev_2", ContentHash: "sha256:def", Bytes: 200, Filename: "data.xlsx"}
 
-	fc.Put(key, entry)
+	fc.Put(path, baseURL, "", entry)
 
-	// Verify the file was written
 	cachePath := filepath.Join(dir, "cache.json")
 	if _, err := os.Stat(cachePath); err != nil {
 		t.Fatalf("expected cache.json to exist: %v", err)
 	}
 
-	// Load a fresh cache from the same directory
 	fc2 := &FileCache{dir: dir, inMemory: make(map[string]CacheEntry)}
 	fc2.load()
 
-	got, ok := fc2.Get(key)
+	got, ok := fc2.Get(path, baseURL, "")
 	if !ok {
 		t.Fatal("expected cache hit after reload")
 	}
-	if got.FileID != "file_2" || got.RevisionID != "rev_2" {
+	if got.FileID != "file_2" || got.RevisionID != "rev_2" || got.ContentHash != "sha256:def" {
 		t.Fatalf("unexpected entry: %+v", got)
 	}
 
-	// Evict and verify
-	fc2.Evict(key)
-	_, ok = fc2.Get(key)
-	if ok {
+	fc2.Evict(path, baseURL, "")
+	if _, ok := fc2.Get(path, baseURL, ""); ok {
 		t.Fatal("expected miss after evict")
 	}
 }
 
-func TestFileCache_KnownInMemory(t *testing.T) {
-	fc := &FileCache{
-		inMemory: make(map[string]CacheEntry),
-	}
-
+func TestFileCache_DistinctOrgID(t *testing.T) {
+	fc := &FileCache{inMemory: make(map[string]CacheEntry)}
 	path := "/tmp/test.xlsx"
 	baseURL := "http://localhost:3000"
-	entry := CacheEntry{FileID: "file_known", RevisionID: "rev_known", Filename: "test.xlsx"}
 
-	_, ok := fc.GetKnown(path, baseURL, "")
-	if ok {
-		t.Fatal("expected known miss")
-	}
+	fc.Put(path, baseURL, "org_aaa", CacheEntry{FileID: "file_a"})
+	fc.Put(path, baseURL, "org_bbb", CacheEntry{FileID: "file_b"})
 
-	fc.PutKnown(path, baseURL, "", entry)
-	got, ok := fc.GetKnown(path, baseURL, "")
-	if !ok {
-		t.Fatal("expected known hit")
-	}
-	if got.FileID != "file_known" || got.RevisionID != "rev_known" {
-		t.Fatalf("unexpected known entry: %+v", got)
-	}
-
-	fc.EvictKnown(path, baseURL, "")
-	_, ok = fc.GetKnown(path, baseURL, "")
-	if ok {
-		t.Fatal("expected known miss after evict")
+	a, _ := fc.Get(path, baseURL, "org_aaa")
+	b, _ := fc.Get(path, baseURL, "org_bbb")
+	if a.FileID == b.FileID {
+		t.Fatalf("expected distinct entries per orgID, got both %q", a.FileID)
 	}
 }
 
-func TestFileCache_KnownDisk(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "witan-test-cache-known")
+func TestFileCache_DistinctBaseURL(t *testing.T) {
+	fc := &FileCache{inMemory: make(map[string]CacheEntry)}
+	path := "/tmp/test.xlsx"
+
+	fc.Put(path, "http://localhost:3000", "", CacheEntry{FileID: "file_local"})
+	fc.Put(path, "https://api.witanlabs.com", "", CacheEntry{FileID: "file_prod"})
+
+	a, _ := fc.Get(path, "http://localhost:3000", "")
+	b, _ := fc.Get(path, "https://api.witanlabs.com", "")
+	if a.FileID == b.FileID {
+		t.Fatalf("expected distinct entries per baseURL, got both %q", a.FileID)
+	}
+}
+
+func TestFileCache_DistinctPaths(t *testing.T) {
+	fc := &FileCache{inMemory: make(map[string]CacheEntry)}
+	baseURL := "http://localhost:3000"
+
+	fc.Put("/tmp/report.xlsx", baseURL, "", CacheEntry{FileID: "file_a"})
+	fc.Put("/tmp/report-backup.xlsx", baseURL, "", CacheEntry{FileID: "file_b"})
+
+	a, _ := fc.Get("/tmp/report.xlsx", baseURL, "")
+	b, _ := fc.Get("/tmp/report-backup.xlsx", baseURL, "")
+	if a.FileID == b.FileID {
+		t.Fatalf("expected distinct entries per path, got both %q", a.FileID)
+	}
+}
+
+func TestFileCache_DiscardsOldVersion(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "witan-test-cache-old")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	// Write a v2 cache.json with entries that should be ignored.
+	v2 := []byte(`{"v":2,"files":{"sha256:abc@http://localhost:3000@":{"file_id":"old_file","revision_id":"old_rev"}},"known":{}}`)
+	if err := os.WriteFile(filepath.Join(dir, "cache.json"), v2, 0o644); err != nil {
+		t.Fatalf("write v2: %v", err)
+	}
 
 	fc := &FileCache{dir: dir, inMemory: make(map[string]CacheEntry)}
 	fc.load()
 
-	path := filepath.Join(t.TempDir(), "book.xlsx")
-	baseURL := "http://localhost:3000"
-	entry := CacheEntry{FileID: "file_known_2", RevisionID: "rev_known_2", Filename: "book.xlsx"}
-
-	fc.PutKnown(path, baseURL, "", entry)
-
-	fc2 := &FileCache{dir: dir, inMemory: make(map[string]CacheEntry)}
-	fc2.load()
-
-	got, ok := fc2.GetKnown(path, baseURL, "")
-	if !ok {
-		t.Fatal("expected known hit after reload")
+	if fc.data.Version != cacheVersion {
+		t.Fatalf("expected version %d after load, got %d", cacheVersion, fc.data.Version)
 	}
-	if got.FileID != "file_known_2" || got.RevisionID != "rev_known_2" {
-		t.Fatalf("unexpected known entry: %+v", got)
+	if len(fc.data.Entries) != 0 {
+		t.Fatalf("expected empty entries after discarding v2, got %d", len(fc.data.Entries))
 	}
 }
 
-func TestHashFile(t *testing.T) {
-	// Create a temp file to hash
+func TestFileCache_PersistedJSONShape(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "witan-test-cache-shape")
+	fc := &FileCache{dir: dir, inMemory: make(map[string]CacheEntry)}
+	fc.load()
+
+	fc.Put("/tmp/x.xlsx", "http://localhost:3000", "org_z", CacheEntry{
+		FileID: "file_x", RevisionID: "rev_x", ContentHash: "sha256:xx", Bytes: 7, Filename: "x.xlsx",
+	})
+
+	raw, err := os.ReadFile(filepath.Join(dir, "cache.json"))
+	if err != nil {
+		t.Fatalf("read cache.json: %v", err)
+	}
+	var on cacheData
+	if err := json.Unmarshal(raw, &on); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if on.Version != cacheVersion {
+		t.Fatalf("expected v%d, got v%d", cacheVersion, on.Version)
+	}
+	if len(on.Entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(on.Entries))
+	}
+}
+
+func TestEntryKey_PathInKey(t *testing.T) {
+	a := entryKey("/tmp/a.xlsx", "http://localhost:3000", "")
+	b := entryKey("/tmp/b.xlsx", "http://localhost:3000", "")
+	if a == b {
+		t.Fatal("expected distinct keys for distinct paths")
+	}
+}
+
+func TestEntryKey_RelativePathResolvesToAbsolute(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	rel := entryKey("./foo.xlsx", "http://localhost:3000", "")
+	abs := entryKey(filepath.Join(cwd, "foo.xlsx"), "http://localhost:3000", "")
+	if rel != abs {
+		t.Fatalf("expected relative path to resolve to absolute; got %q vs %q", rel, abs)
+	}
+}
+
+func TestHashFile_ContentDistinguishes(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "test.xlsx")
-	os.WriteFile(path, []byte("hello world"), 0o644)
+	path1 := filepath.Join(dir, "a.xlsx")
+	path2 := filepath.Join(dir, "b.xlsx")
+	os.WriteFile(path1, []byte("hello"), 0o644)
+	os.WriteFile(path2, []byte("world"), 0o644)
 
-	key1, err := HashFile(path, "http://localhost:3000", "")
+	h1, err := hashFile(path1)
 	if err != nil {
-		t.Fatalf("HashFile failed: %v", err)
+		t.Fatalf("hashFile: %v", err)
 	}
-
-	// Same file, same base URL → same key
-	key2, err := HashFile(path, "http://localhost:3000", "")
+	h2, err := hashFile(path2)
 	if err != nil {
-		t.Fatalf("HashFile failed: %v", err)
+		t.Fatalf("hashFile: %v", err)
 	}
-	if key1 != key2 {
-		t.Fatalf("expected same hash, got %s and %s", key1, key2)
-	}
-
-	// Same file, different base URL → different key
-	key3, err := HashFile(path, "https://api.witanlabs.com", "")
-	if err != nil {
-		t.Fatalf("HashFile failed: %v", err)
-	}
-	if key1 == key3 {
-		t.Fatal("expected different keys for different base URLs")
+	if h1 == h2 {
+		t.Fatal("expected different hashes for different content")
 	}
 
-	// Different content → different key
-	path2 := filepath.Join(dir, "test2.xlsx")
-	os.WriteFile(path2, []byte("goodbye world"), 0o644)
-	key4, err := HashFile(path2, "http://localhost:3000", "")
-	if err != nil {
-		t.Fatalf("HashFile failed: %v", err)
-	}
-	if key1 == key4 {
-		t.Fatal("expected different keys for different content")
-	}
-}
-
-func TestHashFile_DifferentOrgID(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "test.xlsx")
-	os.WriteFile(path, []byte("hello world"), 0o644)
-
-	baseURL := "http://localhost:3000"
-
-	key1, err := HashFile(path, baseURL, "org_aaa")
-	if err != nil {
-		t.Fatalf("HashFile failed: %v", err)
-	}
-
-	key2, err := HashFile(path, baseURL, "org_bbb")
-	if err != nil {
-		t.Fatalf("HashFile failed: %v", err)
-	}
-
-	if key1 == key2 {
-		t.Fatal("expected different cache keys for different orgIDs")
-	}
-}
-
-func TestKnownFileKey_DifferentOrgID(t *testing.T) {
-	path := "/tmp/test.xlsx"
-	baseURL := "http://localhost:3000"
-
-	key1 := KnownFileKey(path, baseURL, "org_aaa")
-	key2 := KnownFileKey(path, baseURL, "org_bbb")
-
-	if key1 == key2 {
-		t.Fatal("expected different known file keys for different orgIDs")
+	// Same content → same hash
+	os.WriteFile(path2, []byte("hello"), 0o644)
+	h3, _ := hashFile(path2)
+	if h1 != h3 {
+		t.Fatal("expected same hash for identical content")
 	}
 }
 

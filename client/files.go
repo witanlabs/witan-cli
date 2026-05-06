@@ -342,6 +342,7 @@ func (c *Client) FilesExec(fileID, revisionID string, req ExecRequest, save bool
 		}
 		q := u.Query()
 		q.Set("revision", revisionID)
+		q.Set("cache", "true")
 		if save {
 			q.Set("save", "true")
 		}

@@ -61,6 +61,15 @@ func filePath() (string, error) {
 	return filepath.Join(d, "config.json"), nil
 }
 
+// CookieJarPath returns the path used for persisted API affinity cookies.
+func CookieJarPath() (string, error) {
+	d, err := dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "cookies.json"), nil
+}
+
 // Load reads the config file. Returns a zero-value Config if the file does not
 // exist or has an outdated version (the stale file is deleted automatically).
 func Load() (Config, error) {

@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/witanlabs/witan-cli/config"
 )
 
 const (
@@ -75,8 +77,21 @@ func New(baseURL, apiKey, orgID string, stateless bool) *Client {
 	}
 	if !stateless {
 		c.cache = NewFileCache()
+		c.HTTPClient.Jar = newDefaultPersistentCookieJar()
 	}
 	return c
+}
+
+func newDefaultPersistentCookieJar() http.CookieJar {
+	path, err := config.CookieJarPath()
+	if err != nil {
+		return nil
+	}
+	jar, err := NewPersistentCookieJar(path)
+	if err != nil {
+		return nil
+	}
+	return jar
 }
 
 // buildPath constructs an API path, inserting /orgs/{orgID} when OrgID is set.

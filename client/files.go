@@ -117,9 +117,15 @@ func buildMultipartPayload(filePath string) ([]byte, string, error) {
 	return buf.Bytes(), writer.FormDataContentType(), nil
 }
 
-// EnsureUploaded hashes the file, checks the cache, uploads if needed,
-// and returns (fileId, revisionId). On a cache hit that turns out to be a 404,
-// it evicts and re-uploads.
+// EnsureUploaded looks up the file by path in the cache and returns
+// (fileId, revisionId). If the cached entry's content hash matches the
+// current file, the cached pair is returned. If the file has changed,
+// a new revision is PUT under the same fileID; if that PUT fails because
+// the fileID is gone (or the server rejects the version), it falls back
+// to a fresh POST. With no cache entry, a fresh POST is made.
+//
+// On a 404 from a downstream op, the caller should call ReuploadFile,
+// which evicts and runs through this path again.
 func (c *Client) EnsureUploaded(filePath string) (fileId, revisionId string, err error) {
 	if c.cache == nil {
 		// No cache (stateless) — upload every time
@@ -130,39 +136,36 @@ func (c *Client) EnsureUploaded(filePath string) (fileId, revisionId string, err
 		return resp.ID, resp.RevisionID, nil
 	}
 
-	key, err := HashFile(filePath, c.BaseURL, c.OrgID)
-	if err != nil {
-		return "", "", err
-	}
+	if entry, ok := c.cache.Get(filePath, c.BaseURL, c.OrgID); ok {
+		hash, err := hashFile(filePath)
+		if err != nil {
+			return "", "", err
+		}
+		if hash == entry.ContentHash {
+			return entry.FileID, entry.RevisionID, nil
+		}
 
-	if entry, ok := c.cache.Get(key); ok {
-		c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
-		return entry.FileID, entry.RevisionID, nil
-	}
-
-	// Cache miss. If this local file is known, upload as a new revision first.
-	if known, ok := c.cache.GetKnown(filePath, c.BaseURL, c.OrgID); ok {
-		resp, err := c.UploadFileVersion(known.FileID, filePath)
+		resp, err := c.UploadFileVersion(entry.FileID, filePath)
 		if err == nil {
-			entry := cacheEntryFromUpload(resp)
-			c.cache.Put(key, entry)
-			c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
+			c.cache.Put(filePath, c.BaseURL, c.OrgID, cacheEntryFromUpload(resp, hash))
 			return resp.ID, resp.RevisionID, nil
 		}
 		if !shouldFallbackToFreshUpload(err) {
 			return "", "", err
 		}
+		// Fall through to fresh POST.
 	}
 
-	// No known file (or version upload rejected) — create a new file.
 	resp, err := c.UploadFile(filePath)
 	if err != nil {
 		return "", "", err
 	}
 
-	entry := cacheEntryFromUpload(resp)
-	c.cache.Put(key, entry)
-	c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
+	hash, err := hashFile(filePath)
+	if err != nil {
+		return "", "", err
+	}
+	c.cache.Put(filePath, c.BaseURL, c.OrgID, cacheEntryFromUpload(resp, hash))
 	return resp.ID, resp.RevisionID, nil
 }
 
@@ -170,47 +173,44 @@ func (c *Client) EnsureUploaded(filePath string) (fileId, revisionId string, err
 // Use this after getting a 404 from a files endpoint (stale cache entry).
 func (c *Client) ReuploadFile(filePath string) (fileId, revisionId string, err error) {
 	if c.cache != nil {
-		key, err := HashFile(filePath, c.BaseURL, c.OrgID)
-		if err == nil {
-			c.cache.Evict(key)
-		}
-		c.cache.EvictKnown(filePath, c.BaseURL, c.OrgID)
+		c.cache.Evict(filePath, c.BaseURL, c.OrgID)
 	}
 	return c.EnsureUploaded(filePath)
 }
 
-// UpdateCachedRevision updates hash and local-file cache entries after a command
-// produces a new revision for an already-known file.
+// UpdateCachedRevision updates the cache entry after a command produces a new
+// revision for the given file path.
 func (c *Client) UpdateCachedRevision(filePath, fileID, revisionID string) error {
 	if c.cache == nil {
 		return nil
 	}
 
-	key, err := HashFile(filePath, c.BaseURL, c.OrgID)
+	hash, err := hashFile(filePath)
 	if err != nil {
 		return err
 	}
 
 	entry := CacheEntry{
-		FileID:     fileID,
-		RevisionID: revisionID,
-		Filename:   filepath.Base(filePath),
+		FileID:      fileID,
+		RevisionID:  revisionID,
+		ContentHash: hash,
+		Filename:    filepath.Base(filePath),
 	}
 	if fi, statErr := os.Stat(filePath); statErr == nil {
 		entry.Bytes = fi.Size()
 	}
 
-	c.cache.Put(key, entry)
-	c.cache.PutKnown(filePath, c.BaseURL, c.OrgID, entry)
+	c.cache.Put(filePath, c.BaseURL, c.OrgID, entry)
 	return nil
 }
 
-func cacheEntryFromUpload(resp *FileResponse) CacheEntry {
+func cacheEntryFromUpload(resp *FileResponse, contentHash string) CacheEntry {
 	return CacheEntry{
-		FileID:     resp.ID,
-		RevisionID: resp.RevisionID,
-		Bytes:      resp.Bytes,
-		Filename:   resp.Filename,
+		FileID:      resp.ID,
+		RevisionID:  resp.RevisionID,
+		ContentHash: contentHash,
+		Bytes:       resp.Bytes,
+		Filename:    resp.Filename,
 	}
 }
 

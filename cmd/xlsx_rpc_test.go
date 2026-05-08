@@ -204,6 +204,60 @@ func TestRPCFilesRetriesStaleSessionWithReupload(t *testing.T) {
 	}
 }
 
+func TestRPCStatelessCreateSendsCreateInit(t *testing.T) {
+	filePath := filepath.Join(t.TempDir(), "new.xlsx")
+	initSeen := make(chan map[string]any, 1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v0/xlsx/ws" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.String())
+			http.NotFound(w, r)
+			return
+		}
+		serveRPCWebSocket(t, w, r, func(ctx context.Context, conn *websocket.Conn) {
+			_, raw, err := conn.Read(ctx)
+			if err != nil {
+				t.Errorf("reading init: %v", err)
+				return
+			}
+			var init map[string]any
+			if err := json.Unmarshal(raw, &init); err != nil {
+				t.Errorf("parsing init: %v", err)
+				return
+			}
+			initSeen <- init
+			if err := conn.Write(ctx, websocket.MessageText, []byte(`{"id":"witan-init-1","ok":true,"result":{"ready":true}}`)); err != nil {
+				t.Errorf("writing init response: %v", err)
+			}
+		})
+	}))
+	defer server.Close()
+
+	c := client.New(server.URL, "", "", true)
+	session, err := openStatelessRPCSession(context.Background(), c, filePath, "Sheet1", "en-US", true)
+	if err != nil {
+		t.Fatalf("openStatelessRPCSession failed: %v", err)
+	}
+	session.close()
+
+	init := <-initSeen
+	if init["type"] != "init" || init["id"] != "witan-init-1" {
+		t.Fatalf("unexpected init envelope: %#v", init)
+	}
+	if init["create"] != true {
+		t.Fatalf("expected create init, got %#v", init)
+	}
+	if _, ok := init["file"]; ok {
+		t.Fatalf("create init must not include file bytes: %#v", init)
+	}
+	if _, ok := init["content_type"]; ok {
+		t.Fatalf("create init must not include content_type: %#v", init)
+	}
+	if init["hint"] != "Sheet1" || init["locale"] != "en-US" {
+		t.Fatalf("unexpected hint/locale: %#v", init)
+	}
+}
+
 func serveRPCWebSocket(t *testing.T, w http.ResponseWriter, r *http.Request, handle func(context.Context, *websocket.Conn)) {
 	t.Helper()
 	conn, err := websocket.Accept(w, r, nil)

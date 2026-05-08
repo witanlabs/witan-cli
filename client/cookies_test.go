@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -76,5 +77,66 @@ func TestNewStatelessClientDoesNotUsePersistentCookieJar(t *testing.T) {
 	c := New("https://api.test.local", "test-key", "", true)
 	if c.HTTPClient.Jar != nil {
 		t.Fatal("expected stateless client without cookie jar")
+	}
+}
+
+func TestPersistentCookieJarDeletesDomainCookieWithNormalizedDomain(t *testing.T) {
+	tests := []struct {
+		name         string
+		setDomain    string
+		deleteDomain string
+	}{
+		{
+			name:         "leading dot then no dot",
+			setDomain:    ".example.com",
+			deleteDomain: "example.com",
+		},
+		{
+			name:         "no dot then leading dot",
+			setDomain:    "example.com",
+			deleteDomain: ".example.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			jar, err := NewPersistentCookieJar(filepath.Join(t.TempDir(), "cookies.json"))
+			if err != nil {
+				t.Fatalf("NewPersistentCookieJar failed: %v", err)
+			}
+			u, err := url.Parse("https://api.example.com/v1/exec")
+			if err != nil {
+				t.Fatalf("url.Parse failed: %v", err)
+			}
+
+			jar.SetCookies(u, []*http.Cookie{{
+				Name:    "AWSALB",
+				Value:   "sticky",
+				Domain:  tt.setDomain,
+				Path:    "/",
+				Expires: time.Now().Add(5 * time.Minute),
+			}})
+			if got := len(jar.data.Cookies); got != 1 {
+				t.Fatalf("expected one persisted cookie, got %d", got)
+			}
+
+			jar.SetCookies(u, []*http.Cookie{{
+				Name:   "AWSALB",
+				Domain: tt.deleteDomain,
+				Path:   "/",
+				MaxAge: -1,
+			}})
+			if got := len(jar.data.Cookies); got != 0 {
+				t.Fatalf("expected expired cookie to be removed from persisted data, got %d", got)
+			}
+
+			reloaded, err := NewPersistentCookieJar(jar.path)
+			if err != nil {
+				t.Fatalf("reloading persistent cookie jar failed: %v", err)
+			}
+			if got := reloaded.Cookies(u); len(got) != 0 {
+				t.Fatalf("expected expired cookie not to be resurrected, got %v", got)
+			}
+		})
 	}
 }

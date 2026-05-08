@@ -207,6 +207,8 @@ func persistentCookieKey(u *url.URL, cookie *http.Cookie) string {
 	domain := strings.ToLower(cookie.Domain)
 	if domain == "" {
 		domain = host
+	} else {
+		domain = strings.TrimPrefix(domain, ".")
 	}
 	path := cookie.Path
 	if path == "" {

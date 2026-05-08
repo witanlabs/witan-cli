@@ -29,6 +29,9 @@ func TestExec_PostMultipartRequestShape(t *testing.T) {
 		if got := r.URL.Query().Get("save"); got != "" {
 			t.Fatalf("expected no save query by default, got %q", got)
 		}
+		if got := r.URL.Query().Get("cache"); got != "" {
+			t.Fatalf("expected no cache query for stateless exec, got %q", got)
+		}
 		if got := r.URL.Query().Get("locale"); got != "en-GB" {
 			t.Fatalf("expected locale=en-GB, got %q", got)
 		}
@@ -194,6 +197,9 @@ func TestExecCreate_PostMultipartWithoutFileAndIncludesFilename(t *testing.T) {
 		if got := r.URL.Query().Get("save"); got != "" {
 			t.Fatalf("expected no save query by default, got %q", got)
 		}
+		if got := r.URL.Query().Get("cache"); got != "" {
+			t.Fatalf("expected no cache query for create exec, got %q", got)
+		}
 		if got := r.URL.Query().Get("locale"); got != "en-GB" {
 			t.Fatalf("expected locale=en-GB, got %q", got)
 		}
@@ -302,6 +308,9 @@ func TestFilesExec_PostJSONWithRevisionAndParsesSuccess(t *testing.T) {
 		}
 		if got := r.URL.Query().Get("save"); got != "" {
 			t.Fatalf("expected no save query by default, got %q", got)
+		}
+		if got := r.URL.Query().Get("cache"); got != "true" {
+			t.Fatalf("expected cache=true for files exec, got %q", got)
 		}
 		if got := r.Header.Get("Content-Type"); got != "application/json" {
 			t.Fatalf("unexpected content type: %q", got)

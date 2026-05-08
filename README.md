@@ -202,6 +202,9 @@ Modes:
 - Stateful (default when authenticated): uploads workbook revisions and reuses them across commands
 - Stateless (`--stateless` or `WITAN_STATELESS=1`): sends workbook bytes on every request, no server-side file reuse
 
+In stateful mode, load-balancer affinity cookies are persisted at `~/.config/witan/cookies.json`
+or `$WITAN_CONFIG_DIR/cookies.json` when `WITAN_CONFIG_DIR` is set.
+
 `witan xlsx exec --create` always uses the stateless exec endpoint and only supports new `.xlsx` targets.
 
 Limits:

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- New: The `witan` PyPI package now ships a Python SDK alongside the bundled CLI binary, exposing `witan.Workbook` and `witan.AsyncWorkbook` for synchronous and asyncio access to xlsx workbook sessions over `witan xlsx rpc`.
+- New: `witan xlsx rpc <file>` opens a persistent xlsx session and relays newline-delimited JSON requests over stdio, enabling low-latency multi-op workflows without re-uploading the workbook per call.
+- Updated: Cached `witan xlsx exec` sessions now pin to a backend instance via affinity cookies, improving warm-cache hit rates across sequential calls against the same workbook.
+- Updated: `witan xlsx exec` cache keys now include the local file path, preventing collisions between distinct workbooks that share identical content but live at different paths.
+
 ## 0.9.0
 
 

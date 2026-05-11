@@ -6,8 +6,6 @@
 - New: `witan xlsx rpc <file>` opens a persistent xlsx session and relays newline-delimited JSON requests over stdio, enabling low-latency multi-op workflows without re-uploading the workbook per call.
 - Updated: Cached `witan xlsx exec` sessions now pin to a backend instance via affinity cookies, improving warm-cache hit rates across sequential calls against the same workbook.
 - Updated: `witan xlsx exec` cache keys now include the local file path, preventing collisions between distinct workbooks that share identical content but live at different paths.
-- Updated: Persisted cookie domains are now normalized to ensure cached sessions are reused consistently across CLI invocations.
-- Updated: Sync RPC stdio framing now uses UTF-8 byte counts, fixing request/response handling for payloads containing non-ASCII characters.
 
 ## 0.9.0
 

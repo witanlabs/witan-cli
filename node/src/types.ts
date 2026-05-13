@@ -187,7 +187,11 @@ export interface UpdatedSheetInfo {
 // Workbook/Sheet properties use JsonDict since schema is flexible
 export type WorkbookProperties = JsonDict;
 export type WorkbookPropertiesUpdate = JsonMapping;
-export type SheetProperties = JsonDict;
+export interface SheetProperties extends JsonDict {
+  columns?: Record<string, unknown>;
+  rows?: Record<string, unknown>;
+  visibility?: SheetVisibility;
+}
 export type SheetPropertiesUpdate = JsonMapping;
 export type RowProperties = JsonMapping;
 export type ColumnProperties = JsonMapping;

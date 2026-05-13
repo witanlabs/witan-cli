@@ -110,7 +110,7 @@ export class StdioRPCProcess {
   async request(method: string, op: string, args: Record<string, unknown>, requestId: string): Promise<unknown> {
     // Serialize requests to prevent interleaved writes and response misattribution.
     // This matches Python's asyncio.Lock() approach in _async_process.py.
-    return this.requestChain = this.requestChain.catch(() => {}).then(async () => {
+    const resultPromise = this.requestChain.catch(() => {}).then(async () => {
       if (this.closed) {
         throw new WitanProcessError('witan subprocess is closed', this.stderrBuffer);
       }
@@ -172,7 +172,7 @@ export class StdioRPCProcess {
           op,
           requestId,
           code: response.code,
-          response,
+          response: response as unknown as Record<string, unknown>,
         });
       }
 
@@ -183,6 +183,11 @@ export class StdioRPCProcess {
 
       return response.result;
     });
+
+    // Update chain for next request (don't await - just track for serialization)
+    this.requestChain = resultPromise.then(() => {}, () => {});
+
+    return resultPromise;
   }
 
   async close(): Promise<void> {

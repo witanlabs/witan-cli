@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Workbook } from '../src/workbook.js';
@@ -965,6 +965,561 @@ describe('Workbook', () => {
       const sortReq = requests.find((r) => r.op === 'sortRange');
       expect(sortReq!.args.keys).toHaveLength(2);
       expect(sortReq!.args.hasHeader).toBe(true);
+    });
+  });
+
+  describe('defined names', () => {
+    it('lists defined names', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const names = await wb.listDefinedNames();
+      expect(names).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'listDefinedNames')).toBe(true);
+    });
+
+    it('adds a defined name', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.addDefinedName('MyName', 'Sheet1!A1:B2');
+      expect(result.name).toBe('MyName');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const addReq = requests.find((r) => r.op === 'addDefinedName');
+      expect(addReq!.args.name).toBe('MyName');
+      expect(addReq!.args.range).toBe('Sheet1!A1:B2');
+    });
+
+    it('adds a defined name with scope', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.addDefinedName('LocalName', 'A1', { scope: 'Sheet1' });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const addReq = requests.find((r) => r.op === 'addDefinedName');
+      expect(addReq!.args.scope).toBe('Sheet1');
+    });
+
+    it('deletes a defined name', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.deleteDefinedName('MyName');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const delReq = requests.find((r) => r.op === 'deleteDefinedName');
+      expect(delReq!.args.name).toBe('MyName');
+    });
+  });
+
+  describe('list objects (tables)', () => {
+    it('gets a list object', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.getListObject('Table1');
+      expect(result.name).toBe('Table1');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'getListObject')).toBe(true);
+    });
+
+    it('adds a list object', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.addListObject('Sheet1', { name: 'NewTable', ref: 'A1:C10' });
+      expect(result.listObject).toBeDefined();
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const addReq = requests.find((r) => r.op === 'addListObject');
+      expect(addReq!.args.sheet).toBe('Sheet1');
+    });
+
+    it('sets a list object', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.setListObject('Table1', { displayName: 'UpdatedTable' });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const setReq = requests.find((r) => r.op === 'setListObject');
+      expect(setReq!.args.name).toBe('Table1');
+    });
+
+    it('deletes a list object', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.deleteListObject('Table1');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'deleteListObject')).toBe(true);
+    });
+  });
+
+  describe('data tables', () => {
+    it('gets a data table', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.getDataTable('Sheet1!A1:B5');
+      expect(result.type).toBe('oneVariableColumn');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'getDataTable')).toBe(true);
+    });
+
+    it('adds a data table', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.addDataTable('Sheet1', { ref: 'A1:B5' });
+      expect(result.dataTable).toBeDefined();
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'addDataTable')).toBe(true);
+    });
+
+    it('deletes a data table', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.deleteDataTable('Sheet1!A1:B5');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'deleteDataTable')).toBe(true);
+    });
+  });
+
+  describe('charts', () => {
+    it('lists charts', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const charts = await wb.listCharts();
+      expect(charts).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'listCharts')).toBe(true);
+    });
+
+    it('lists charts filtered by sheet', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.listCharts({ sheet: 'Sheet1' });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const listReq = requests.find((r) => r.op === 'listCharts');
+      expect(listReq!.args.sheet).toBe('Sheet1');
+    });
+
+    it('gets a chart', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const chart = await wb.getChart('Sheet1', 'Chart1');
+      expect(chart.name).toBe('Chart1');
+    });
+
+    it('adds a chart', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const chart = await wb.addChart('Sheet1', { type: 'bar', dataRange: 'A1:B5' });
+      expect(chart).toBeDefined();
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'addChart')).toBe(true);
+    });
+
+    it('sets a chart', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.setChart('Sheet1', 'Chart1', { title: 'Updated Title' });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const setReq = requests.find((r) => r.op === 'setChart');
+      expect(setReq!.args.name).toBe('Chart1');
+    });
+
+    it('deletes a chart', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.deleteChart('Sheet1', 'Chart1');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'deleteChart')).toBe(true);
+    });
+  });
+
+  describe('conditional formatting', () => {
+    it('gets conditional formatting rules', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const rules = await wb.getConditionalFormatting('Sheet1');
+      expect(rules).toEqual([]);
+    });
+
+    it('sets conditional formatting rules', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.setConditionalFormatting('Sheet1', [{ type: 'cellIs', operator: 'greaterThan' }]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const setReq = requests.find((r) => r.op === 'setConditionalFormatting');
+      expect(setReq!.args.rules).toHaveLength(1);
+    });
+
+    it('sets conditional formatting with clear option', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.setConditionalFormatting('Sheet1', [], { clear: true });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const setReq = requests.find((r) => r.op === 'setConditionalFormatting');
+      expect(setReq!.args.clear).toBe(true);
+    });
+
+    it('removes conditional formatting by indices', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.removeConditionalFormatting('Sheet1', [0, 2]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const remReq = requests.find((r) => r.op === 'removeConditionalFormatting');
+      expect(remReq!.args.indices).toEqual([0, 2]);
+    });
+  });
+
+  describe('formula operations', () => {
+    it('evaluates multiple formulas', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const results = await wb.evaluateFormulas('Sheet1', ['=1+1', '=SUM(A1:A10)']);
+      expect(results).toHaveLength(2);
+      expect(results[0].value).toBe(42); // Fake server returns 42 for all formulas
+    });
+
+    it('evaluates a single formula', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.evaluateFormula('Sheet1', '=A1+B1');
+      expect(result.formula).toBe('=A1+B1');
+      expect(result.value).toBe(42);
+    });
+
+    it('gets cell precedents', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.getCellPrecedents('Sheet1!C1');
+      expect(result.cells).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const getReq = requests.find((r) => r.op === 'getCellPrecedents');
+      expect(getReq!.args.depth).toBe(1);
+    });
+
+    it('gets cell precedents with infinite depth', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.getCellPrecedents('Sheet1!C1', Infinity);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const getReq = requests.find((r) => r.op === 'getCellPrecedents');
+      expect(getReq!.args.depth).toBe(-1);
+    });
+
+    it('gets cell dependents', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.getCellDependents('Sheet1!A1', 3);
+      expect(result.cells).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const getReq = requests.find((r) => r.op === 'getCellDependents');
+      expect(getReq!.args.depth).toBe(3);
+    });
+
+    it('traces to inputs', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const inputs = await wb.traceToInputs('Sheet1!C1');
+      expect(inputs).toEqual([]);
+    });
+
+    it('traces to outputs', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const outputs = await wb.traceToOutputs('Sheet1!A1');
+      expect(outputs).toEqual([]);
+    });
+  });
+
+  describe('scenarios / sweep', () => {
+    it('runs sweep inputs', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.sweepInputs(
+        [{ address: 'A1', values: [1, 2, 3] }],
+        ['B1', 'C1']
+      );
+      expect(result.sweepCount).toBe(1);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const sweepReq = requests.find((r) => r.op === 'sweepInputs');
+      expect(sweepReq!.args.inputs).toHaveLength(1);
+      expect(sweepReq!.args.outputs).toHaveLength(2);
+    });
+
+    it('runs sweep with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.sweepInputs([{ address: 'A1', values: [1, 2] }], ['B1'], {
+        mode: 'cartesian',
+        includeStats: true,
+      });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const sweepReq = requests.find((r) => r.op === 'sweepInputs');
+      expect(sweepReq!.args.mode).toBe('cartesian');
+      expect(sweepReq!.args.includeStats).toBe(true);
+    });
+
+    it('scenarios is alias for sweepInputs', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.scenarios([{ address: 'A1', values: [1] }], ['B1']);
+      expect(result.sweepCount).toBe(1);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.some((r) => r.op === 'sweepInputs')).toBe(true);
+    });
+  });
+
+  describe('utilities', () => {
+    it('describes a sheet', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const description = await wb.describeSheet('Sheet1');
+      expect(description.structure).toBeDefined();
+    });
+
+    it('describes all visible sheets', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const descriptions = await wb.describeSheets();
+      // Should include Sheet1 but not Hidden (which has hidden: true)
+      expect(descriptions['Sheet1']).toBeDefined();
+      expect(descriptions['Hidden']).toBeUndefined();
+    });
+
+    it('performs table lookup', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const results = await wb.tableLookup('Table1', 'Row1', 'ColA');
+      expect(results).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const lookupReq = requests.find((r) => r.op === 'tableLookup');
+      expect(lookupReq!.args.table).toBe('Table1');
+      expect(lookupReq!.args.rowLabel).toBe('Row1');
+      expect(lookupReq!.args.columnLabel).toBe('ColA');
+    });
+
+    it('runs lint', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.lint();
+      expect(result.total).toBe(0);
+      expect(result.diagnostics).toEqual([]);
+    });
+
+    it('runs lint with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.lint({
+        rangeAddresses: ['Sheet1!A1:Z100'],
+        skipRuleIds: ['RULE1'],
+        onlyRuleIds: ['RULE2', 'RULE3'],
+      });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const lintReq = requests.find((r) => r.op === 'lint');
+      expect(lintReq!.args.rangeAddresses).toEqual(['Sheet1!A1:Z100']);
+      expect(lintReq!.args.skipRuleIds).toEqual(['RULE1']);
+      expect(lintReq!.args.onlyRuleIds).toEqual(['RULE2', 'RULE3']);
+    });
+
+    it('previews styles', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const dataUrl = await wb.previewStyles('A1:B5');
+      expect(dataUrl).toBe('data:image/png;base64,AAA=');
+    });
+
+    it('reduces addresses', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const reduced = await wb.reduceAddresses(['A1', 'A2', 'B1', 'B2']);
+      expect(reduced).toEqual(['Sheet1!A1:B2']);
+    });
+
+    it('gets cell style', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const style = await wb.getStyle('A1');
+      expect(style).toEqual({});
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const styleReq = requests.find((r) => r.op === 'getStyle');
+      expect(styleReq!.args.address).toBe('A1');
     });
   });
 });

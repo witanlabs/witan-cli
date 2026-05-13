@@ -6,9 +6,25 @@ import type {
   AutoFitColumnResult,
   AutoFitRowResult,
   CellAssignment,
+  ChartInfo,
+  ChartSpec,
+  ChartSummary,
+  ConditionalFormattingRule,
   CopyRangeResult,
+  DataTable,
+  DataTableMutationResult,
+  DataTableSpec,
+  DefinedName,
+  DependencyResult,
   FindAndReplaceResult,
+  FormulaResult,
+  JsonDict,
   JsonMapping,
+  LintResult,
+  ListObject,
+  ListObjectMutationResult,
+  ListObjectSpec,
+  ListObjectUpdate,
   Matcher,
   PasteType,
   ReplaceMatcher,
@@ -18,6 +34,12 @@ import type {
   SheetProperties,
   SortKey,
   Style,
+  SweepInput,
+  SweepMode,
+  SweepResult,
+  TableLookupResult,
+  TraceInput,
+  TraceOutput,
   Value,
   WorkbookProperties,
   WriteResult,
@@ -771,7 +793,7 @@ export class Workbook implements AsyncDisposable {
       'autoFitColumns',
       dropUndefined({
         sheet,
-        columns: columns ?? null,
+        columns,
         minWidth: options.minWidth,
         maxWidth: options.maxWidth,
         padding: options.padding,
@@ -798,7 +820,7 @@ export class Workbook implements AsyncDisposable {
       'autoFitRows',
       dropUndefined({
         sheet,
-        rows: rows ?? null,
+        rows,
         minHeight: options.minHeight,
         maxHeight: options.maxHeight,
       })
@@ -827,5 +849,497 @@ export class Workbook implements AsyncDisposable {
         hasHeader: options.hasHeader,
       })
     );
+  }
+
+  // ============================================================================
+  // Defined Names
+  // ============================================================================
+
+  /**
+   * List all defined names in the workbook.
+   */
+  async listDefinedNames(): Promise<DefinedName[]> {
+    return (await this.request('listDefinedNames', 'listDefinedNames', {})) as DefinedName[];
+  }
+
+  /**
+   * Add a defined name to the workbook.
+   *
+   * @param name - Name to define
+   * @param range - Range address the name refers to
+   * @param options - Options including optional scope
+   * @returns The created defined name
+   */
+  async addDefinedName(
+    name: string,
+    range: string,
+    options: { scope?: string } = {}
+  ): Promise<DefinedName> {
+    return (await this.request(
+      'addDefinedName',
+      'addDefinedName',
+      dropUndefined({ name, range, scope: options.scope })
+    )) as DefinedName;
+  }
+
+  /**
+   * Delete a defined name from the workbook.
+   *
+   * @param name - Name to delete
+   * @param options - Options including optional scope
+   * @returns The deleted defined name
+   */
+  async deleteDefinedName(name: string, options: { scope?: string } = {}): Promise<DefinedName> {
+    return (await this.request(
+      'deleteDefinedName',
+      'deleteDefinedName',
+      dropUndefined({ name, scope: options.scope })
+    )) as DefinedName;
+  }
+
+  // ============================================================================
+  // List Objects (Tables)
+  // ============================================================================
+
+  /**
+   * Get a list object (table) by name.
+   *
+   * @param name - Name of the list object
+   * @returns The list object
+   */
+  async getListObject(name: string): Promise<ListObject> {
+    return (await this.request('getListObject', 'getListObject', { name })) as ListObject;
+  }
+
+  /**
+   * Add a list object (table) to a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param listObject - List object specification
+   * @returns Mutation result with the created list object
+   */
+  async addListObject(sheet: string, listObject: ListObjectSpec): Promise<ListObjectMutationResult> {
+    return (await this.request('addListObject', 'addListObject', {
+      sheet,
+      listObject,
+    })) as ListObjectMutationResult;
+  }
+
+  /**
+   * Update a list object (table).
+   *
+   * @param name - Name of the list object to update
+   * @param listObject - Updated list object properties
+   * @returns Mutation result with the updated list object
+   */
+  async setListObject(name: string, listObject: ListObjectUpdate): Promise<ListObjectMutationResult> {
+    return (await this.request('setListObject', 'setListObject', {
+      name,
+      listObject,
+    })) as ListObjectMutationResult;
+  }
+
+  /**
+   * Delete a list object (table).
+   *
+   * @param name - Name of the list object to delete
+   * @returns Write result
+   */
+  async deleteListObject(name: string): Promise<WriteResult> {
+    return (await this.request('deleteListObject', 'deleteListObject', { name })) as WriteResult;
+  }
+
+  // ============================================================================
+  // Data Tables
+  // ============================================================================
+
+  /**
+   * Get a data table by address.
+   *
+   * @param address - Address of the data table
+   * @returns The data table
+   */
+  async getDataTable(address: string): Promise<DataTable> {
+    return (await this.request('getDataTable', 'getDataTable', { address })) as DataTable;
+  }
+
+  /**
+   * Add a data table to a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param dataTable - Data table specification
+   * @returns Mutation result with the created data table
+   */
+  async addDataTable(sheet: string, dataTable: DataTableSpec): Promise<DataTableMutationResult> {
+    return (await this.request('addDataTable', 'addDataTable', {
+      sheet,
+      dataTable,
+    })) as DataTableMutationResult;
+  }
+
+  /**
+   * Delete a data table.
+   *
+   * @param address - Address of the data table to delete
+   * @returns Write result
+   */
+  async deleteDataTable(address: string): Promise<WriteResult> {
+    return (await this.request('deleteDataTable', 'deleteDataTable', { address })) as WriteResult;
+  }
+
+  // ============================================================================
+  // Charts
+  // ============================================================================
+
+  /**
+   * List charts in the workbook.
+   *
+   * @param options - Options to filter by sheet
+   * @returns Array of chart summaries
+   */
+  async listCharts(options: { sheet?: string } = {}): Promise<ChartSummary[]> {
+    const result = (await this.request(
+      'listCharts',
+      'listCharts',
+      dropUndefined({ sheet: options.sheet })
+    )) as { charts?: ChartSummary[] };
+    return result.charts ?? [];
+  }
+
+  /**
+   * Get a chart by name.
+   *
+   * @param sheet - Sheet containing the chart
+   * @param name - Chart name
+   * @returns The chart info
+   */
+  async getChart(sheet: string, name: string): Promise<ChartInfo> {
+    const result = (await this.request('getChart', 'getChart', { sheet, name })) as {
+      chart?: ChartInfo;
+    };
+    return result.chart ?? ({} as ChartInfo);
+  }
+
+  /**
+   * Add a chart to a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param chart - Chart specification
+   * @returns The created chart
+   */
+  async addChart(sheet: string, chart: ChartSpec): Promise<ChartSpec> {
+    const result = (await this.request('addChart', 'addChart', { sheet, chart })) as {
+      chart?: ChartSpec;
+    };
+    return result.chart ?? ({} as ChartSpec);
+  }
+
+  /**
+   * Update a chart.
+   *
+   * @param sheet - Sheet containing the chart
+   * @param name - Chart name
+   * @param chart - Updated chart specification
+   * @returns The updated chart
+   */
+  async setChart(sheet: string, name: string, chart: ChartSpec): Promise<ChartSpec> {
+    const result = (await this.request('setChart', 'setChart', { sheet, name, chart })) as {
+      chart?: ChartSpec;
+    };
+    return result.chart ?? ({} as ChartSpec);
+  }
+
+  /**
+   * Delete a chart.
+   *
+   * @param sheet - Sheet containing the chart
+   * @param name - Chart name
+   */
+  async deleteChart(sheet: string, name: string): Promise<void> {
+    await this.request('deleteChart', 'deleteChart', { sheet, name });
+  }
+
+  // ============================================================================
+  // Conditional Formatting
+  // ============================================================================
+
+  /**
+   * Get conditional formatting rules for a sheet.
+   *
+   * @param sheet - Sheet name
+   * @returns Array of conditional formatting rules
+   */
+  async getConditionalFormatting(sheet: string): Promise<ConditionalFormattingRule[]> {
+    const result = (await this.request('getConditionalFormatting', 'getConditionalFormatting', {
+      sheet,
+    })) as { rules?: ConditionalFormattingRule[] };
+    return result.rules ?? [];
+  }
+
+  /**
+   * Set conditional formatting rules for a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param rules - Array of conditional formatting rules
+   * @param options - Options including whether to clear existing rules
+   */
+  async setConditionalFormatting(
+    sheet: string,
+    rules: ConditionalFormattingRule[],
+    options: { clear?: boolean } = {}
+  ): Promise<void> {
+    await this.request(
+      'setConditionalFormatting',
+      'setConditionalFormatting',
+      dropUndefined({ sheet, rules, clear: options.clear })
+    );
+  }
+
+  /**
+   * Remove conditional formatting rules by index.
+   *
+   * @param sheet - Sheet name
+   * @param indices - Indices of rules to remove
+   */
+  async removeConditionalFormatting(sheet: string, indices: number[]): Promise<void> {
+    await this.request('removeConditionalFormatting', 'removeConditionalFormatting', {
+      sheet,
+      indices,
+    });
+  }
+
+  // ============================================================================
+  // Formula Operations
+  // ============================================================================
+
+  /**
+   * Evaluate multiple formulas in a sheet context.
+   *
+   * @param sheet - Sheet name for formula context
+   * @param formulas - Array of formula strings
+   * @returns Array of formula results
+   */
+  async evaluateFormulas(sheet: string, formulas: string[]): Promise<FormulaResult[]> {
+    return (await this.request('evaluateFormulas', 'evaluateFormulas', {
+      sheet,
+      formulas,
+    })) as FormulaResult[];
+  }
+
+  /**
+   * Evaluate a single formula in a sheet context.
+   * This is a convenience wrapper around evaluateFormulas.
+   *
+   * @param sheet - Sheet name for formula context
+   * @param formula - Formula string
+   * @returns The formula result
+   */
+  async evaluateFormula(sheet: string, formula: string): Promise<FormulaResult> {
+    const results = await this.evaluateFormulas(sheet, [formula]);
+    return results[0]!;
+  }
+
+  /**
+   * Get cells that a formula depends on (precedents).
+   *
+   * @param address - Cell address
+   * @param depth - How many levels to trace (default: 1, use Infinity for all)
+   * @returns Dependency result with cells and warnings
+   */
+  async getCellPrecedents(address: string, depth: number | typeof Infinity = 1): Promise<DependencyResult> {
+    const rpcDepth = Number.isFinite(depth) ? Math.floor(depth) : -1;
+    return (await this.request('getCellPrecedents', 'getCellPrecedents', {
+      address,
+      depth: rpcDepth,
+    })) as DependencyResult;
+  }
+
+  /**
+   * Get cells that depend on a cell (dependents).
+   *
+   * @param address - Cell address
+   * @param depth - How many levels to trace (default: 1, use Infinity for all)
+   * @returns Dependency result with cells and warnings
+   */
+  async getCellDependents(address: string, depth: number | typeof Infinity = 1): Promise<DependencyResult> {
+    const rpcDepth = Number.isFinite(depth) ? Math.floor(depth) : -1;
+    return (await this.request('getCellDependents', 'getCellDependents', {
+      address,
+      depth: rpcDepth,
+    })) as DependencyResult;
+  }
+
+  /**
+   * Trace a cell to its input sources.
+   *
+   * @param address - Cell address
+   * @returns Array of input traces
+   */
+  async traceToInputs(address: string): Promise<TraceInput[]> {
+    return (await this.request('traceToInputs', 'traceToInputs', { address })) as TraceInput[];
+  }
+
+  /**
+   * Trace a cell to its output destinations.
+   *
+   * @param address - Cell address
+   * @returns Array of output traces
+   */
+  async traceToOutputs(address: string): Promise<TraceOutput[]> {
+    return (await this.request('traceToOutputs', 'traceToOutputs', { address })) as TraceOutput[];
+  }
+
+  // ============================================================================
+  // Scenarios / Sweep
+  // ============================================================================
+
+  /**
+   * Run a sweep over input combinations and capture outputs.
+   *
+   * @param inputs - Array of input specifications with addresses and values
+   * @param outputs - Array of output cell addresses
+   * @param options - Sweep options
+   * @returns Sweep result with all combinations
+   */
+  async sweepInputs(
+    inputs: SweepInput[],
+    outputs: string[],
+    options: { mode?: SweepMode; includeStats?: boolean } = {}
+  ): Promise<SweepResult> {
+    return (await this.request(
+      'sweepInputs',
+      'sweepInputs',
+      dropUndefined({
+        inputs,
+        outputs,
+        mode: options.mode,
+        includeStats: options.includeStats,
+      })
+    )) as SweepResult;
+  }
+
+  /**
+   * Alias for sweepInputs.
+   */
+  async scenarios(
+    inputs: SweepInput[],
+    outputs: string[],
+    options: { mode?: SweepMode; includeStats?: boolean } = {}
+  ): Promise<SweepResult> {
+    return this.sweepInputs(inputs, outputs, options);
+  }
+
+  // ============================================================================
+  // Utilities
+  // ============================================================================
+
+  /**
+   * Get a description of a sheet's structure.
+   *
+   * @param sheet - Sheet name
+   * @returns Sheet description
+   */
+  async describeSheet(sheet: string): Promise<JsonDict> {
+    return (await this.request('describeSheet', 'describeSheet', { sheet })) as JsonDict;
+  }
+
+  /**
+   * Get descriptions of all visible sheets.
+   * This is a composite operation that calls listSheets and describeSheet.
+   *
+   * @returns Map of sheet names to descriptions
+   */
+  async describeSheets(): Promise<Record<string, JsonDict>> {
+    const sheets = await this.listSheets();
+    const result: Record<string, JsonDict> = {};
+    for (const sheet of sheets) {
+      if (!sheet.hidden) {
+        result[sheet.sheet] = await this.describeSheet(sheet.sheet);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Look up a value in a table by row and column labels.
+   *
+   * @param table - Table name or address
+   * @param rowLabel - Row label to find
+   * @param columnLabel - Column label to find
+   * @returns Array of lookup results
+   */
+  async tableLookup(
+    table: string,
+    rowLabel: string | number | boolean,
+    columnLabel: string | number | boolean
+  ): Promise<TableLookupResult[]> {
+    return (await this.request('tableLookup', 'tableLookup', {
+      table,
+      rowLabel,
+      columnLabel,
+    })) as TableLookupResult[];
+  }
+
+  /**
+   * Run linting rules on the workbook.
+   *
+   * @param options - Lint options
+   * @returns Lint result with diagnostics
+   */
+  async lint(
+    options: {
+      rangeAddresses?: string[];
+      skipRuleIds?: string[];
+      onlyRuleIds?: string[];
+    } = {}
+  ): Promise<LintResult> {
+    return (await this.request(
+      'lint',
+      'lint',
+      dropUndefined({
+        rangeAddresses: options.rangeAddresses,
+        skipRuleIds: options.skipRuleIds,
+        onlyRuleIds: options.onlyRuleIds,
+      })
+    )) as LintResult;
+  }
+
+  /**
+   * Generate a preview image of cell styles.
+   *
+   * @param range - Range address to preview
+   * @returns Data URL of the preview image
+   */
+  async previewStyles(range: string): Promise<string> {
+    const result = (await this.request('previewStyles', 'previewStyles', { address: range })) as {
+      contentType?: string;
+      data?: string;
+    };
+    const contentType = result.contentType;
+    const data = result.data;
+    if (typeof contentType !== 'string' || typeof data !== 'string') {
+      throw new WitanProcessError(`Invalid previewStyles result: ${JSON.stringify(result)}`);
+    }
+    return `data:${contentType};base64,${data}`;
+  }
+
+  /**
+   * Reduce a list of addresses to minimal non-overlapping ranges.
+   *
+   * @param addresses - Array of cell or range addresses
+   * @returns Array of reduced addresses
+   */
+  async reduceAddresses(addresses: string[]): Promise<string[]> {
+    return (await this.request('reduceAddresses', 'reduceAddresses', { addresses })) as string[];
+  }
+
+  /**
+   * Get the style of a cell.
+   *
+   * @param cell - Cell address
+   * @returns Style properties
+   */
+  async getStyle(cell: string): Promise<JsonDict> {
+    return (await this.request('getStyle', 'getStyle', { address: cell })) as JsonDict;
   }
 }

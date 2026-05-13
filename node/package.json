@@ -1,0 +1,60 @@
+{
+  "name": "witan",
+  "version": "0.10.0",
+  "description": "Node.js SDK for Witan CLI",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "bin": {
+    "witan": "./bin/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "excel",
+    "xlsx",
+    "spreadsheet",
+    "witan",
+    "automation"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/witanlabs/witan-cli.git",
+    "directory": "node"
+  },
+  "dependencies": {
+    "detect-libc": "^2.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0",
+    "@types/node": "^22.0.0"
+  },
+  "optionalDependencies": {
+    "@witan/darwin-arm64": "0.10.0",
+    "@witan/darwin-x64": "0.10.0",
+    "@witan/linux-x64": "0.10.0",
+    "@witan/linux-arm64": "0.10.0",
+    "@witan/linux-x64-musl": "0.10.0",
+    "@witan/linux-arm64-musl": "0.10.0",
+    "@witan/win32-x64": "0.10.0",
+    "@witan/win32-arm64": "0.10.0"
+  }
+}

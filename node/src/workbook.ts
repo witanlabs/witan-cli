@@ -1,14 +1,22 @@
 import { getBinaryPath } from './binary.js';
 import { WitanProcessError } from './errors.js';
-import { dropUndefined } from './helpers.js';
+import { dropUndefined, serializeMatcher } from './helpers.js';
 import { StdioRPCProcess } from './process.js';
 import type {
+  AutoFitColumnResult,
+  AutoFitRowResult,
   CellAssignment,
   CopyRangeResult,
+  FindAndReplaceResult,
   JsonMapping,
+  Matcher,
   PasteType,
+  ReplaceMatcher,
+  SearchCell,
+  SearchRow,
   SheetInfo,
   SheetProperties,
+  SortKey,
   Style,
   Value,
   WorkbookProperties,
@@ -547,5 +555,277 @@ export class Workbook implements AsyncDisposable {
     }
 
     return this.setCells(assignments);
+  }
+
+  // ============================================================================
+  // Search Operations
+  // ============================================================================
+
+  /**
+   * Find cells matching a pattern.
+   *
+   * @param matcher - String, number, boolean, RegExp, or array of strings/RegExps
+   * @param options - Search options
+   * @returns Array of matching cells
+   */
+  async findCells(
+    matcher: Matcher,
+    options: {
+      in?: string;
+      context?: number;
+      limit?: number;
+      offset?: number;
+      formulas?: boolean;
+    } = {}
+  ): Promise<SearchCell[]> {
+    const result = (await this.request(
+      'findCells',
+      'findCells',
+      dropUndefined({
+        matcher: serializeMatcher(matcher),
+        in: options.in,
+        context: options.context ?? 2,
+        limit: options.limit ?? 20,
+        offset: options.offset ?? 0,
+        formulas: options.formulas,
+      })
+    )) as { matches?: SearchCell[] };
+    return result.matches ?? [];
+  }
+
+  /**
+   * Find rows containing cells matching a pattern.
+   *
+   * @param matcher - String, number, boolean, RegExp, or array of strings/RegExps
+   * @param options - Search options
+   * @returns Array of matching rows
+   */
+  async findRows(
+    matcher: Matcher,
+    options: {
+      in?: string;
+      context?: number;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<SearchRow[]> {
+    const result = (await this.request(
+      'findRows',
+      'findRows',
+      dropUndefined({
+        matcher: serializeMatcher(matcher),
+        in: options.in,
+        context: options.context,
+        limit: options.limit ?? 20,
+        offset: options.offset ?? 0,
+      })
+    )) as { matches?: SearchRow[] };
+    return result.matches ?? [];
+  }
+
+  /**
+   * Find and replace text in cells.
+   *
+   * @param find - String or RegExp to find
+   * @param replace - Replacement string
+   * @param options - Find and replace options
+   * @returns Result with count of replacements made
+   */
+  async findAndReplace(
+    find: ReplaceMatcher,
+    replace: string,
+    options: {
+      in?: string;
+      matchCase?: boolean;
+      wholeCell?: boolean;
+      inFormulas?: boolean;
+      limit?: number;
+    } = {}
+  ): Promise<FindAndReplaceResult> {
+    return (await this.request(
+      'findAndReplace',
+      'findAndReplace',
+      dropUndefined({
+        find: serializeMatcher(find),
+        replace,
+        in: options.in,
+        matchCase: options.matchCase,
+        wholeCell: options.wholeCell,
+        inFormulas: options.inFormulas,
+        limit: options.limit,
+      })
+    )) as FindAndReplaceResult;
+  }
+
+  // ============================================================================
+  // Row/Column Structure Operations
+  // ============================================================================
+
+  /**
+   * Insert rows after a specified row.
+   *
+   * @param sheet - Sheet name
+   * @param row - Row number after which to insert (1-based)
+   * @param count - Number of rows to insert (default: 1)
+   */
+  async insertRowAfter(sheet: string, row: number, count = 1): Promise<void> {
+    await this.request('insertRowAfter', 'insertRowAfter', { sheet, row, count });
+  }
+
+  /**
+   * Delete rows from a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param row - Starting row number (1-based)
+   * @param count - Number of rows to delete (default: 1)
+   */
+  async deleteRows(sheet: string, row: number, count = 1): Promise<void> {
+    await this.request('deleteRows', 'deleteRows', { sheet, row, count });
+  }
+
+  /**
+   * Insert columns after a specified column.
+   *
+   * @param sheet - Sheet name
+   * @param column - Column number (1-based) or letter after which to insert
+   * @param count - Number of columns to insert (default: 1)
+   */
+  async insertColumnAfter(sheet: string, column: number | string, count = 1): Promise<void> {
+    await this.request('insertColumnAfter', 'insertColumnAfter', { sheet, column, count });
+  }
+
+  /**
+   * Delete columns from a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param column - Starting column number (1-based) or letter
+   * @param count - Number of columns to delete (default: 1)
+   */
+  async deleteColumns(sheet: string, column: number | string, count = 1): Promise<void> {
+    await this.request('deleteColumns', 'deleteColumns', { sheet, column, count });
+  }
+
+  // ============================================================================
+  // Row/Column Properties
+  // ============================================================================
+
+  /**
+   * Set properties for a range of rows.
+   *
+   * @param sheet - Sheet name
+   * @param fromRow - Starting row number (1-based)
+   * @param toRow - Ending row number (1-based)
+   * @param properties - Properties to set (e.g., height, hidden)
+   */
+  async setRowProperties(
+    sheet: string,
+    fromRow: number,
+    toRow: number,
+    properties: JsonMapping
+  ): Promise<void> {
+    await this.request('setRowProperties', 'setRowProperties', {
+      sheet,
+      fromRow,
+      toRow,
+      properties,
+    });
+  }
+
+  /**
+   * Set properties for a range of columns.
+   *
+   * @param sheet - Sheet name
+   * @param fromCol - Starting column number (1-based) or letter
+   * @param toCol - Ending column number (1-based) or letter
+   * @param properties - Properties to set (e.g., width, hidden)
+   */
+  async setColumnProperties(
+    sheet: string,
+    fromCol: number | string,
+    toCol: number | string,
+    properties: JsonMapping
+  ): Promise<void> {
+    await this.request('setColumnProperties', 'setColumnProperties', {
+      sheet,
+      fromCol,
+      toCol,
+      properties,
+    });
+  }
+
+  /**
+   * Auto-fit column widths to content.
+   *
+   * @param sheet - Sheet name
+   * @param columns - Specific columns to fit (default: all)
+   * @param options - Auto-fit options
+   * @returns Map of column letters to width results
+   */
+  async autoFitColumns(
+    sheet: string,
+    columns?: (number | string)[],
+    options: { minWidth?: number; maxWidth?: number; padding?: number } = {}
+  ): Promise<Record<string, AutoFitColumnResult>> {
+    const result = (await this.request(
+      'autoFitColumns',
+      'autoFitColumns',
+      dropUndefined({
+        sheet,
+        columns: columns ?? null,
+        minWidth: options.minWidth,
+        maxWidth: options.maxWidth,
+        padding: options.padding,
+      })
+    )) as { columns?: Record<string, AutoFitColumnResult> };
+    return result.columns ?? {};
+  }
+
+  /**
+   * Auto-fit row heights to content.
+   *
+   * @param sheet - Sheet name
+   * @param rows - Specific rows to fit (default: all)
+   * @param options - Auto-fit options
+   * @returns Map of row numbers to height results
+   */
+  async autoFitRows(
+    sheet: string,
+    rows?: number[],
+    options: { minHeight?: number; maxHeight?: number } = {}
+  ): Promise<Record<string, AutoFitRowResult>> {
+    const result = (await this.request(
+      'autoFitRows',
+      'autoFitRows',
+      dropUndefined({
+        sheet,
+        rows: rows ?? null,
+        minHeight: options.minHeight,
+        maxHeight: options.maxHeight,
+      })
+    )) as { rows?: Record<string, AutoFitRowResult> };
+    return result.rows ?? {};
+  }
+
+  /**
+   * Sort a range by specified columns.
+   *
+   * @param range - Range address to sort
+   * @param keys - Sort keys specifying columns and order
+   * @param options - Sort options
+   */
+  async sortRange(
+    range: string,
+    keys: SortKey[],
+    options: { hasHeader?: boolean } = {}
+  ): Promise<void> {
+    await this.request(
+      'sortRange',
+      'sortRange',
+      dropUndefined({
+        range,
+        keys,
+        hasHeader: options.hasHeader,
+      })
+    );
   }
 }

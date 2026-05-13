@@ -614,4 +614,357 @@ describe('Workbook', () => {
       expect(requests.some((r) => r.op === 'setCells')).toBe(true);
     });
   });
+
+  describe('search operations', () => {
+    it('finds cells by string', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      // Fake server returns empty matches array
+      const matches = await wb.findCells('test');
+      expect(matches).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const findReq = requests.find((r) => r.op === 'findCells');
+      expect(findReq).toBeDefined();
+      expect(findReq!.args.matcher).toBe('test');
+    });
+
+    it('finds cells by RegExp', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.findCells(/pattern/i);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const findReq = requests.find((r) => r.op === 'findCells');
+      expect(findReq!.args.matcher).toEqual({ source: 'pattern', flags: 'i' });
+    });
+
+    it('finds cells with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.findCells('test', {
+        in: 'Sheet1!A:Z',
+        context: 5,
+        limit: 50,
+        offset: 10,
+        formulas: true,
+      });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const findReq = requests.find((r) => r.op === 'findCells');
+      expect(findReq!.args.in).toBe('Sheet1!A:Z');
+      expect(findReq!.args.context).toBe(5);
+      expect(findReq!.args.limit).toBe(50);
+      expect(findReq!.args.offset).toBe(10);
+      expect(findReq!.args.formulas).toBe(true);
+    });
+
+    it('finds rows by matcher', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      // Fake server returns empty matches array
+      const matches = await wb.findRows('test');
+      expect(matches).toEqual([]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const findReq = requests.find((r) => r.op === 'findRows');
+      expect(findReq).toBeDefined();
+    });
+
+    it('finds and replaces text', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.findAndReplace('old', 'new');
+      // Fake server returns replaced: 1
+      expect(result.replaced).toBe(1);
+      expect(result.cells).toContain('Sheet1!A1');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const replaceReq = requests.find((r) => r.op === 'findAndReplace');
+      expect(replaceReq).toBeDefined();
+      expect(replaceReq!.args.find).toBe('old');
+      expect(replaceReq!.args.replace).toBe('new');
+    });
+
+    it('finds and replaces with RegExp and options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.findAndReplace(/pattern/g, 'replacement', {
+        in: 'Sheet1!A:D',
+        matchCase: true,
+        wholeCell: true,
+        inFormulas: true,
+        limit: 100,
+      });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const replaceReq = requests.find((r) => r.op === 'findAndReplace');
+      expect(replaceReq!.args.find).toEqual({ source: 'pattern', flags: 'g' });
+      expect(replaceReq!.args.matchCase).toBe(true);
+      expect(replaceReq!.args.wholeCell).toBe(true);
+      expect(replaceReq!.args.inFormulas).toBe(true);
+      expect(replaceReq!.args.limit).toBe(100);
+    });
+  });
+
+  describe('row/column structure operations', () => {
+    it('inserts rows after', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.insertRowAfter('Sheet1', 5, 3);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const insertReq = requests.find((r) => r.op === 'insertRowAfter');
+      expect(insertReq).toBeDefined();
+      expect(insertReq!.args.sheet).toBe('Sheet1');
+      expect(insertReq!.args.row).toBe(5);
+      expect(insertReq!.args.count).toBe(3);
+    });
+
+    it('deletes rows', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.deleteRows('Sheet1', 2, 5);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const deleteReq = requests.find((r) => r.op === 'deleteRows');
+      expect(deleteReq).toBeDefined();
+      expect(deleteReq!.args.sheet).toBe('Sheet1');
+      expect(deleteReq!.args.row).toBe(2);
+      expect(deleteReq!.args.count).toBe(5);
+    });
+
+    it('inserts columns after', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.insertColumnAfter('Sheet1', 'B', 2);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const insertReq = requests.find((r) => r.op === 'insertColumnAfter');
+      expect(insertReq).toBeDefined();
+      expect(insertReq!.args.column).toBe('B');
+      expect(insertReq!.args.count).toBe(2);
+    });
+
+    it('deletes columns', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.deleteColumns('Sheet1', 3, 2);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const deleteReq = requests.find((r) => r.op === 'deleteColumns');
+      expect(deleteReq).toBeDefined();
+      expect(deleteReq!.args.column).toBe(3);
+      expect(deleteReq!.args.count).toBe(2);
+    });
+
+    it('uses default count of 1', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.insertRowAfter('Sheet1', 1);
+      await wb.deleteRows('Sheet1', 1);
+      await wb.insertColumnAfter('Sheet1', 'A');
+      await wb.deleteColumns('Sheet1', 1);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      expect(requests.filter((r) => r.args.count === 1)).toHaveLength(4);
+    });
+  });
+
+  describe('row/column properties', () => {
+    it('sets row properties', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.setRowProperties('Sheet1', 1, 5, { height: 30, hidden: false });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const setReq = requests.find((r) => r.op === 'setRowProperties');
+      expect(setReq).toBeDefined();
+      expect(setReq!.args.sheet).toBe('Sheet1');
+      expect(setReq!.args.fromRow).toBe(1);
+      expect(setReq!.args.toRow).toBe(5);
+      expect(setReq!.args.properties).toEqual({ height: 30, hidden: false });
+    });
+
+    it('sets column properties', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.setColumnProperties('Sheet1', 'A', 'D', { width: 100 });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const setReq = requests.find((r) => r.op === 'setColumnProperties');
+      expect(setReq).toBeDefined();
+      expect(setReq!.args.fromCol).toBe('A');
+      expect(setReq!.args.toCol).toBe('D');
+      expect(setReq!.args.properties).toEqual({ width: 100 });
+    });
+  });
+
+  describe('auto-fit operations', () => {
+    it('auto-fits all columns', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.autoFitColumns('Sheet1');
+      expect(result['A']).toBeDefined();
+      // Fake server returns width: 12
+      expect(result['A'].width).toBe(12);
+      expect(result['A'].previousWidth).toBe(8);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const fitReq = requests.find((r) => r.op === 'autoFitColumns');
+      expect(fitReq).toBeDefined();
+      expect(fitReq!.args.sheet).toBe('Sheet1');
+    });
+
+    it('auto-fits specific columns with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.autoFitColumns('Sheet1', ['A', 'B', 'C'], {
+        minWidth: 50,
+        maxWidth: 200,
+        padding: 10,
+      });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const fitReq = requests.find((r) => r.op === 'autoFitColumns');
+      expect(fitReq!.args.columns).toEqual(['A', 'B', 'C']);
+      expect(fitReq!.args.minWidth).toBe(50);
+      expect(fitReq!.args.maxWidth).toBe(200);
+      expect(fitReq!.args.padding).toBe(10);
+    });
+
+    it('auto-fits all rows', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const result = await wb.autoFitRows('Sheet1');
+      expect(result['1']).toBeDefined();
+      // Fake server returns height: 15
+      expect(result['1'].height).toBe(15);
+      expect(result['1'].previousHeight).toBe(12);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const fitReq = requests.find((r) => r.op === 'autoFitRows');
+      expect(fitReq).toBeDefined();
+    });
+
+    it('auto-fits specific rows with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.autoFitRows('Sheet1', [1, 2, 3], { minHeight: 15, maxHeight: 50 });
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const fitReq = requests.find((r) => r.op === 'autoFitRows');
+      expect(fitReq!.args.rows).toEqual([1, 2, 3]);
+      expect(fitReq!.args.minHeight).toBe(15);
+      expect(fitReq!.args.maxHeight).toBe(50);
+    });
+  });
+
+  describe('sort operations', () => {
+    it('sorts a range by single column', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.sortRange('A1:D10', [{ column: 'A' }]);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const sortReq = requests.find((r) => r.op === 'sortRange');
+      expect(sortReq).toBeDefined();
+      expect(sortReq!.args.range).toBe('A1:D10');
+      expect(sortReq!.args.keys).toEqual([{ column: 'A' }]);
+    });
+
+    it('sorts a range by multiple columns with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.sortRange(
+        'A1:D10',
+        [
+          { column: 'B', descending: true },
+          { column: 2, descending: false },
+        ],
+        { hasHeader: true }
+      );
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const sortReq = requests.find((r) => r.op === 'sortRange');
+      expect(sortReq!.args.keys).toHaveLength(2);
+      expect(sortReq!.args.hasHeader).toBe(true);
+    });
+  });
 });

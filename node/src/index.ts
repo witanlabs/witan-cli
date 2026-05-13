@@ -1,4 +1,10 @@
 // Witan Node.js SDK
-// Public exports will be added in subsequent phases.
 
-export {};
+export {
+  WitanError,
+  WitanProcessError,
+  WitanRPCError,
+  WitanTimeoutError,
+} from './errors.js';
+
+export type * from './types.js';

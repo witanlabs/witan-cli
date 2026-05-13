@@ -1,5 +1,7 @@
 // Witan Node.js SDK
 
+export { getBinaryPath } from './binary.js';
+
 export {
   WitanError,
   WitanProcessError,

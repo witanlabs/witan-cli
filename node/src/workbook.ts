@@ -3,10 +3,16 @@ import { WitanProcessError } from './errors.js';
 import { dropUndefined } from './helpers.js';
 import { StdioRPCProcess } from './process.js';
 import type {
+  CellAssignment,
+  CopyRangeResult,
+  JsonMapping,
+  PasteType,
   SheetInfo,
   SheetProperties,
+  Style,
+  Value,
   WorkbookProperties,
-  JsonMapping,
+  WriteResult,
 } from './types.js';
 
 /**
@@ -288,5 +294,258 @@ export class Workbook implements AsyncDisposable {
       sheet,
       properties,
     });
+  }
+
+  // ============================================================================
+  // Reading Data
+  // ============================================================================
+
+  /**
+   * Read a single cell value.
+   * This is a composite operation that calls readRange and extracts the first cell.
+   *
+   * @param cell - Cell address (e.g., "Sheet1!A1" or "A1")
+   * @param options - Read options
+   * @returns The cell value
+   */
+  async readCell(cell: string, options: { context?: number } = {}): Promise<Value> {
+    const data = (await this.request(
+      'readCell',
+      'readRange',
+      dropUndefined({ address: cell, context: options.context })
+    )) as Value[][];
+    return data[0]![0]!;
+  }
+
+  /**
+   * Read a range of cells.
+   *
+   * @param range - Range address (e.g., "Sheet1!A1:B10")
+   * @returns 2D array of cell values
+   */
+  async readRange(range: string): Promise<Value[][]> {
+    return (await this.request('readRange', 'readRange', { address: range })) as Value[][];
+  }
+
+  /**
+   * Read a row of cells.
+   *
+   * @param sheet - Sheet name
+   * @param row - Row number (1-based)
+   * @param options - Read options
+   * @returns Array of cell values
+   */
+  async readRow(
+    sheet: string,
+    row: number,
+    options: { startCol?: number; endCol?: number } = {}
+  ): Promise<Value[]> {
+    return (await this.request(
+      'readRow',
+      'readRow',
+      dropUndefined({
+        sheet,
+        row,
+        startCol: options.startCol,
+        endCol: options.endCol,
+      })
+    )) as Value[];
+  }
+
+  /**
+   * Read a column of cells.
+   *
+   * @param sheet - Sheet name
+   * @param col - Column number (1-based) or letter (e.g., "A")
+   * @param options - Read options
+   * @returns Array of cell values
+   */
+  async readColumn(
+    sheet: string,
+    col: number | string,
+    options: { startRow?: number; endRow?: number } = {}
+  ): Promise<Value[]> {
+    return (await this.request(
+      'readColumn',
+      'readColumn',
+      dropUndefined({
+        sheet,
+        col,
+        startRow: options.startRow,
+        endRow: options.endRow,
+      })
+    )) as Value[];
+  }
+
+  /**
+   * Read a range as tab-separated values.
+   *
+   * @param range - Range address
+   * @param options - Read options
+   * @returns TSV string
+   */
+  async readRangeTsv(
+    range: string,
+    options: { includeEmpty?: boolean; includeFormulas?: boolean } = {}
+  ): Promise<string> {
+    return (await this.request(
+      'readRangeTsv',
+      'readRangeTsv',
+      dropUndefined({
+        address: range,
+        includeEmpty: options.includeEmpty,
+        includeFormulas: options.includeFormulas,
+      })
+    )) as string;
+  }
+
+  /**
+   * Read a row as tab-separated values.
+   *
+   * @param sheet - Sheet name
+   * @param row - Row number (1-based)
+   * @param options - Read options
+   * @returns TSV string
+   */
+  async readRowTsv(
+    sheet: string,
+    row: number,
+    options: {
+      startCol?: number;
+      endCol?: number;
+      includeEmpty?: boolean;
+      includeFormulas?: boolean;
+    } = {}
+  ): Promise<string> {
+    return (await this.request(
+      'readRowTsv',
+      'readRowTsv',
+      dropUndefined({
+        sheet,
+        row,
+        startCol: options.startCol,
+        endCol: options.endCol,
+        includeEmpty: options.includeEmpty,
+        includeFormulas: options.includeFormulas,
+      })
+    )) as string;
+  }
+
+  /**
+   * Read a column as tab-separated values.
+   *
+   * @param sheet - Sheet name
+   * @param col - Column number (1-based) or letter
+   * @param options - Read options
+   * @returns TSV string
+   */
+  async readColumnTsv(
+    sheet: string,
+    col: number | string,
+    options: {
+      startRow?: number;
+      endRow?: number;
+      includeEmpty?: boolean;
+      includeFormulas?: boolean;
+    } = {}
+  ): Promise<string> {
+    return (await this.request(
+      'readColumnTsv',
+      'readColumnTsv',
+      dropUndefined({
+        sheet,
+        col,
+        startRow: options.startRow,
+        endRow: options.endRow,
+        includeEmpty: options.includeEmpty,
+        includeFormulas: options.includeFormulas,
+      })
+    )) as string;
+  }
+
+  // ============================================================================
+  // Writing Data
+  // ============================================================================
+
+  /**
+   * Set values in multiple cells.
+   *
+   * @param cells - Array of cell assignments
+   * @returns Write result with changed cells and any errors
+   */
+  async setCells(cells: CellAssignment[]): Promise<WriteResult> {
+    return (await this.request('setCells', 'setCells', { cells })) as WriteResult;
+  }
+
+  /**
+   * Set the style of a cell or range.
+   *
+   * @param target - Cell or range address
+   * @param style - Style properties to apply
+   */
+  async setStyle(target: string, style: Style): Promise<void> {
+    await this.request('setStyle', 'setStyle', { address: target, style });
+  }
+
+  /**
+   * Copy a range to another location.
+   *
+   * @param source - Source range address
+   * @param destination - Destination cell address
+   * @param options - Copy options
+   * @returns Copy result with destination and cell count
+   */
+  async copyRange(
+    source: string,
+    destination: string,
+    options: { pasteType?: PasteType } = {}
+  ): Promise<CopyRangeResult> {
+    return (await this.request(
+      'copyRange',
+      'copyRange',
+      dropUndefined({
+        source,
+        destination,
+        pasteType: options.pasteType,
+      })
+    )) as CopyRangeResult;
+  }
+
+  /**
+   * Scale numeric values in a range by a factor.
+   * This is a composite operation that reads the range, filters numeric cells,
+   * and calls setCells with the scaled values.
+   *
+   * @param range - Range address
+   * @param factor - Multiplication factor
+   * @param options - Scale options
+   * @returns Write result, or null if no numeric cells were found
+   */
+  async scaleRange(
+    range: string,
+    factor: number,
+    options: { skipFormulas?: boolean } = {}
+  ): Promise<WriteResult | null> {
+    const skipFormulas = options.skipFormulas ?? true;
+    const data = await this.readRange(range);
+
+    const assignments: CellAssignment[] = [];
+    for (const row of data) {
+      for (const cell of row) {
+        const value = cell.value;
+        const hasFormula = Boolean(cell.formula);
+
+        // Only scale numeric values (not booleans)
+        if (typeof value === 'number' && (!hasFormula || !skipFormulas)) {
+          assignments.push({ address: cell.address, value: value * factor });
+        }
+      }
+    }
+
+    if (assignments.length === 0) {
+      return null;
+    }
+
+    return this.setCells(assignments);
   }
 }

@@ -8,10 +8,10 @@ import { WitanProcessError, WitanRPCError, WitanTimeoutError } from '../src/erro
 
 const FAKE_RPC_PATH = join(__dirname, '../../python/tests/fake_witan_rpc.py');
 
-function createProcess(mode = 'ok', options: { timeout?: number } = {}) {
+function createProcess(mode = 'ok', options: { timeoutMs?: number } = {}) {
   return new StdioRPCProcess(['python3', FAKE_RPC_PATH], {
     env: { WITAN_FAKE_MODE: mode },
-    timeout: options.timeout,
+    timeoutMs: options.timeoutMs,
   });
 }
 
@@ -158,7 +158,7 @@ describe('StdioRPCProcess', () => {
 
   describe('timeout', () => {
     it('throws WitanTimeoutError when response times out', async () => {
-      proc = createProcess('hang', { timeout: 500 });
+      proc = createProcess('hang', { timeoutMs: 500 });
       await proc.waitReady();
 
       const start = Date.now();
@@ -239,7 +239,7 @@ describe('StdioRPCProcess', () => {
 
   describe('startup edge cases', () => {
     it('rejects waitReady if process fails to start', async () => {
-      proc = new StdioRPCProcess(['nonexistent-binary-xyz'], { timeout: 1000 });
+      proc = new StdioRPCProcess(['nonexistent-binary-xyz'], { timeoutMs: 1000 });
       await expect(proc.waitReady()).rejects.toThrow(WitanProcessError);
       expect(proc.isClosed).toBe(true);
     }, 5000); // Short timeout for this test

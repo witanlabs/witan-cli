@@ -21,15 +21,15 @@ export class StdioRPCProcess {
   private responseQueue: Array<(line: string | null) => void> = [];
   private stderrBuffer: string[] = [];
   private closed = false;
-  private readonly timeout: number;
+  private readonly timeoutMs: number;
   private readonly readyPromise: Promise<void>;
   private readyReject?: (err: Error) => void;
 
   // Mutex: serializes requests to prevent interleaved writes and response misattribution
   private requestChain: Promise<void> = Promise.resolve();
 
-  constructor(argv: string[], options: { env?: Record<string, string>; timeout?: number } = {}) {
-    this.timeout = options.timeout ?? 90_000;
+  constructor(argv: string[], options: { env?: Record<string, string>; timeoutMs?: number } = {}) {
+    this.timeoutMs = options.timeoutMs ?? 90_000;
 
     this.proc = spawn(argv[0]!, argv.slice(1), {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -131,10 +131,10 @@ export class StdioRPCProcess {
         const timer = setTimeout(() => {
           this.terminate();
           reject(new WitanTimeoutError(
-            `RPC timeout: ${method} (${op}) did not respond within ${this.timeout}ms`,
+            `RPC timeout: ${method} (${op}) did not respond within ${this.timeoutMs}ms`,
             this.stderrBuffer
           ));
-        }, this.timeout);
+        }, this.timeoutMs);
 
         this.responseQueue.push((respLine) => {
           clearTimeout(timer);

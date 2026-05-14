@@ -65,14 +65,8 @@ export interface WorkbookOptions {
   binary?: string;
   /** Additional environment variables for the subprocess */
   env?: Record<string, string>;
-  /**
-   * Request timeout in milliseconds (default: 90000).
-   *
-   * Note: The Python SDK uses seconds. When migrating from Python,
-   * multiply your timeout value by 1000 (e.g., Python's `request_timeout=30`
-   * becomes `requestTimeout: 30_000` in Node.js).
-   */
-  requestTimeout?: number;
+  /** Request timeout in milliseconds (default: 90000). */
+  requestTimeoutMs?: number;
 }
 
 /**
@@ -123,7 +117,7 @@ export class Workbook implements AsyncDisposable {
     const argv = Workbook.buildArgv(path, options);
     const process = new StdioRPCProcess(argv, {
       env: options.env,
-      timeout: options.requestTimeout,
+      timeoutMs: options.requestTimeoutMs,
     });
 
     try {

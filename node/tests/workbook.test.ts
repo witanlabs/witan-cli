@@ -298,7 +298,7 @@ describe('Workbook', () => {
       await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
         binary: FAKE_WITAN_PATH,
         env,
-        requestTimeout: 500,
+        requestTimeoutMs: 500,
       });
 
       await expect(wb.listSheets()).rejects.toThrow(WitanTimeoutError);

@@ -54,7 +54,7 @@ const wb = await Workbook.open('new.xlsx', { create: true });
 // With options
 const wb = await Workbook.open('report.xlsx', {
   locale: 'en-US',
-  requestTimeout: 60_000, // 60 seconds
+  requestTimeoutMs: 60_000, // 60 seconds
 });
 ```
 
@@ -371,7 +371,7 @@ wb = Workbook('report.xlsx', request_timeout=30)  # 30 seconds
 ```typescript
 // Node.js
 const wb = await Workbook.open('report.xlsx', {
-  requestTimeout: 30_000,  // 30,000 milliseconds
+  requestTimeoutMs: 30_000,
 });
 ```
 

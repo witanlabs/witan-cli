@@ -19,7 +19,7 @@ func main() {
 
 		var apiErr *client.APIError
 		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusTooManyRequests {
-			fmt.Fprintln(os.Stdout, apiErr.Error())
+			fmt.Fprintln(os.Stderr, apiErr.Error())
 			os.Exit(1)
 		}
 

@@ -3,6 +3,7 @@
 /witan-linux-*
 /witan-windows-*
 /dist/
+/npm-dist/
 /.tmp/
 /.codex-tmp/
 /build/

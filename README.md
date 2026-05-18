@@ -12,6 +12,8 @@ The spreadsheet toolkit for coding agents — edit, render, calculate, and lint 
 curl -fsSL https://witanlabs.com/agents/install.sh | sh
 ```
 
+Or try without installing: `npx witan` / `uvx witan`
+
 ### From GitHub Releases
 
 Download the latest artifacts from:
@@ -87,6 +89,45 @@ cell = await wb.read_cell("Summary!A1")
 await wb.close()
 ```
 
+### From npm
+
+Install the bundled CLI and Node.js SDK from npm (requires Node.js 22+):
+
+```bash
+npm install witan
+```
+
+Node.js SDK example:
+
+```typescript
+import { Workbook } from 'witan';
+
+await using wb = await Workbook.open('report.xlsx');
+const sheets = await wb.listSheets();
+const tsv = await wb.readRangeTsv('Summary!A1:F20');
+```
+
+Create and save a new workbook:
+
+```typescript
+import { Workbook } from 'witan';
+
+await using wb = await Workbook.open('model.xlsx', { create: true });
+await wb.addSheet('Inputs');
+await wb.setCells([{ address: 'Inputs!A1', value: 'Revenue' }]);
+await wb.save();
+```
+
+Alternative: explicit close
+
+```typescript
+import { Workbook } from 'witan';
+
+const wb = await Workbook.open('report.xlsx');
+const tsv = await wb.readRangeTsv('Summary!A1:F20');
+await wb.close();
+```
+
 ### From Source
 
 Requires Go (version from `go.mod`):
@@ -96,6 +137,8 @@ go install github.com/witanlabs/witan-cli@latest
 ```
 
 ## Quick Start
+
+Run any command with `npx witan` or `uvx witan` without installing.
 
 ```bash
 # Authenticate (recommended)

@@ -271,18 +271,13 @@ jobs:
           packages-dir: ${{ runner.temp }}/witan-wheels
           skip-existing: true
 
-      # TODO: Enable npm publishing once NPM_TOKEN secret is configured.
-      # Requires: npm account, @witan org for scoped packages, and NPM_TOKEN
-      # secret added to GitHub repository settings.
-      # - name: Publish packages to npm
-      #   if: steps.version.outputs.stable == 'true'
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      #   run: |
-      #     for pkg in "${RUNNER_TEMP}/witan-npm"/*.tgz; do
-      #       echo "Publishing $(basename "$pkg")..."
-      #       npm publish "$pkg" --access public
-      #     done
+      - name: Publish packages to npm
+        if: steps.version.outputs.stable == 'true'
+        run: |
+          for pkg in "${RUNNER_TEMP}/witan-npm"/*.tgz; do
+            echo "Publishing $(basename "$pkg")..."
+            npm publish "$pkg" --access public
+          done
 
       - name: Verify published PyPI package is CLI and SDK
         if: steps.version.outputs.stable == 'true'
@@ -352,49 +347,48 @@ jobs:
           witan --version
           python -m witan --version
 
-      # TODO: Enable npm verification once npm publishing is enabled above.
-      # - name: Verify published npm package is CLI and SDK
-      #   if: steps.version.outputs.stable == 'true'
-      #   env:
-      #     VERSION: ${{ steps.version.outputs.version }}
-      #   run: |
-      #     NPM_VERSION="${VERSION#v}"
-      #
-      #     # Uninstall local test packages first
-      #     npm uninstall --global witan @witan/linux-x64 2>/dev/null || true
-      #
-      #     # Wait briefly for npm registry consistency, then install from npm
-      #     for attempt in {1..10}; do
-      #       if npm install --global "witan@${NPM_VERSION}"; then
-      #         break
-      #       fi
-      #       if [[ "${attempt}" == "10" ]]; then
-      #         echo "failed to install witan@${NPM_VERSION} from npm after retries" >&2
-      #         exit 1
-      #       fi
-      #       sleep 10
-      #     done
-      #
-      #     # Verify CLI works
-      #     witan --version
-      #
-      #     # Verify SDK exports
-      #     node --eval "
-      #       const { Workbook, version, getBinaryPath } = require('witan');
-      #       if (typeof Workbook !== 'function') {
-      #         console.error('Workbook not exported as function');
-      #         process.exit(1);
-      #       }
-      #       if (typeof getBinaryPath !== 'function') {
-      #         console.error('getBinaryPath not exported as function');
-      #         process.exit(1);
-      #       }
-      #       if (version !== '${NPM_VERSION}') {
-      #         console.error('Version mismatch: expected ${NPM_VERSION}, got ' + version);
-      #         process.exit(1);
-      #       }
-      #       console.log('verified npm package: witan@' + version);
-      #     "
+      - name: Verify published npm package is CLI and SDK
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          NPM_VERSION="${VERSION#v}"
+
+          # Uninstall local test packages first
+          npm uninstall --global witan @witan/linux-x64 2>/dev/null || true
+
+          # Wait briefly for npm registry consistency, then install from npm
+          for attempt in {1..10}; do
+            if npm install --global "witan@${NPM_VERSION}"; then
+              break
+            fi
+            if [[ "${attempt}" == "10" ]]; then
+              echo "failed to install witan@${NPM_VERSION} from npm after retries" >&2
+              exit 1
+            fi
+            sleep 10
+          done
+
+          # Verify CLI works
+          witan --version
+
+          # Verify SDK exports
+          node --eval "
+            const { Workbook, version, getBinaryPath } = require('witan');
+            if (typeof Workbook !== 'function') {
+              console.error('Workbook not exported as function');
+              process.exit(1);
+            }
+            if (typeof getBinaryPath !== 'function') {
+              console.error('getBinaryPath not exported as function');
+              process.exit(1);
+            }
+            if (version !== '${NPM_VERSION}') {
+              console.error('Version mismatch: expected ${NPM_VERSION}, got ' + version);
+              process.exit(1);
+            }
+            console.log('verified npm package: witan@' + version);
+          "
 
       - name: Roll changelog from Unreleased
         continue-on-error: true

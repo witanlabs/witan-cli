@@ -84,6 +84,38 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
+# Bubble chart authoring
+witan xlsx exec model.xlsx --save --stdin <<'WITAN'
+await xlsx.addChart(wb, "Sheet1", {
+	name: "BubbleChart",
+	position: { from: { cell: "F2" }, to: { cell: "N18" } },
+	groups: [
+		{
+			type: "bubble",
+			varyColors: true,
+			bubbleScale: 100,
+			showNegativeBubbles: false,
+			sizeRepresents: "area",
+			series: [
+				{
+					name: { text: "Companies" },
+					xValues: "Sheet1!B2:B6",
+					yValues: "Sheet1!C2:C6",
+					bubbleSizes: "Sheet1!D2:D6"
+				}
+			]
+		}
+	],
+	title: { text: "Revenue / Margin / Headcount" },
+	legend: { position: "right" },
+	axes: {
+		category: { title: { text: "Revenue" } },
+		value: { title: { text: "Margin" } }
+	}
+})
+await xlsx.previewStyles(wb, "Sheet1!F2:N18")
+WITAN
+
 # ListObject authoring — create an Excel table and read it back by table name
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addListObject(wb, "Sheet1", {
@@ -556,6 +588,9 @@ interface ChartSpec {
 		smooth?:boolean;
 		firstSliceAngle?:number;
 		holeSize?:number;
+		bubbleScale?:number;
+		showNegativeBubbles?:boolean;
+		sizeRepresents?:"area"|"width";
 		series:{
 			name?:ChartTextSource;
 			categories?:string;

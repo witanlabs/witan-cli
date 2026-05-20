@@ -623,7 +623,7 @@ interface ChartSpec {
 	legend?:{visible?:boolean;position?:"left"|"right"|"top"|"bottom"|"topRight";overlay?:boolean};
 	axes?:{category?:ChartAxisSpec;value?:ChartAxisSpec;secondaryCategory?:ChartAxisSpec;secondaryValue?:ChartAxisSpec};
 	displayBlanksAs?:"gap"|"span"|"zero";
-	styleId?:number;
+	styleId?:number; /** legacy styles 1-48, or modern catalog styles eg. 201,227,240,251,269,276. */
 }
 function listCharts(wb,options?:{ sheet?:string }):Promise<Array<{
 	sheet:string;

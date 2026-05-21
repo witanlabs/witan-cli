@@ -88,6 +88,22 @@ jobs:
             echo "witan==${PYPI_VERSION} is available on PyPI."
           fi
 
+      - name: Guard npm version collision (first attempt)
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          NPM_VERSION="${VERSION#v}"
+          if npm view "witan@${NPM_VERSION}" version >/dev/null 2>&1; then
+            if [[ "${GITHUB_RUN_ATTEMPT}" == "1" ]]; then
+              echo "npm already has witan@${NPM_VERSION}. Choose a new release version." >&2
+              exit 1
+            fi
+            echo "witan@${NPM_VERSION} already exists; continuing rerun attempt ${GITHUB_RUN_ATTEMPT}."
+          else
+            echo "witan@${NPM_VERSION} is available on npm."
+          fi
+
       - name: Build release artifacts
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -110,6 +126,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-release.txt
 
+      - name: Setup Node.js
+        if: steps.version.outputs.stable == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Build PyPI wheels
         if: steps.version.outputs.stable == 'true'
         env:
@@ -118,11 +141,20 @@ jobs:
           ./scripts/build-pypi-wheels.sh "$VERSION" "${RUNNER_TEMP}/witan-wheels"
           cp "${RUNNER_TEMP}"/witan-wheels/*.whl "${RUNNER_TEMP}/witan-dist/"
 
+      - name: Build npm packages
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ./scripts/build-npm-packages.sh "$VERSION" "${RUNNER_TEMP}/witan-npm"
+          cp "${RUNNER_TEMP}"/witan-npm/*.tgz "${RUNNER_TEMP}/witan-dist/"
+
       - name: Finalize checksums
         run: |
           cd "${RUNNER_TEMP}/witan-dist"
           shopt -s nullglob
           wheel_files=(*.whl)
+          npm_files=(*.tgz)
           artifacts=(
             witan-darwin-arm64.tar.gz
             witan-darwin-amd64.tar.gz
@@ -132,6 +164,7 @@ jobs:
             witan-windows-arm64.zip
             witan-install.sh
             "${wheel_files[@]}"
+            "${npm_files[@]}"
           )
           shasum -a 256 "${artifacts[@]}" > witan-checksums.txt
 
@@ -166,6 +199,29 @@ jobs:
           assert AsyncWorkbook
           PY
 
+      - name: Smoke test npm package
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          NPM_VERSION="${VERSION#v}"
+          MAIN_PKG="${RUNNER_TEMP}/witan-npm/witan-${NPM_VERSION}.tgz"
+          PLATFORM_PKG="${RUNNER_TEMP}/witan-npm/witan-linux-x64-${NPM_VERSION}.tgz"
+
+          # Install main package and linux-x64 platform package
+          npm install --global "${MAIN_PKG}" "${PLATFORM_PKG}"
+
+          # Verify CLI works
+          witan --version
+
+          # Verify SDK can be imported
+          node --eval "
+            const { Workbook, version } = require('witan');
+            if (typeof Workbook !== 'function') throw new Error('Workbook not exported');
+            if (version !== '${NPM_VERSION}') throw new Error('Version mismatch: ' + version);
+            console.log('npm package verified: witan@' + version);
+          "
+
       - name: Show artifacts
         run: |
           ls -lah "${RUNNER_TEMP}/witan-dist"
@@ -191,6 +247,9 @@ jobs:
           while IFS= read -r -d '' wheel; do
             ASSETS+=("$wheel")
           done < <(find "${ASSET_DIR}" -maxdepth 1 -name "*.whl" -print0 | sort -z)
+          while IFS= read -r -d '' tarball; do
+            ASSETS+=("$tarball")
+          done < <(find "${ASSET_DIR}" -maxdepth 1 -name "*.tgz" -print0 | sort -z)
 
           if ! release_json="$(gh release view "$VERSION" --json isDraft,isPrerelease,url 2>/dev/null)"; then
             echo "release $VERSION does not exist. Create it in GitHub UI first (stable should be prerelease)." >&2
@@ -211,6 +270,14 @@ jobs:
         with:
           packages-dir: ${{ runner.temp }}/witan-wheels
           skip-existing: true
+
+      - name: Publish packages to npm
+        if: steps.version.outputs.stable == 'true'
+        run: |
+          for pkg in "${RUNNER_TEMP}/witan-npm"/*.tgz; do
+            echo "Publishing $(basename "$pkg")..."
+            npm publish "$pkg" --access public
+          done
 
       - name: Verify published PyPI package is CLI and SDK
         if: steps.version.outputs.stable == 'true'
@@ -279,6 +346,49 @@ jobs:
 
           witan --version
           python -m witan --version
+
+      - name: Verify published npm package is CLI and SDK
+        if: steps.version.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          NPM_VERSION="${VERSION#v}"
+
+          # Uninstall local test packages first
+          npm uninstall --global witan @witan/linux-x64 2>/dev/null || true
+
+          # Wait briefly for npm registry consistency, then install from npm
+          for attempt in {1..10}; do
+            if npm install --global "witan@${NPM_VERSION}"; then
+              break
+            fi
+            if [[ "${attempt}" == "10" ]]; then
+              echo "failed to install witan@${NPM_VERSION} from npm after retries" >&2
+              exit 1
+            fi
+            sleep 10
+          done
+
+          # Verify CLI works
+          witan --version
+
+          # Verify SDK exports
+          node --eval "
+            const { Workbook, version, getBinaryPath } = require('witan');
+            if (typeof Workbook !== 'function') {
+              console.error('Workbook not exported as function');
+              process.exit(1);
+            }
+            if (typeof getBinaryPath !== 'function') {
+              console.error('getBinaryPath not exported as function');
+              process.exit(1);
+            }
+            if (version !== '${NPM_VERSION}') {
+              console.error('Version mismatch: expected ${NPM_VERSION}, got ' + version);
+              process.exit(1);
+            }
+            console.log('verified npm package: witan@' + version);
+          "
 
       - name: Roll changelog from Unreleased
         continue-on-error: true

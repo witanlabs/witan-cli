@@ -553,6 +553,7 @@ function listSheets(wb):Promise<Array<{
 	dependents?:string[];
 }>>;
 type TimeUnit="days"|"months"|"years"
+type ChartDataLabelPosition="bestFit"|"center"|"insideBase"|"insideEnd"|"outsideEnd"|"left"|"right"|"top"|"bottom"
 /** Use exactly one of `text` or `ref`. */
 interface ChartTextSource {text?:string;ref?:string}
 interface ChartPositionAnchor {cell:string;xOffsetPts?:number;yOffsetPts?:number}
@@ -570,6 +571,7 @@ interface ChartAxisSpec {
 	majorTimeUnit?:TimeUnit;
 	minorTimeUnit?:TimeUnit;
 	numberFormat?:string;
+	numberFormatLinked?:boolean;
 	reversed?:boolean;
 	majorGridlines?:boolean;
 	minorGridlines?:boolean;
@@ -580,6 +582,7 @@ interface ChartSpec {
 	position:ChartPosIn;
 	groups:{
 		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble";
+		scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker"; /** scatter only */
 		grouping?:"standard"|"stacked"|"percentStacked";
 		axis?:"primary"|"secondary";
 		gapWidth?:number;
@@ -588,9 +591,9 @@ interface ChartSpec {
 		smooth?:boolean;
 		firstSliceAngle?:number;
 		holeSize?:number;
-		bubbleScale?:number;
-		showNegativeBubbles?:boolean;
-		sizeRepresents?:"area"|"width";
+		bubbleScale?:number; /** bubble only, 0-300 */
+		showNegativeBubbles?:boolean; /** bubble only */
+		sizeRepresents?:"area"|"width"; /** bubble only */
 		series:{
 			name?:ChartTextSource;
 			categories?:string;
@@ -598,12 +601,13 @@ interface ChartSpec {
 			values?:string;
 			xValues?:string;
 			yValues?:string;
-			bubbleSizes?:string;
+			bubbleSizes?:string; /** bubble only */
 			fillColor?:string;
 			lineColor?:string;
 			lineWidth?:number;
 			lineDashStyle?:string;
 			smooth?:boolean;
+			invertIfNegative?:boolean;
 			marker?:{
 				style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";
 				size?:number;
@@ -611,11 +615,14 @@ interface ChartSpec {
 				borderColor?:string;
 			};
 			dataLabels?:{
+				showLegendKey?:boolean;
 				showValue?:boolean;
 				showCategory?:boolean;
 				showSeriesName?:boolean;
 				showPercent?:boolean;
-				position?:"bestFit"|"center"|"insideBase"|"insideEnd"|"outsideEnd"|"left"|"right"|"top"|"bottom";
+				showBubbleSize?:boolean;
+				showLeaderLines?:boolean;
+				position?:ChartDataLabelPosition; /** for bubble charts only center/left/right/top/bottom */
 			};
 		}[];
 	}[];
@@ -623,12 +630,15 @@ interface ChartSpec {
 	legend?:{visible?:boolean;position?:"left"|"right"|"top"|"bottom"|"topRight";overlay?:boolean};
 	axes?:{category?:ChartAxisSpec;value?:ChartAxisSpec;secondaryCategory?:ChartAxisSpec;secondaryValue?:ChartAxisSpec};
 	displayBlanksAs?:"gap"|"span"|"zero";
+	roundedCorners?:boolean;
 	styleId?:number; /** legacy styles 1-48, or modern catalog styles eg. 201,227,240,251,269,276. */
 }
 function listCharts(wb,options?:{ sheet?:string }):Promise<Array<{
+	id?:number;
 	sheet:string;
 	name:string;
 	type:string;
+	groups:{type:string;axis?:string;seriesCount:number}[];
 	groupCount:number;
 	seriesCount:number;
 	position:ChartPos;

@@ -105,6 +105,38 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
+# Bubble chart authoring
+witan xlsx exec model.xlsx --save --stdin <<'WITAN'
+await xlsx.addChart(wb, "Sheet1", {
+	name: "BubbleChart",
+	position: { from: { cell: "F2" }, to: { cell: "N18" } },
+	groups: [
+		{
+			type: "bubble",
+			varyColors: true,
+			bubbleScale: 100,
+			showNegativeBubbles: false,
+			sizeRepresents: "area",
+			series: [
+				{
+					name: { text: "Companies" },
+					xValues: "Sheet1!B2:B6",
+					yValues: "Sheet1!C2:C6",
+					bubbleSizes: "Sheet1!D2:D6"
+				}
+			]
+		}
+	],
+	title: { text: "Revenue / Margin / Headcount" },
+	legend: { position: "right" },
+	axes: {
+		category: { title: { text: "Revenue" } },
+		value: { title: { text: "Margin" } }
+	}
+})
+await xlsx.previewStyles(wb, "Sheet1!F2:N18")
+WITAN
+
 # ListObject authoring — create an Excel table and read it back by table name
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addListObject(wb, "Sheet1", {
@@ -542,6 +574,7 @@ function listSheets(wb):Promise<Array<{
 	dependents?:string[];
 }>>;
 type TimeUnit="days"|"months"|"years"
+type ChartDataLabelPosition="bestFit"|"center"|"insideBase"|"insideEnd"|"outsideEnd"|"left"|"right"|"top"|"bottom"
 /** Use exactly one of `text` or `ref`. */
 interface ChartTextSource {text?:string;ref?:string}
 interface ChartPositionAnchor {cell:string;xOffsetPts?:number;yOffsetPts?:number}
@@ -559,6 +592,7 @@ interface ChartAxisSpec {
 	majorTimeUnit?:TimeUnit;
 	minorTimeUnit?:TimeUnit;
 	numberFormat?:string;
+	numberFormatLinked?:boolean;
 	reversed?:boolean;
 	majorGridlines?:boolean;
 	minorGridlines?:boolean;
@@ -569,6 +603,7 @@ interface ChartSpec {
 	position:ChartPosIn;
 	groups:{
 		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble";
+		scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker"; /** scatter only */
 		grouping?:"standard"|"stacked"|"percentStacked";
 		axis?:"primary"|"secondary";
 		gapWidth?:number;
@@ -577,6 +612,9 @@ interface ChartSpec {
 		smooth?:boolean;
 		firstSliceAngle?:number;
 		holeSize?:number;
+		bubbleScale?:number; /** bubble only, 0-300 */
+		showNegativeBubbles?:boolean; /** bubble only */
+		sizeRepresents?:"area"|"width"; /** bubble only */
 		series:{
 			name?:ChartTextSource;
 			categories?:string;
@@ -584,12 +622,13 @@ interface ChartSpec {
 			values?:string;
 			xValues?:string;
 			yValues?:string;
-			bubbleSizes?:string;
+			bubbleSizes?:string; /** bubble only */
 			fillColor?:string;
 			lineColor?:string;
 			lineWidth?:number;
 			lineDashStyle?:string;
 			smooth?:boolean;
+			invertIfNegative?:boolean;
 			marker?:{
 				style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";
 				size?:number;
@@ -597,11 +636,14 @@ interface ChartSpec {
 				borderColor?:string;
 			};
 			dataLabels?:{
+				showLegendKey?:boolean;
 				showValue?:boolean;
 				showCategory?:boolean;
 				showSeriesName?:boolean;
 				showPercent?:boolean;
-				position?:"bestFit"|"center"|"insideBase"|"insideEnd"|"outsideEnd"|"left"|"right"|"top"|"bottom";
+				showBubbleSize?:boolean;
+				showLeaderLines?:boolean;
+				position?:ChartDataLabelPosition; /** for bubble charts only center/left/right/top/bottom */
 			};
 		}[];
 	}[];
@@ -609,12 +651,15 @@ interface ChartSpec {
 	legend?:{visible?:boolean;position?:"left"|"right"|"top"|"bottom"|"topRight";overlay?:boolean};
 	axes?:{category?:ChartAxisSpec;value?:ChartAxisSpec;secondaryCategory?:ChartAxisSpec;secondaryValue?:ChartAxisSpec};
 	displayBlanksAs?:"gap"|"span"|"zero";
-	styleId?:number;
+	roundedCorners?:boolean;
+	styleId?:number; /** legacy styles 1-48, or modern catalog styles eg. 201,227,240,251,269,276. */
 }
 function listCharts(wb,options?:{ sheet?:string }):Promise<Array<{
+	id?:number;
 	sheet:string;
 	name:string;
 	type:string;
+	groups:{type:string;axis?:string;seriesCount:number}[];
 	groupCount:number;
 	seriesCount:number;
 	position:ChartPos;

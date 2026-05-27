@@ -256,7 +256,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Rendering**
 
-- `previewStyles`: generate an Excel-faithful PNG preview for a sheet range; image is auto-registered
+- `previewStyles`: generate a PNG preview for a sheet range; image is auto-registered
 
 **Charts**
 

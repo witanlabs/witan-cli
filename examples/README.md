@@ -123,7 +123,7 @@ beyond what Python libraries or manual inspection can catch:
   ranges, mixed currencies, type confusion, unsorted lookups, and more.
 - **`witan xlsx calc --verify`** — recalculates every formula and reports
   errors or stale cached values without modifying the file.
-- **`witan xlsx render`** — renders any cell range as a PNG image so the
+- **`witan xlsx render`** — renders a sheet-qualified range as a PNG image so the
   agent can visually inspect layout and formatting.
 
 ### Read and analyze documents

@@ -58,7 +58,7 @@
 ## 0.5.0
 
 - New: Array formulas are now supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
-- New: LAMBDA/LET/REDUCE/MAP/SCAN/MAKE_ARRAY/BYROW/CYCOL functions are now fully supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
+- New: LAMBDA/LET/REDUCE/MAP/SCAN/MAKEARRAY/BYROW/BYCOL functions are now fully supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
 - New: Calculation of What-If Data Tables is now fully supported, automatically recalculating as needed when upstream cells are modified through `setCells`
 - Updated: External workbook references in formulas are now resolved against the workbook cache when recalculating
 - Updated: All methods that output formulas now do in display-format style, ie. without `_xlfn`-like prefixes used in stored formulas
@@ -77,7 +77,7 @@
 - New: `copyRange` operation to copy ranges with formula reference adjustment.
 - New: `sweepInputs` operation for batch what-if analysis with compact TSV output.
 - New: `getConditionalFormatting`, `setConditionalFormatting`, `removeConditionalFormatting` for reading, adding, and removing conditional formatting rules (`iconSet` currently read-only in write payloads).
-- Breaking: `detectTables` replaced by `describeSheets` — returns per-sheet tables + compact ASCII structure map showing cell types, row collapsing, and inline label annotations.
+- Breaking: `detectTables` replaced by `describeSheet` / `describeSheets` — returns detected tables plus compact ASCII structure maps showing cell types, row collapsing, and inline label annotations.
 - Updated: `readRange`, `readRow`, `readColumn`, `readCell`: now include `note`, `link`, `thread` fields when cells have comments, hyperlinks, or threaded comments.
 - Updated: `setCells`: now supports `note`, `link`, and `thread` fields for setting/clearing comments, hyperlinks, and threaded comments (with inline person upsert).
 - Updated: `listSheets`: now returns list of dependent and precedent sheets for each sheet

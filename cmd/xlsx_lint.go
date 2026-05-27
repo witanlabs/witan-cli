@@ -18,13 +18,18 @@ const lintRulesHelp = `Available rules:
   D001 (Warning): Double counting: same cells contribute multiple times due to overlapping ranges
   D002 (Warning): MATCH/VLOOKUP/HLOOKUP/XLOOKUP with approximate match requires sorted lookup range
   D003 (Warning): Empty cell references may be coerced to 0 or FALSE in numeric/boolean contexts
+  D004 (Error): Cell value is an Excel calculation error
   D005 (Warning): Numeric aggregate functions ignore text and boolean values
   D006 (Warning): Unintended scalar broadcast in elementwise operations
   D007 (Warning): MATCH/VLOOKUP/HLOOKUP/XLOOKUP with duplicate keys in lookup array returns first match
   D008 (Error): Mixed currencies in additive/aggregate contexts
   D009 (Warning): Mixed percent and non-percent in addition/subtraction
   D023 (Warning): Currency values mixed with non-currency semantic formats (percent/date/time/text)
-  D030 (Warning): Formula references a non-anchor cell in a merged range`
+  D030 (Warning): Formula references a non-anchor cell in a merged range
+  D032 (Warning): Cell display text is clipped by column width or rendered as hashes
+  D034 (Warning): Cell display text is clipped by row height
+  D041 (Warning): Floating object overlaps visible cell content
+  D042 (Warning): Floating object overlaps another floating object`
 
 var lintCmd = &cobra.Command{
 	Use:   "lint <file>",

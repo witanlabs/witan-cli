@@ -3,6 +3,8 @@ name: xlsx-code-mode
 description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to be read, explored, understood, or modified. You cannot read excel files with cat, head, or normal file-reading tools — this is the only way to inspect them. Trigger when you or the user need to open, look at, or explore a workbook; find out what sheets it has or where specific data lives; read cells, rows, columns, or ranges; search for values, labels, or patterns; trace formula dependencies or understand how a cell is calculated; run what-if scenarios by changing inputs and reading recalculated outputs; or edit cells, rows, columns, and sheets. Trigger when the user references a spreadsheet file by name or path — even casually (e.g. 'check the xlsx', 'what's in report.xlsx') — and also when you need to inspect a workbook yourself as part of a larger task. The tool runs sandboxed JavaScript against the workbook server-side via `witan xlsx exec`."
 ---
 
+> **Running in Claude Cowork or Claude Code on the web?** The `witan` CLI isn't preinstalled in the sandbox. Read [references/cowork-setup.md](references/cowork-setup.md) first for install, PATH, and network-allowlist steps. Skip if you're running locally — `witan` is already on your PATH.
+
 ## Setup
 
 Files are cached server-side by content hash so repeated operations skip re-upload.

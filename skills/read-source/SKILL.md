@@ -15,6 +15,8 @@ Use `witan read` to convert source documents into LLM-ready text. This is for **
 
 This is not for reading spreadsheet data (.xlsx, .xls) — use spreadsheet-specific tools for that.
 
+> **No `witan` on PATH?** Prefix commands with `npx witan` (e.g. `npx witan read report.pdf ...`).
+
 ## Setup
 
 Files are cached server-side by content hash so repeated operations skip re-upload. If `WITAN_STATELESS=1` is set (or `--stateless` is passed), files are processed but not stored.

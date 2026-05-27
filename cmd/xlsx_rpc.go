@@ -7,10 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/coder/websocket"
 	"github.com/spf13/cobra"
@@ -21,12 +19,6 @@ var (
 	rpcHint   string
 	rpcLocale string
 	rpcCreate bool
-)
-
-const (
-	rpcDialTimeout = 30 * time.Second
-	rpcInitTimeout = 60 * time.Second
-	rpcReadLimit   = 64 << 20
 )
 
 var xlsxRPCCmd = &cobra.Command{
@@ -55,14 +47,6 @@ returned by the API is used for local writeback and omitted from stdout.`,
 type rpcRequestEnvelope struct {
 	ID string `json:"id"`
 	Op string `json:"op"`
-}
-
-type rpcResponseEnvelope struct {
-	ID      string          `json:"id"`
-	Ok      bool            `json:"ok"`
-	Code    string          `json:"code"`
-	Message string          `json:"message"`
-	Meta    json.RawMessage `json:"meta"`
 }
 
 type rpcResponseMeta struct {
@@ -105,7 +89,7 @@ func runRPC(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	locale, err := resolveRPCLocale(cmd)
+	locale, err := resolveLocale(cmd, "locale", rpcLocale, true, true)
 	if err != nil {
 		return err
 	}
@@ -149,7 +133,7 @@ func openFilesRPCSession(ctx context.Context, c *client.Client, filePath, hint, 
 	if err != nil {
 		return nil, err
 	}
-	conn, err := dialRPCWebSocket(ctx, c, wsURL)
+	conn, err := dialRPCWebSocket(ctx, wsURL, c.APIKey, cliUserAgent())
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +154,7 @@ func openStatelessRPCSession(ctx context.Context, c *client.Client, filePath, hi
 	if err != nil {
 		return nil, err
 	}
-	conn, err := dialRPCWebSocket(ctx, c, wsURL)
+	conn, err := dialRPCWebSocket(ctx, wsURL, c.APIKey, cliUserAgent())
 	if err != nil {
 		return nil, err
 	}
@@ -226,27 +210,6 @@ func openStatelessRPCSession(ctx context.Context, c *client.Client, filePath, hi
 	}, nil
 }
 
-func dialRPCWebSocket(ctx context.Context, c *client.Client, wsURL string) (*websocket.Conn, error) {
-	dialCtx, cancel := context.WithTimeout(ctx, rpcDialTimeout)
-	defer cancel()
-
-	headers := http.Header{}
-	headers.Set("User-Agent", cliUserAgent())
-
-	opts := &websocket.DialOptions{HTTPHeader: headers}
-	if c.APIKey != "" {
-		opts.Subprotocols = []string{"bearer-" + c.APIKey}
-	}
-
-	conn, resp, err := websocket.Dial(dialCtx, wsURL, opts)
-	if err != nil {
-		if resp != nil {
-			return nil, fmt.Errorf("opening xlsx RPC websocket: HTTP %d: %w", resp.StatusCode, err)
-		}
-		return nil, fmt.Errorf("opening xlsx RPC websocket: %w", err)
-	}
-	return conn, nil
-}
 
 func (s *rpcSession) close() {
 	if s.conn != nil {
@@ -254,22 +217,6 @@ func (s *rpcSession) close() {
 	}
 }
 
-func validateRPCInitResponse(raw []byte) error {
-	var resp rpcResponseEnvelope
-	if err := json.Unmarshal(raw, &resp); err != nil {
-		return fmt.Errorf("parsing init response: %w", err)
-	}
-	if resp.Ok {
-		return nil
-	}
-	if resp.Code != "" {
-		return fmt.Errorf("%s: %s", resp.Code, resp.Message)
-	}
-	if resp.Message != "" {
-		return fmt.Errorf("initializing xlsx RPC session: %s", resp.Message)
-	}
-	return fmt.Errorf("initializing xlsx RPC session failed")
-}
 
 func relayRPCStdio(ctx context.Context, session *rpcSession, stdin io.Reader, stdout io.Writer) error {
 	scanner := bufio.NewScanner(stdin)
@@ -355,7 +302,7 @@ func (s *rpcSession) reconnectFilesRPCSession(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	conn, err := dialRPCWebSocket(ctx, s.client, wsURL)
+	conn, err := dialRPCWebSocket(ctx, wsURL, s.client.APIKey, cliUserAgent())
 	if err != nil {
 		return err
 	}
@@ -467,37 +414,3 @@ func (s *rpcSession) applySaveResponse(resp rpcResponseEnvelope) error {
 	return nil
 }
 
-func resolveRPCLocale(cmd *cobra.Command) (string, error) {
-	if cmd.Flags().Changed("locale") {
-		locale, ok := normalizeLocale(rpcLocale)
-		if !ok {
-			return "", fmt.Errorf("invalid --locale %q", rpcLocale)
-		}
-		return locale, nil
-	}
-
-	if raw, ok := os.LookupEnv("WITAN_LOCALE"); ok && strings.TrimSpace(raw) != "" {
-		locale, valid := normalizeLocale(raw)
-		if !valid {
-			return "", fmt.Errorf("invalid WITAN_LOCALE %q", raw)
-		}
-		return locale, nil
-	}
-
-	if raw, ok := os.LookupEnv("LC_ALL"); ok && strings.TrimSpace(raw) != "" {
-		locale, _ := normalizeLocale(raw)
-		return locale, nil
-	}
-
-	for _, key := range []string{"LC_MESSAGES", "LANG"} {
-		raw, ok := os.LookupEnv(key)
-		if !ok || strings.TrimSpace(raw) == "" {
-			continue
-		}
-		if locale, valid := normalizeLocale(raw); valid {
-			return locale, nil
-		}
-	}
-
-	return "", nil
-}

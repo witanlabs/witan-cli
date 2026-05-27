@@ -1,16 +1,13 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/witanlabs/witan-cli/client"
@@ -123,7 +120,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	code, err := resolveExecCodeSource(cmd, os.Stdin)
+	code, err := resolveExecCodeSource(cmd, os.Stdin, execCode, execScript, execStdin, execExpr, execStdinTimeoutMS)
 	if err != nil {
 		return err
 	}
@@ -136,7 +133,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	locale, err := resolveExecLocale(cmd)
+	locale, err := resolveLocale(cmd, "locale", execLocale, true, true)
 	if err != nil {
 		return err
 	}
@@ -230,57 +227,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if jsonOutput {
-		// File is a transport detail used for local writeback, not CLI JSON output.
-		result.File = nil
-		if err := jsonPrint(result); err != nil {
-			return err
-		}
-	} else {
-		if result.Stdout != "" {
-			fmt.Print(result.Stdout)
-		}
-
-		if result.Ok {
-			if err := printExecResult(result.Result); err != nil {
-				return err
-			}
-		} else {
-			fmt.Println(formatExecError(result.Error))
-		}
-
-		for _, img := range result.Images {
-			ext := execImageExt(img)
-			b64 := img
-			if _, after, ok := strings.Cut(img, ","); ok {
-				b64 = after
-			}
-			decoded, err := base64.StdEncoding.DecodeString(b64)
-			if err != nil {
-				return fmt.Errorf("decoding exec image: %w", err)
-			}
-			f, err := os.CreateTemp("", "witan-exec-*"+ext)
-			if err != nil {
-				return fmt.Errorf("creating temp image file: %w", err)
-			}
-			tmpPath := f.Name()
-			if _, err := f.Write(decoded); err != nil {
-				f.Close()
-				os.Remove(tmpPath)
-				return fmt.Errorf("writing exec image: %w", err)
-			}
-			if err := f.Close(); err != nil {
-				os.Remove(tmpPath)
-				return fmt.Errorf("closing exec image file: %w", err)
-			}
-			fmt.Println(tmpPath)
-		}
-	}
-
-	if !result.Ok {
-		return &ExitError{Code: 1}
-	}
-	return nil
+	return outputExecResult(result, jsonOutput, formatExecError)
 }
 
 func resolveExecWorkbookPath(filePath string, create bool) (string, error) {
@@ -313,89 +260,6 @@ func resolveExecWorkbookPath(filePath string, create bool) (string, error) {
 	return filePath, nil
 }
 
-func resolveExecCodeSource(cmd *cobra.Command, stdin io.Reader) (string, error) {
-	codeSet := cmd.Flags().Changed("code")
-	scriptSet := cmd.Flags().Changed("script")
-	stdinSet := execStdin
-	exprSet := cmd.Flags().Changed("expr")
-
-	selected := 0
-	for _, set := range []bool{codeSet, scriptSet, stdinSet, exprSet} {
-		if set {
-			selected++
-		}
-	}
-	if selected == 0 {
-		return "", fmt.Errorf("exactly one of --code, --script, --stdin, or --expr is required")
-	}
-	if selected > 1 {
-		return "", fmt.Errorf("--code, --script, --stdin, and --expr are mutually exclusive")
-	}
-
-	switch {
-	case exprSet:
-		if err := validateExecExpr(execExpr); err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("return (%s);", execExpr), nil
-	case codeSet:
-		return execCode, nil
-	case scriptSet:
-		if strings.TrimSpace(execScript) == "" {
-			return "", fmt.Errorf("--script requires a path")
-		}
-		b, err := os.ReadFile(execScript)
-		if err != nil {
-			return "", fmt.Errorf("reading script file: %w", err)
-		}
-		return string(b), nil
-	case stdinSet:
-		b, err := readExecStdinWithTimeout(stdin, execStdinTimeoutMS)
-		if err != nil {
-			return "", fmt.Errorf("reading --stdin: %w", err)
-		}
-		return string(b), nil
-	default:
-		return "", fmt.Errorf("exactly one of --code, --script, --stdin, or --expr is required")
-	}
-}
-
-func readExecStdinWithTimeout(stdin io.Reader, timeoutMS int) ([]byte, error) {
-	if timeoutMS == 0 {
-		return io.ReadAll(stdin)
-	}
-
-	type readResult struct {
-		b   []byte
-		err error
-	}
-	done := make(chan readResult, 1)
-	go func() {
-		b, err := io.ReadAll(stdin)
-		done <- readResult{b: b, err: err}
-	}()
-
-	timer := time.NewTimer(time.Duration(timeoutMS) * time.Millisecond)
-	defer timer.Stop()
-
-	select {
-	case res := <-done:
-		return res.b, res.err
-	case <-timer.C:
-		return nil, fmt.Errorf("stdin read timed out after %dms waiting for EOF; ensure the input stream closes or set --stdin-timeout-ms=0 to disable timeout", timeoutMS)
-	}
-}
-
-func validateExecExpr(expr string) error {
-	trimmed := strings.TrimSpace(expr)
-	if trimmed == "" {
-		return fmt.Errorf("--expr must not be empty")
-	}
-	if strings.Contains(trimmed, ";") || strings.Contains(trimmed, "\n") || strings.Contains(trimmed, "\r") {
-		return fmt.Errorf("--expr is for single expressions; use --code for multi-statement scripts")
-	}
-	return nil
-}
 
 func parseExecInput(raw string, provided bool) (any, error) {
 	if !provided {
@@ -408,164 +272,5 @@ func parseExecInput(raw string, provided bool) (any, error) {
 	return input, nil
 }
 
-func resolveExecLocale(cmd *cobra.Command) (string, error) {
-	if cmd.Flags().Changed("locale") {
-		locale, ok := normalizeLocale(execLocale)
-		if !ok {
-			return "", fmt.Errorf("invalid --locale %q", execLocale)
-		}
-		return locale, nil
-	}
 
-	if raw, ok := os.LookupEnv("WITAN_LOCALE"); ok && strings.TrimSpace(raw) != "" {
-		locale, valid := normalizeLocale(raw)
-		if !valid {
-			return "", fmt.Errorf("invalid WITAN_LOCALE %q", raw)
-		}
-		return locale, nil
-	}
 
-	if raw, ok := os.LookupEnv("LC_ALL"); ok && strings.TrimSpace(raw) != "" {
-		locale, _ := normalizeLocale(raw)
-		return locale, nil
-	}
-
-	for _, key := range []string{"LC_MESSAGES", "LANG"} {
-		raw, ok := os.LookupEnv(key)
-		if !ok || strings.TrimSpace(raw) == "" {
-			continue
-		}
-		if locale, valid := normalizeLocale(raw); valid {
-			return locale, nil
-		}
-	}
-
-	return "", nil
-}
-
-func normalizeLocale(raw string) (string, bool) {
-	value := strings.TrimSpace(raw)
-	if value == "" {
-		return "", true
-	}
-
-	if idx := strings.IndexByte(value, '.'); idx >= 0 {
-		value = value[:idx]
-	}
-	if idx := strings.IndexByte(value, '@'); idx >= 0 {
-		value = value[:idx]
-	}
-
-	value = strings.TrimSpace(strings.ReplaceAll(value, "_", "-"))
-	if value == "" {
-		return "", true
-	}
-
-	upper := strings.ToUpper(value)
-	if upper == "C" || upper == "POSIX" || value == "*" {
-		return "", false
-	}
-
-	parts := strings.Split(value, "-")
-	for i, part := range parts {
-		if part == "" || !isLocaleToken(part) {
-			return "", false
-		}
-		switch {
-		case i == 0:
-			parts[i] = strings.ToLower(part)
-		case len(part) == 4 && isAlpha(part):
-			parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
-		case len(part) == 2 && isAlpha(part):
-			parts[i] = strings.ToUpper(part)
-		case len(part) == 3 && isNumeric(part):
-			parts[i] = part
-		default:
-			parts[i] = strings.ToLower(part)
-		}
-	}
-
-	return strings.Join(parts, "-"), true
-}
-
-func isLocaleToken(s string) bool {
-	for _, r := range s {
-		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') {
-			return false
-		}
-	}
-	return true
-}
-
-func isAlpha(s string) bool {
-	for _, r := range s {
-		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
-			return false
-		}
-	}
-	return true
-}
-
-func isNumeric(s string) bool {
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return false
-		}
-	}
-	return true
-}
-
-func validateExecPositiveFlag(cmd *cobra.Command, name string, value int) error {
-	if cmd.Flags().Changed(name) && value <= 0 {
-		return fmt.Errorf("--%s must be > 0", name)
-	}
-	return nil
-}
-
-func validateExecNonNegativeFlag(cmd *cobra.Command, name string, value int) error {
-	if cmd.Flags().Changed(name) && value < 0 {
-		return fmt.Errorf("--%s must be >= 0", name)
-	}
-	return nil
-}
-
-func printExecResult(raw json.RawMessage) error {
-	if len(bytes.TrimSpace(raw)) == 0 {
-		return nil
-	}
-	var v any
-	if err := json.Unmarshal(raw, &v); err != nil {
-		return fmt.Errorf("parsing exec result JSON: %w", err)
-	}
-	return jsonPrint(v)
-}
-
-func formatExecError(execErr *client.ExecError) string {
-	if execErr == nil {
-		return "execution failed"
-	}
-	if execErr.Type != "" && execErr.Code != "" {
-		return fmt.Sprintf("%s (%s): %s", execErr.Type, execErr.Code, execErr.Message)
-	}
-	if execErr.Code != "" {
-		return fmt.Sprintf("%s: %s", execErr.Code, execErr.Message)
-	}
-	if execErr.Message != "" {
-		return execErr.Message
-	}
-	return "execution failed"
-}
-
-func execImageExt(dataURL string) string {
-	prefix, _, ok := strings.Cut(dataURL, ",")
-	if !ok {
-		return ".png"
-	}
-	if strings.Contains(prefix, "image/webp") {
-		return ".webp"
-	}
-	if strings.Contains(prefix, "image/jpeg") {
-		return ".jpg"
-	}
-	return ".png"
-}

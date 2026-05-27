@@ -52,6 +52,7 @@ type ExecRequest struct {
 	Code           string `json:"code"`
 	Input          any    `json:"input,omitempty"`
 	Filename       string `json:"filename,omitempty"`
+	Title          string `json:"title,omitempty"` // Google Sheets create+exec only
 	Locale         string `json:"locale,omitempty"`
 	TimeoutMS      int    `json:"timeout_ms,omitempty"`
 	MaxOutputChars int    `json:"max_output_chars,omitempty"`
@@ -81,6 +82,8 @@ type ExecResponse struct {
 	Accesses       []ExecAccess    `json:"accesses,omitempty"`
 	File           *string         `json:"file,omitempty"`        // base64, stateless save=true only
 	RevisionID     *string         `json:"revision_id,omitempty"` // new revision, files-backed save=true only
+	SpreadsheetID  string          `json:"spreadsheet_id,omitempty"`
+	URL            string          `json:"url,omitempty"`
 	Error          *ExecError      `json:"error,omitempty"`
 }
 

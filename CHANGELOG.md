@@ -7,6 +7,8 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 - Updated: [Skill] `witan-xlsx` 1.0.1 — documented the new `previewChart` xlsx operation in the chart API reference.
 - Updated: [Skill] `witan-xlsx-mcp` 1.0.2 — documented the new `previewChart` xlsx operation in the chart API reference.
 - Updated: [Skill] `witan-xlsx-mcp-chatgpt` 1.0.1 — documented the new `previewChart` xlsx operation in the chart API reference.
+- New: [Skill] `witan-gsheets` 1.0.0 — drives Google Sheets via the `gsheets` commands. Covers the OAuth access model (account-level connect + per-sheet `drive.file` authorization) and, for agents, the non-blocking lifecycle: `connect`/`authorize` print a URL in `--json` mode, then poll `gsheets status … --wait` to detect completion instead of waiting on the human to report back. The in-sheet JavaScript surface is the same `xlsx.*` API as `witan-xlsx`, which the skill references rather than duplicates.
+- Changed: [CLI] `gsheets connect --help` now documents agent mode and the `gsheets status --wait` poll, matching `gsheets authorize` — so an agent that reads `--help` learns the hand-off-and-poll pattern for both commands.
 - New: [Skill] `witan-xlsx-mcp-chatgpt` 1.0.0 — ChatGPT variant of `witan-xlsx-mcp`: native `upload_file`/`download_file` file flow (no presigned URLs, no `download_url` in save outputs) and the ChatGPT-vs-Witan file-identifier model. Served live to ChatGPT connections by the server's `read_witan_manual`; same `xlsx_exec` workflow and quality guidance as the sibling. Gated against non-ChatGPT use: hidden from generic `npx skills` installs (`metadata.internal: true`, still installable by name) and the description steers all other agents to `witan-xlsx-mcp`.
 - Updated: [Skill] `witan-xlsx-mcp` 1.0.1 — removed the "do not call `read_witan_manual`" instruction: the server now serves this skill *as* the manual, and the tool descriptions already route between installed skill and manual call. `metadata.mcp-server` now records the server URL (https://api.witanlabs.com/mcp) rather than a bare name, on both MCP skills.
 - New: [Skill] Per-skill zips are published to the rolling [`skills` GitHub release](https://github.com/witanlabs/witan-cli/releases/tag/skills) on every merge to `main` that touches `skills/**` — stable download URLs (`releases/download/skills/<name>.zip`) for clients that install by zip upload, e.g. claude.ai (Settings → Capabilities → Skills). See `skills/README.md`.
@@ -20,6 +22,11 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 - New: [Skill] All skills now declare a per-skill semver in SKILL.md frontmatter (`metadata.version`, starting at 1.0.0). CI fails a PR that changes a skill's files without bumping its version; skill changelog entries now include the version. See `skills/README.md`.
 - New: [Skill] `xlsx-excelscript` drives `witan xlsx exec` with the Office Scripts (ExcelScript) dialect — the same read/author/what-if/verify workflow as `xlsx-code-mode`, written in `function main(workbook)` style behind the `// @office-script` pragma. Sibling to `xlsx-code-mode` for comparing the two dialects.
 - Updated: [Skill] `pptx-code-mode` now documents Witan install steps for the Claude Cowork sandbox.
+- New: [CLI] [JS SDK] [Python SDK] Google Sheets integration — `witan gsheets connect` links your Google account and `gsheets create`/`exec`/`lint`/`render`/`rpc` operate on sheets; the Python and Node SDKs expose `GoogleSheet` / `AsyncGoogleSheet` sessions over `witan gsheets rpc`. Requires a user session (`witan auth login`); API keys are not supported.
+- New: [CLI] `witan gsheets authorize <spreadsheet>` authorizes Witan to access a specific sheet via Google's file picker (the `drive.file` scope grants access only to sheets you create or explicitly pick). The grant persists until you disconnect; sheets you create are authorized automatically.
+- New: [CLI] `witan gsheets status <spreadsheet>` reports per-sheet authorization, and `gsheets status [<spreadsheet>] --wait` blocks until connected/authorized — the signal an agent polls after handing a connect/authorize URL to a human.
+- New: [CLI] Agent mode for `gsheets connect` and `gsheets authorize`: with `--json` or no attached terminal, they print the authorization/picker URL instead of opening a browser and blocking, so an agent can hand the URL to a human and poll `gsheets status --wait`. Operations on an un-authorized sheet fail with code `needs_file_authorization` and exit code 3.
+- New: [JS SDK] [Python SDK] `GoogleSheet.authorize_url` / `is_authorized` / `wait_until_authorized` (Node `authorizeUrl` / `isAuthorized` / `waitUntilAuthorized`), plus `is_needs_file_authorization` / `isNeedsFileAuthorization` to detect a sheet that needs per-file authorization and recover.
 
 ## 0.12.0
 
@@ -41,7 +48,6 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 - New: [JS SDK] Introduced the Node.js SDK, with `Workbook.open`, async disposal, binary discovery, typed errors, request timeouts, and xlsx workbook methods backed by `witan xlsx rpc`.
 - Fixed: [CLI] Expired saved auth sessions are cleared automatically after `401` or `403` token exchange failures, allowing unauthenticated stateless usage to resume.
 - Updated: [Skill] `xlsx-code-mode` and `read-source` now document the `npx witan` fallback when `witan` is not already on `PATH`.
-
 ## 0.10.0
 
 - New: [Python SDK] The `witan` PyPI package now ships a Python SDK alongside the bundled CLI binary, exposing `witan.Workbook` and `witan.AsyncWorkbook` for synchronous and asyncio access to xlsx workbook sessions over `witan xlsx rpc`.

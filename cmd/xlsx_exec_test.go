@@ -24,8 +24,8 @@ func TestResolveExecCodeSource_Exclusivity(t *testing.T) {
 
 	t.Run("none selected returns error", func(t *testing.T) {
 		cmd := newExecTestCommand()
-		_, err := resolveExecCodeSource(cmd, strings.NewReader(""))
-		if err == nil || !strings.Contains(err.Error(), "exactly one of --code, --script, --stdin, or --expr is required") {
+		_, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
+		if err == nil || !strings.Contains(err.Error(), "provide exactly one code source") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -39,8 +39,8 @@ func TestResolveExecCodeSource_Exclusivity(t *testing.T) {
 			t.Fatalf("setting --expr: %v", err)
 		}
 
-		_, err := resolveExecCodeSource(cmd, strings.NewReader(""))
-		if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		_, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
+		if err == nil || !strings.Contains(err.Error(), "provide exactly one code source") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -51,7 +51,7 @@ func TestResolveExecCodeSource_Exclusivity(t *testing.T) {
 			t.Fatalf("setting --code: %v", err)
 		}
 
-		code, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+		code, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
 		if err != nil {
 			t.Fatalf("resolveExecCodeSource failed: %v", err)
 		}
@@ -68,7 +68,7 @@ func TestResolveExecCodeSource_ExprWrapsExactly(t *testing.T) {
 		t.Fatalf("setting --expr: %v", err)
 	}
 
-	code, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+	code, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
 	if err != nil {
 		t.Fatalf("resolveExecCodeSource failed: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestResolveExecCodeSource_ExprRejectsLikelyMultiStatementInput(t *testing.T
 			t.Fatalf("setting --expr: %v", err)
 		}
 
-		_, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+		_, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
 		if err == nil || !strings.Contains(err.Error(), "--expr is for single expressions; use --code for multi-statement scripts") {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -98,7 +98,7 @@ func TestResolveExecCodeSource_ExprRejectsLikelyMultiStatementInput(t *testing.T
 			t.Fatalf("setting --expr: %v", err)
 		}
 
-		_, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+		_, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
 		if err == nil || !strings.Contains(err.Error(), "--expr is for single expressions; use --code for multi-statement scripts") {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -118,7 +118,7 @@ func TestResolveExecCodeSource_ScriptAndStdin(t *testing.T) {
 			t.Fatalf("setting --script: %v", err)
 		}
 
-		code, err := resolveExecCodeSource(cmd, strings.NewReader(""))
+		code, err := testResolveExecCodeSource(cmd, strings.NewReader(""))
 		if err != nil {
 			t.Fatalf("resolveExecCodeSource failed: %v", err)
 		}
@@ -133,7 +133,7 @@ func TestResolveExecCodeSource_ScriptAndStdin(t *testing.T) {
 			t.Fatalf("setting --stdin: %v", err)
 		}
 
-		code, err := resolveExecCodeSource(cmd, strings.NewReader("return input;\n"))
+		code, err := testResolveExecCodeSource(cmd, strings.NewReader("return input;\n"))
 		if err != nil {
 			t.Fatalf("resolveExecCodeSource failed: %v", err)
 		}
@@ -155,7 +155,7 @@ func TestResolveExecCodeSource_ScriptAndStdin(t *testing.T) {
 		defer w.Close()
 
 		start := time.Now()
-		_, err := resolveExecCodeSource(cmd, r)
+		_, err := testResolveExecCodeSource(cmd, r)
 		elapsed := time.Since(start)
 
 		if err == nil || !strings.Contains(err.Error(), "timed out") {
@@ -1082,7 +1082,7 @@ func TestResolveExecLocale(t *testing.T) {
 			t.Fatalf("setting --locale: %v", err)
 		}
 
-		locale, err := resolveExecLocale(cmd)
+		locale, err := testResolveLocale(cmd)
 		if err != nil {
 			t.Fatalf("resolveExecLocale failed: %v", err)
 		}
@@ -1096,7 +1096,7 @@ func TestResolveExecLocale(t *testing.T) {
 		t.Setenv("LC_ALL", "de_DE.UTF-8")
 		cmd := newExecTestCommand()
 
-		locale, err := resolveExecLocale(cmd)
+		locale, err := testResolveLocale(cmd)
 		if err != nil {
 			t.Fatalf("resolveExecLocale failed: %v", err)
 		}
@@ -1111,7 +1111,7 @@ func TestResolveExecLocale(t *testing.T) {
 		t.Setenv("LC_MESSAGES", "sr_Latn_RS.UTF-8")
 		cmd := newExecTestCommand()
 
-		locale, err := resolveExecLocale(cmd)
+		locale, err := testResolveLocale(cmd)
 		if err != nil {
 			t.Fatalf("resolveExecLocale failed: %v", err)
 		}
@@ -1127,7 +1127,7 @@ func TestResolveExecLocale(t *testing.T) {
 		t.Setenv("LANG", "")
 		cmd := newExecTestCommand()
 
-		locale, err := resolveExecLocale(cmd)
+		locale, err := testResolveLocale(cmd)
 		if err != nil {
 			t.Fatalf("resolveExecLocale failed: %v", err)
 		}
@@ -1143,7 +1143,7 @@ func TestResolveExecLocale(t *testing.T) {
 		t.Setenv("LANG", "fr_FR.UTF-8")
 		cmd := newExecTestCommand()
 
-		locale, err := resolveExecLocale(cmd)
+		locale, err := testResolveLocale(cmd)
 		if err != nil {
 			t.Fatalf("resolveExecLocale failed: %v", err)
 		}
@@ -1159,7 +1159,7 @@ func TestResolveExecLocale(t *testing.T) {
 		t.Setenv("LANG", "fr_FR.UTF-8")
 		cmd := newExecTestCommand()
 
-		locale, err := resolveExecLocale(cmd)
+		locale, err := testResolveLocale(cmd)
 		if err != nil {
 			t.Fatalf("resolveExecLocale failed: %v", err)
 		}
@@ -1174,7 +1174,7 @@ func TestResolveExecLocale(t *testing.T) {
 			t.Fatalf("setting --locale: %v", err)
 		}
 
-		_, err := resolveExecLocale(cmd)
+		_, err := testResolveLocale(cmd)
 		if err == nil || !strings.Contains(err.Error(), "invalid --locale") {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1184,7 +1184,7 @@ func TestResolveExecLocale(t *testing.T) {
 		t.Setenv("WITAN_LOCALE", "*")
 		cmd := newExecTestCommand()
 
-		_, err := resolveExecLocale(cmd)
+		_, err := testResolveLocale(cmd)
 		if err == nil || !strings.Contains(err.Error(), "invalid WITAN_LOCALE") {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1262,6 +1262,16 @@ func newExecTestCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&execCreate, "create", false, "")
 	cmd.Flags().BoolVar(&execSave, "save", false, "")
 	return cmd
+}
+
+// testResolveExecCodeSource is a test helper that wraps resolveExecCodeSource with global values.
+func testResolveExecCodeSource(cmd *cobra.Command, stdin io.Reader) (string, error) {
+	return resolveExecCodeSource(cmd, stdin, execCode, execScript, execStdin, execExpr, execStdinTimeoutMS)
+}
+
+// testResolveLocale is a test helper that wraps resolveLocale with standard parameters for exec tests.
+func testResolveLocale(cmd *cobra.Command) (string, error) {
+	return resolveLocale(cmd, "locale", execLocale, true, true)
 }
 
 func writeWorkbookForExecTest(t *testing.T) (string, []byte) {

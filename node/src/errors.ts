@@ -64,3 +64,72 @@ export class WitanRPCError extends WitanError {
     this.response = options.response ?? {};
   }
 }
+
+const GOOGLE_AUTH_REQUIRED_MARKERS = [
+  // Error codes (when surfaced in a message / JSON).
+  'google_auth_required',
+  'google_sheets_not_connected',
+  'google_sheets_scope_not_granted',
+  // Every "needs connect/reconnect" CLI message ends with this remediation
+  // (not-connected, expired/revoked, and sheet-op google_auth_required alike),
+  // so match the command rather than each individual phrasing.
+  'witan gsheets connect',
+] as const;
+
+const GOOGLE_AUTH_REQUIRED_CODES = [
+  'google_auth_required',
+  'google_sheets_not_connected',
+  'google_sheets_scope_not_granted',
+] as const;
+
+function textIndicatesGoogleAuthRequired(text: string): boolean {
+  return GOOGLE_AUTH_REQUIRED_MARKERS.some((marker) => text.includes(marker));
+}
+
+/**
+ * Return true when `err` indicates the Google account must be connected or
+ * re-authorized — i.e. the caller should run `witan gsheets connect`.
+ *
+ * Covers both an expired/revoked connection and the not-yet-connected case
+ * (which surfaces from the authorize-sheet / status path, e.g. when
+ * `GoogleSheet.authorizeUrl` is called before connecting).
+ */
+export function isGoogleAuthRequired(err: unknown): boolean {
+  if (err instanceof WitanRPCError && err.code !== null && (GOOGLE_AUTH_REQUIRED_CODES as readonly string[]).includes(err.code)) {
+    return true;
+  }
+  if (err instanceof WitanProcessError) {
+    if (textIndicatesGoogleAuthRequired(err.message)) {
+      return true;
+    }
+    return err.stderrTail.some(textIndicatesGoogleAuthRequired);
+  }
+  return false;
+}
+
+const NEEDS_FILE_AUTHORIZATION_MARKERS = [
+  'needs_file_authorization',
+  'must be authorized before Witan',
+] as const;
+
+function textIndicatesNeedsFileAuthorization(text: string): boolean {
+  return NEEDS_FILE_AUTHORIZATION_MARKERS.some((marker) => text.includes(marker));
+}
+
+/**
+ * Return true when `err` indicates the specific spreadsheet has not been
+ * authorized for the app (drive.file scope). Recover by authorizing the sheet
+ * (`GoogleSheet.authorizeUrl` + `GoogleSheet.waitUntilAuthorized`) and retrying.
+ */
+export function isNeedsFileAuthorization(err: unknown): boolean {
+  if (err instanceof WitanRPCError && err.code === 'needs_file_authorization') {
+    return true;
+  }
+  if (err instanceof WitanProcessError) {
+    if (textIndicatesNeedsFileAuthorization(err.message)) {
+      return true;
+    }
+    return err.stderrTail.some(textIndicatesNeedsFileAuthorization);
+  }
+  return false;
+}

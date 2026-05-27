@@ -310,3 +310,65 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
+
+func TestDoOnce_DoesNotRetryTransientStatus(t *testing.T) {
+	tr := &sequenceTransport{
+		t: t,
+		results: []transportResult{
+			{status: http.StatusServiceUnavailable, body: "busy"},
+			{status: http.StatusOK, body: "ok"},
+		},
+	}
+	c := newTestClient(t, tr)
+
+	raw, err := c.doOnce(func() (*http.Request, error) {
+		return http.NewRequest("POST", "https://api.test.local/v0/test", nil)
+	})
+	if err != nil {
+		t.Fatalf("doOnce failed: %v", err)
+	}
+	if tr.calls != 1 {
+		t.Fatalf("expected 1 attempt (no retry), got %d", tr.calls)
+	}
+	if raw.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 returned as-is, got %d", raw.StatusCode)
+	}
+}
+
+func TestGSheetsExec_DoesNotRetryMutatingPost(t *testing.T) {
+	tr := &sequenceTransport{
+		t: t,
+		results: []transportResult{
+			{status: http.StatusServiceUnavailable, body: `{"error":{"code":"x","message":"busy"}}`},
+			{status: http.StatusOK, body: `{"ok":true}`},
+		},
+	}
+	c := newTestClient(t, tr)
+	c.OrgID = "org1"
+
+	if _, err := c.GSheetsExec("sheet1", ExecRequest{Code: "1"}); err == nil {
+		t.Fatal("expected error from 503")
+	}
+	if tr.calls != 1 {
+		t.Fatalf("expected 1 attempt (mutating POST must not retry), got %d", tr.calls)
+	}
+}
+
+func TestCreateGoogleSheet_DoesNotRetryMutatingPost(t *testing.T) {
+	tr := &sequenceTransport{
+		t: t,
+		results: []transportResult{
+			{status: http.StatusBadGateway, body: `{"error":{"code":"x","message":"busy"}}`},
+			{status: http.StatusOK, body: `{"spreadsheet_id":"abc"}`},
+		},
+	}
+	c := newTestClient(t, tr)
+	c.OrgID = "org1"
+
+	if _, err := c.CreateGoogleSheet("My Sheet"); err == nil {
+		t.Fatal("expected error from 502")
+	}
+	if tr.calls != 1 {
+		t.Fatalf("expected 1 attempt (create must not retry), got %d", tr.calls)
+	}
+}

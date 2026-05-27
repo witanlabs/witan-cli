@@ -554,6 +554,24 @@ func friendlyErrorMessage(statusCode int, code, message, retryAfter string) stri
 			return "unsupported file type - expected .pptx"
 		}
 		return "unsupported file type — expected .xlsx, .xls, or .xlsm"
+	case "google_auth_required":
+		return "Google Sheets requires authorization. Run 'witan gsheets connect' to enable access."
+	case "needs_file_authorization":
+		return "This Google Sheet must be authorized before Witan can access it (it may also not exist). Run 'witan gsheets authorize <spreadsheet>'."
+	case "google_sheets_not_found":
+		return "Google Sheets spreadsheet not found or not shared with your account"
+	case "google_sheets_forbidden":
+		return "you don't have permission to access this Google Sheets spreadsheet"
+	case "NOT_IMPLEMENTED":
+		if message != "" {
+			return message + " (this lint rule is not supported for Google Sheets)"
+		}
+		return "lint rule not supported for Google Sheets"
+	case "unauthorized":
+		if statusCode == 401 {
+			return "authentication required — run 'witan auth login' or set WITAN_API_KEY"
+		}
+		return message
 	default:
 		return ""
 	}
@@ -599,6 +617,99 @@ func DetectContentType(filePath string) string {
 	return detectContentType(filePath)
 }
 
+// doJSONRequest is a generic helper for making JSON requests.
+// It marshals the request body (if non-nil), sends it to the given URL with the given method,
+// and unmarshals the response into result (if non-nil).
+// Returns the response status code or an error.
+// doRequest is the signature shared by doWithRetry (auto-retrying) and doOnce
+// (single attempt). It lets callers choose a retry policy per request.
+type doRequest func(makeRequest func() (*http.Request, error)) (*rawResponse, error)
+
+func (c *Client) doJSONRequest(method, urlPath string, reqBody, result any) error {
+	return c.doJSONRequestWith(c.doWithRetry, method, urlPath, reqBody, result)
+}
+
+// doJSONRequestOnce issues a JSON request with no automatic retries. Use it for
+// non-idempotent operations (e.g. mutating Google Sheets POSTs) where a replay
+// after a partial/lost response could duplicate side effects — there is no
+// idempotency-key support on those endpoints, and exec writes auto-persist
+// per-call so a failed exec may have applied some writes already.
+func (c *Client) doJSONRequestOnce(method, urlPath string, reqBody, result any) error {
+	return c.doJSONRequestWith(c.doOnce, method, urlPath, reqBody, result)
+}
+
+func (c *Client) doJSONRequestWith(do doRequest, method, urlPath string, reqBody, result any) error {
+	var bodyBytes []byte
+	var err error
+	if reqBody != nil {
+		bodyBytes, err = json.Marshal(reqBody)
+		if err != nil {
+			return fmt.Errorf("marshaling request: %w", err)
+		}
+	}
+
+	resp, err := do(func() (*http.Request, error) {
+		var body io.Reader
+		if bodyBytes != nil {
+			body = bytes.NewReader(bodyBytes)
+		}
+		r, err := http.NewRequest(method, c.BaseURL+urlPath, body)
+		if err != nil {
+			return nil, err
+		}
+		if bodyBytes != nil {
+			r.Header.Set("Content-Type", "application/json")
+		}
+		c.setCommonHeaders(r)
+		return r, nil
+	})
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		return parseAPIError(resp.StatusCode, resp.Body, resp.RetryAfter)
+	}
+
+	if result != nil {
+		if err := json.Unmarshal(resp.Body, result); err != nil {
+			return fmt.Errorf("parsing response: %w", err)
+		}
+	}
+	return nil
+}
+
+// doOnce performs a single request attempt with no retries.
+func (c *Client) doOnce(makeRequest func() (*http.Request, error)) (*rawResponse, error) {
+	req, err := makeRequest()
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	timeout := c.requestTimeout
+	if timeout <= 0 {
+		timeout = defaultRequestTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+	body, readErr := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if readErr != nil {
+		return nil, fmt.Errorf("reading response: %w", readErr)
+	}
+	return &rawResponse{
+		StatusCode:  resp.StatusCode,
+		ContentType: resp.Header.Get("Content-Type"),
+		RetryAfter:  resp.Header.Get("Retry-After"),
+		Body:        body,
+	}, nil
+}
+
 func (c *Client) setCommonHeaders(req *http.Request) {
 	userAgent := strings.TrimSpace(c.UserAgent)
 	if userAgent == "" {
@@ -610,4 +721,210 @@ func (c *Client) setCommonHeaders(req *http.Request) {
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+}
+
+// IsGoogleSheetsURL returns true if the path looks like a Google Sheets URL.
+// Supported formats:
+//   - gs://SHEET_ID
+//   - https://docs.google.com/spreadsheets/d/SHEET_ID/...
+func IsGoogleSheetsURL(path string) bool {
+	if strings.HasPrefix(path, "gs://") {
+		return true
+	}
+	if strings.Contains(path, "docs.google.com/spreadsheets/d/") {
+		return true
+	}
+	return false
+}
+
+// NormalizeGoogleSheetsURL converts various Google Sheets URL formats to gs://SHEET_ID.
+func NormalizeGoogleSheetsURL(path string) string {
+	if strings.HasPrefix(path, "gs://") {
+		return path
+	}
+	// Extract sheet ID from web URL: https://docs.google.com/spreadsheets/d/SHEET_ID/...
+	if idx := strings.Index(path, "docs.google.com/spreadsheets/d/"); idx != -1 {
+		rest := path[idx+len("docs.google.com/spreadsheets/d/"):]
+		// Sheet ID ends at next / or end of string
+		if slashIdx := strings.Index(rest, "/"); slashIdx != -1 {
+			return "gs://" + rest[:slashIdx]
+		}
+		// Remove any query string or fragment
+		if qIdx := strings.Index(rest, "?"); qIdx != -1 {
+			rest = rest[:qIdx]
+		}
+		if hIdx := strings.Index(rest, "#"); hIdx != -1 {
+			rest = rest[:hIdx]
+		}
+		return "gs://" + rest
+	}
+	return path
+}
+
+// ExtractSpreadsheetID extracts the spreadsheet ID from a gs://SHEET_ID URL.
+func ExtractSpreadsheetID(gsURL string) string {
+	normalized := NormalizeGoogleSheetsURL(gsURL)
+	if strings.HasPrefix(normalized, "gs://") {
+		return normalized[5:]
+	}
+	return normalized
+}
+
+// GSheetsExec executes JavaScript against a Google Sheets spreadsheet.
+// Endpoint: POST /v0/orgs/:org_id/gsheets/:spreadsheet_id/exec
+func (c *Client) GSheetsExec(spreadsheetID string, req ExecRequest) (*ExecResponse, error) {
+	apiPath, err := c.buildGSheetsPath(spreadsheetID, "/exec")
+	if err != nil {
+		return nil, err
+	}
+
+	// Not auto-retried: exec writes auto-persist per-call against the live
+	// sheet, so a replay after a lost/5xx response could duplicate mutations.
+	var result ExecResponse
+	if err := c.doJSONRequestOnce("POST", apiPath, req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// GSheetsExecCreate creates a new Google Sheet and executes JavaScript against it.
+// Endpoint: POST /v0/orgs/:org_id/gsheets/new/exec
+func (c *Client) GSheetsExecCreate(req ExecRequest) (*ExecResponse, error) {
+	return c.GSheetsExec("new", req)
+}
+
+// buildGSheetsPath constructs an API path for Google Sheets operations.
+// Unlike xlsx endpoints which work with API keys (no org) or JWTs (with org),
+// Google Sheets only works with JWTs which always have an org context.
+func (c *Client) buildGSheetsPath(spreadsheetID, suffix string) (string, error) {
+	if c.OrgID == "" {
+		return "", fmt.Errorf("Google Sheets operations require a selected organization: run 'witan auth login --org <id>' (or set WITAN_ORG)")
+	}
+	return "/v0/orgs/" + c.OrgID + "/gsheets/" + spreadsheetID + suffix, nil
+}
+
+
+// GSheetsLint runs lint diagnostics on a Google Sheets spreadsheet.
+// Endpoint: GET /v0/orgs/:org_id/gsheets/:spreadsheet_id/lint
+func (c *Client) GSheetsLint(spreadsheetID string, params url.Values) (*LintResponse, error) {
+	apiPath, err := c.buildGSheetsPath(spreadsheetID, "/lint")
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		u, err := url.Parse(c.BaseURL + apiPath)
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		if len(params) > 0 {
+			u.RawQuery = params.Encode()
+		}
+
+		req, err := http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		c.setCommonHeaders(req)
+		return req, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != 200 {
+		return nil, parseAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+
+	var result LintResponse
+	if err := json.Unmarshal(raw.Body, &result); err != nil {
+		return nil, fmt.Errorf("parsing lint response: %w", err)
+	}
+	return &result, nil
+}
+
+// GSheetsRPCWebSocketURL returns the WebSocket URL for Google Sheets RPC.
+// Endpoint: GET /v0/orgs/:org_id/gsheets/ws
+// Spreadsheet binding happens in the init message (spreadsheet_id or create: true).
+func (c *Client) GSheetsRPCWebSocketURL() (string, error) {
+	if c.OrgID == "" {
+		return "", fmt.Errorf("Google Sheets operations require a selected organization: run 'witan auth login --org <id>' (or set WITAN_ORG)")
+	}
+	apiPath := "/v0/orgs/" + c.OrgID + "/gsheets/ws"
+
+	wsURL := c.BaseURL + apiPath
+	wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
+	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
+
+	return wsURL, nil
+}
+
+// GSheetsRender renders a range of a Google Sheets spreadsheet as an image.
+// Endpoint: GET /v0/orgs/:org_id/gsheets/:spreadsheet_id/render
+func (c *Client) GSheetsRender(spreadsheetID string, params map[string]string) ([]byte, string, error) {
+	apiPath, err := c.buildGSheetsPath(spreadsheetID, "/render")
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Build query string
+	query := url.Values{}
+	for k, v := range params {
+		query.Set(k, v)
+	}
+	fullURL := c.BaseURL + apiPath
+	if len(query) > 0 {
+		fullURL += "?" + query.Encode()
+	}
+
+	resp, err := c.doWithRetry(func() (*http.Request, error) {
+		r, err := http.NewRequest("GET", fullURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		c.setCommonHeaders(r)
+		return r, nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if resp.StatusCode != 200 {
+		return nil, "", parseAPIError(resp.StatusCode, resp.Body, resp.RetryAfter)
+	}
+
+	return resp.Body, resp.ContentType, nil
+}
+
+// CreateGoogleSheetRequest is the request body for creating a new Google Sheet.
+type CreateGoogleSheetRequest struct {
+	Title string `json:"title,omitempty"`
+}
+
+// CreateGoogleSheetResponse is the response from creating a new Google Sheet.
+type CreateGoogleSheetResponse struct {
+	SpreadsheetID string `json:"spreadsheet_id"`
+	Title         string `json:"title"`
+	URL           string `json:"url"`
+}
+
+// CreateGoogleSheet creates a new Google Sheet in the user's Google Drive.
+// Endpoint: POST /v0/orgs/:org_id/gsheets
+func (c *Client) CreateGoogleSheet(title string) (*CreateGoogleSheetResponse, error) {
+	if c.OrgID == "" {
+		return nil, fmt.Errorf("Google Sheets operations require a selected organization: run 'witan auth login --org <id>' (or set WITAN_ORG)")
+	}
+
+	apiPath := c.buildPath("v0", "/gsheets")
+
+	var reqBody any
+	if title != "" {
+		reqBody = CreateGoogleSheetRequest{Title: title}
+	}
+
+	// Not auto-retried: a replay after a lost/5xx response could create a
+	// duplicate spreadsheet in the user's Drive.
+	var result CreateGoogleSheetResponse
+	if err := c.doJSONRequestOnce("POST", apiPath, reqBody, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

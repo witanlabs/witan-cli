@@ -204,15 +204,24 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          set -euo pipefail
+
           NPM_VERSION="${VERSION#v}"
           MAIN_PKG="${RUNNER_TEMP}/witan-npm/witan-${NPM_VERSION}.tgz"
           PLATFORM_PKG="${RUNNER_TEMP}/witan-npm/witan-linux-x64-${NPM_VERSION}.tgz"
+          TEST_DIR="${RUNNER_TEMP}/witan-npm-smoke"
 
-          # Install main package and linux-x64 platform package
+          # Install globally and verify CLI works
           npm install --global "${MAIN_PKG}" "${PLATFORM_PKG}"
-
-          # Verify CLI works
           witan --version
+
+          # Create local project to test SDK imports
+          rm -rf "${TEST_DIR}"
+          mkdir -p "${TEST_DIR}"
+          cd "${TEST_DIR}"
+
+          npm init -y >/dev/null 2>&1
+          npm install "${MAIN_PKG}" "${PLATFORM_PKG}"
 
           # Verify SDK can be imported
           node --eval "
@@ -352,12 +361,12 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          set -euo pipefail
+
           NPM_VERSION="${VERSION#v}"
+          TEST_DIR="${RUNNER_TEMP}/witan-npm-published-smoke"
 
-          # Uninstall local test packages first
-          npm uninstall --global witan @witan/linux-x64 2>/dev/null || true
-
-          # Wait briefly for npm registry consistency, then install from npm
+          # Wait briefly for npm registry consistency, then install globally from npm
           for attempt in {1..10}; do
             if npm install --global "witan@${NPM_VERSION}"; then
               break
@@ -369,8 +378,16 @@ jobs:
             sleep 10
           done
 
-          # Verify CLI works
+          # Verify CLI works from global install
           witan --version
+
+          # Create local project to test SDK imports
+          rm -rf "${TEST_DIR}"
+          mkdir -p "${TEST_DIR}"
+          cd "${TEST_DIR}"
+
+          npm init -y >/dev/null 2>&1
+          npm install "witan@${NPM_VERSION}"
 
           # Verify SDK exports
           node --eval "

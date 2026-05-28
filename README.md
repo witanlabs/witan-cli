@@ -9,7 +9,7 @@ The spreadsheet toolkit for coding agents — edit, render, calculate, and lint 
 ### Quick Install Script
 
 ```bash
-curl -fsSL https://witanlabs.com/agents/install.sh | sh
+curl -fsSL https://witanlabs.com/install.sh | sh
 ```
 
 Or try without installing: `npx witan` / `uvx witan`
@@ -144,20 +144,37 @@ Run any command with `npx witan` or `uvx witan` without installing.
 # Authenticate (recommended)
 witan auth login
 
+# Create a workbook from scratch
+witan xlsx exec quickstart.xlsx --create --save --stdin <<'WITAN'
+await xlsx.addSheet(wb, "Summary")
+await xlsx.setCells(wb, [
+  { address: "Summary!A1", value: "Metric" },
+  { address: "Summary!B1", value: "Q1" },
+  { address: "Summary!C1", value: "Q2" },
+  { address: "Summary!A2", value: "Revenue" },
+  { address: "Summary!B2", value: 1200, format: "$#,##0" },
+  { address: "Summary!C2", value: 1500, format: "$#,##0" },
+  { address: "Summary!A3", value: "Costs" },
+  { address: "Summary!B3", value: 700, format: "$#,##0" },
+  { address: "Summary!C3", value: 850, format: "$#,##0" },
+  { address: "Summary!A4", value: "Profit" },
+  { address: "Summary!B4", formula: "=B2-B3", format: "$#,##0" },
+  { address: "Summary!C4", formula: "=C2-C3", format: "$#,##0" }
+])
+return await xlsx.readRange(wb, "Summary!A1:C4")
+WITAN
+
 # Render a range
-witan xlsx render report.xlsx -r "Sheet1!A1:F20"
+witan xlsx render quickstart.xlsx -r "Summary!A1:C4"
 
 # Recalculate formulas
-witan xlsx calc report.xlsx
+witan xlsx calc quickstart.xlsx
 
 # Lint formulas
-witan xlsx lint report.xlsx
+witan xlsx lint quickstart.xlsx
 
 # Run JS against workbook
-witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
-
-# Create a new workbook from scratch
-witan xlsx exec model.xlsx --create --save --code 'await xlsx.addSheet(wb, "Inputs"); return true'
+witan xlsx exec quickstart.xlsx --expr 'await xlsx.readCell(wb, "Summary!C4")'
 
 # Author a ListObject table in one call
 witan xlsx exec model.xlsx --save --stdin <<'WITAN'

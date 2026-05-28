@@ -13,7 +13,7 @@ Files are cached server-side by content hash so repeated operations skip re-uplo
 
 The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
 
-The CLI automatically converts older .xls files to .xlsx, so it fully supports all Excel file formats.
+The CLI supports `.xls`, `.xlsx`, and `.xlsm` workbooks. Legacy `.xls` files are converted to `.xlsx` for processing when needed; new workbook creation is `.xlsx` only.
 
 ## Quick Reference
 
@@ -207,6 +207,7 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 - `--input-json` (default `{}`): JSON value passed as `input`
 - `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
 - `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
+- `--stdin-timeout-ms` (default `2000`): maximum time to wait for EOF when reading `--stdin`; set `0` to disable
 - `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
 - `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
 - `--save` (default `false`): persist changes to the workbook file
@@ -259,7 +260,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 
 **Rendering**
 
-- `previewStyles`: generate a PNG screenshot for a range; image is auto-registered
+- `previewStyles`: generate a PNG preview for a sheet range; image is auto-registered
 
 **Charts**
 
@@ -428,7 +429,7 @@ The `accesses` array documents all cell reads and writes with operation type and
 
 ## render — Visual Screenshot
 
-Renders a sheet range as a PNG image, useful for inspecting layout, merged cells, formatting, and labels.
+Renders a sheet range as a PNG image, useful for inspecting layout, merged cells, formatting, charts, and labels.
 
 ```bash
 # Render a range to a temporary file (path printed to stdout)
@@ -437,7 +438,7 @@ witan xlsx render report.xlsx -r "Sheet1!A1:Z50"
 # Render to a specific output path
 witan xlsx render report.xlsx -r "'My Sheet'!B5:H20" -o snapshot.png
 
-# Higher resolution (DPR 1-3, default auto)
+# Higher resolution (DPR 1-3; auto picks 1 or 2)
 witan xlsx render report.xlsx -r "Sheet1!A1:F10" --dpr 2
 
 # Diff against a baseline — highlights changes in a new PNG

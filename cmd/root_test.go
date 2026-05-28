@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/spf13/pflag"
+	"github.com/witanlabs/witan-cli/config"
 )
 
 func TestResolveStateless_ForcesWithoutCredentials(t *testing.T) {
@@ -143,6 +144,119 @@ func TestResolveAPIKey_AllowsStatelessFallbackWhenConfigLoadErrors(t *testing.T)
 	}
 	if key != "" {
 		t.Fatalf("expected empty API key in forced stateless mode, got %q", key)
+	}
+}
+
+func TestResolveAuth_ClearsInvalidSavedSessionAndFallsBackToStateless(t *testing.T) {
+	origAPIKey := apiKey
+	origAPIURL := apiURL
+	origStateless := stateless
+	t.Cleanup(func() {
+		apiKey = origAPIKey
+		apiURL = origAPIURL
+		stateless = origStateless
+	})
+
+	apiKey = ""
+	apiURL = ""
+	stateless = false
+
+	configDir := t.TempDir()
+	t.Setenv("WITAN_CONFIG_DIR", configDir)
+	t.Setenv("WITAN_API_KEY", "")
+	t.Setenv("WITAN_STATELESS", "")
+
+	cachedAPIKeyOrgs := map[string]string{"hash": "org_cached"}
+	if err := config.Save(config.Config{
+		SessionToken: "expired-session",
+		SessionOrgID: "org_expired",
+		APIKeyOrgs:   cachedAPIKeyOrgs,
+	}); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+	if resolveStateless() {
+		t.Fatal("expected saved session to select stateful mode before validation")
+	}
+
+	tokenRequests := 0
+	mgmtServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenRequests++
+		if r.URL.Path != "/v0/auth/token" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		http.Error(w, "expired", http.StatusUnauthorized)
+	}))
+	defer mgmtServer.Close()
+	t.Setenv("WITAN_MANAGEMENT_API_URL", mgmtServer.URL)
+
+	key, orgID, err := resolveAuth()
+	if err != nil {
+		t.Fatalf("expected anonymous stateless fallback, got error: %v", err)
+	}
+	if key != "" || orgID != "" {
+		t.Fatalf("expected empty auth after invalid session, got key=%q orgID=%q", key, orgID)
+	}
+	if tokenRequests != 1 {
+		t.Fatalf("expected one token exchange, got %d", tokenRequests)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("loading config after fallback: %v", err)
+	}
+	if cfg.SessionToken != "" || cfg.SessionOrgID != "" {
+		t.Fatalf("expected saved session to be cleared, got token=%q orgID=%q", cfg.SessionToken, cfg.SessionOrgID)
+	}
+	if cfg.APIKeyOrgs["hash"] != "org_cached" {
+		t.Fatalf("expected API key org cache to be preserved, got %#v", cfg.APIKeyOrgs)
+	}
+	if !resolveStateless() {
+		t.Fatal("expected stateless mode after invalid saved session is cleared")
+	}
+}
+
+func TestResolveAuth_KeepsSavedSessionOnUnknownExchangeError(t *testing.T) {
+	origAPIKey := apiKey
+	origAPIURL := apiURL
+	origStateless := stateless
+	t.Cleanup(func() {
+		apiKey = origAPIKey
+		apiURL = origAPIURL
+		stateless = origStateless
+	})
+
+	apiKey = ""
+	apiURL = ""
+	stateless = false
+
+	configDir := t.TempDir()
+	t.Setenv("WITAN_CONFIG_DIR", configDir)
+	t.Setenv("WITAN_API_KEY", "")
+	t.Setenv("WITAN_STATELESS", "")
+	if err := config.Save(config.Config{
+		SessionToken: "maybe-valid-session",
+		SessionOrgID: "org_saved",
+	}); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	mgmtServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "temporary failure", http.StatusInternalServerError)
+	}))
+	defer mgmtServer.Close()
+	t.Setenv("WITAN_MANAGEMENT_API_URL", mgmtServer.URL)
+
+	_, _, err := resolveAuth()
+	if err == nil || !strings.Contains(err.Error(), "authentication failed") {
+		t.Fatalf("expected authentication failure, got %v", err)
+	}
+
+	cfg, loadErr := config.Load()
+	if loadErr != nil {
+		t.Fatalf("loading config after error: %v", loadErr)
+	}
+	if cfg.SessionToken != "maybe-valid-session" || cfg.SessionOrgID != "org_saved" {
+		t.Fatalf("expected saved session to be preserved, got token=%q orgID=%q", cfg.SessionToken, cfg.SessionOrgID)
 	}
 }
 

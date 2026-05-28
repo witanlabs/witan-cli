@@ -173,9 +173,25 @@ func resolveAuth() (string, string, error) {
 
 	jwt, err := exchangeSessionForJWT(resolveManagementAPIURL(), cfg.SessionToken)
 	if err != nil {
+		if isInvalidSavedSessionError(err) {
+			cfg.SessionToken = ""
+			cfg.SessionOrgID = ""
+			if saveErr := config.Save(cfg); saveErr != nil {
+				return "", "", fmt.Errorf("clearing invalid auth config: %w", saveErr)
+			}
+			return "", "", nil
+		}
 		return "", "", fmt.Errorf("authentication failed (%v): run 'witan auth login' to re-authenticate", err)
 	}
 	return jwt, cfg.SessionOrgID, nil
+}
+
+func isInvalidSavedSessionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "HTTP 401") || strings.Contains(msg, "HTTP 403")
 }
 
 // resolveAPIKeyOrgID resolves the org ID for an API key, using the config cache

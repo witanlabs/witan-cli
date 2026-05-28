@@ -224,8 +224,8 @@ jobs:
           npm install "${MAIN_PKG}" "${PLATFORM_PKG}"
 
           # Verify SDK can be imported
-          node --eval "
-            const { Workbook, version } = require('witan');
+          node --input-type=module --eval "
+            import { Workbook, version } from 'witan';
             if (typeof Workbook !== 'function') throw new Error('Workbook not exported');
             if (version !== '${NPM_VERSION}') throw new Error('Version mismatch: ' + version);
             console.log('npm package verified: witan@' + version);
@@ -390,8 +390,8 @@ jobs:
           npm install "witan@${NPM_VERSION}"
 
           # Verify SDK exports
-          node --eval "
-            const { Workbook, version, getBinaryPath } = require('witan');
+          node --input-type=module --eval "
+            import { Workbook, version, getBinaryPath } from 'witan';
             if (typeof Workbook !== 'function') {
               console.error('Workbook not exported as function');
               process.exit(1);

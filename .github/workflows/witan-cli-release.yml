@@ -128,10 +128,10 @@ jobs:
 
       - name: Setup Node.js
         if: steps.version.outputs.stable == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "24.x"
+          package-manager-cache: false
 
       - name: Build PyPI wheels
         if: steps.version.outputs.stable == 'true'

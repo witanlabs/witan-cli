@@ -130,6 +130,7 @@ jobs:
         if: steps.version.outputs.stable == 'true'
         uses: actions/setup-node@v6
         with:
+          node-version: "24.x"
           package-manager-cache: false
 
       - name: Build PyPI wheels

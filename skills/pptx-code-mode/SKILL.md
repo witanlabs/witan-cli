@@ -16,7 +16,9 @@ Run Office.js-compatible JavaScript:
 ```bash
 witan pptx exec deck.pptx --stdin <<'JS'
 return await PowerPoint.run(async context => {
-  return context.presentation.slides.getCount().value;
+  const count = context.presentation.slides.getCount();
+  await context.sync();
+  return count.value;
 });
 JS
 ```
@@ -41,10 +43,12 @@ witan pptx exec new.pptx --create --save --stdin <<'JS'
 return await PowerPoint.run(async context => {
   const slides = context.presentation.slides;
   slides.add();
-  const slide = slides.getItemAt(slides.getCount().value - 1);
+  const count = slides.getCount();
+  await context.sync();
+  const slide = slides.getItemAt(count.value - 1);
   slide.shapes.addTextBox("Created", { left: 60, top: 60, width: 300, height: 80 });
   await context.sync();
-  return slides.getCount().value;
+  return count.value;
 });
 JS
 ```
@@ -53,9 +57,10 @@ JS
 
 - Use `--stdin` with a quoted heredoc for multi-line scripts.
 - Use `--save` only when changes should be written back.
+- Use `--create` with a new `.pptx` path to run against an empty PPTX file; add `--save` to write the created file locally.
 - Use `--json` when automation needs the full response envelope.
 - Use `--input-json` to pass structured data as the `input` global.
-- Use `witan pptx render --diff baseline.png` for visual regression checks.
+- Use `witan pptx render deck.pptx --slide 1 --diff baseline.png` for visual regression checks.
 
 Top-level `await` is supported. Static and dynamic imports are not available.
 

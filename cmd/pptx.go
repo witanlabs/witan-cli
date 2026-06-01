@@ -19,8 +19,8 @@ Output:
 
 Examples:
   witan pptx render deck.pptx --slide 1 -o slide-1.png
-  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => context.presentation.slides.getCount().value)'
-  witan pptx --json exec deck.pptx --expr 'PowerPoint.run(async context => context.presentation.slides.getCount().value)'`,
+  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
+  witan pptx --json exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'`,
 }
 
 func init() {

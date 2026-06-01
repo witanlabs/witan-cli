@@ -148,7 +148,7 @@ witan auth login
 witan pptx render deck.pptx --slide 1 -o slide-1.png
 
 # Run Office.js-compatible JavaScript against a PPTX file
-witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => context.presentation.slides.getCount().value)'
+witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
 
 # Create a workbook from scratch
 witan xlsx exec quickstart.xlsx --create --save --stdin <<'WITAN'

@@ -48,7 +48,7 @@ Quick start:
   witan read report.pdf --outline
   witan read report.pdf --pages 1-5
   witan pptx render deck.pptx --slide 1 -o slide.png
-  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => context.presentation.slides.getCount().value)'
+  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
   witan xlsx calc report.xlsx
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
   witan xlsx lint report.xlsx --skip-rule D001

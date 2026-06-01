@@ -37,9 +37,9 @@ Use --create with a new .pptx path to start from an empty PPTX file.
 Use --save to write changes back to the local file.
 
 Examples:
-  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => context.presentation.slides.getCount().value)'
+  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
   witan pptx exec deck.pptx --stdin --save < edit.js
-  witan pptx exec new.pptx --create --save --code 'return await PowerPoint.run(async context => { context.presentation.slides.add(); return context.presentation.slides.getCount().value })'`,
+  witan pptx exec new.pptx --create --save --code 'return await PowerPoint.run(async context => { const slides = context.presentation.slides; slides.add(); const count = slides.getCount(); await context.sync(); return count.value })'`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPPTXExec,
 }

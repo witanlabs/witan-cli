@@ -203,6 +203,52 @@ func TestParseAPIError_RateLimitMessage(t *testing.T) {
 	}
 }
 
+func TestParseAPIError_DisabledFeatureMessages(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "pptx",
+			body: `{"error":{"code":"not_found","message":"Route POST /v0/orgs/org_1/pptx/exec not found"}}`,
+			want: "PPTX commands are not enabled on this Witan deployment. Contact your administrator.",
+		},
+		{
+			name: "xlsx",
+			body: `{"error":{"code":"not_found","message":"Route POST /v0/orgs/org_1/files/file_1/xlsx/exec not found"}}`,
+			want: "XLSX commands are not enabled on this Witan deployment. Contact your administrator.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := parseAPIError(http.StatusNotFound, []byte(tt.body), "")
+			apiErr, ok := err.(*APIError)
+			if !ok {
+				t.Fatalf("expected APIError, got %T", err)
+			}
+			if got := apiErr.Error(); got != tt.want {
+				t.Fatalf("unexpected disabled-feature message: %q", got)
+			}
+			if IsNotFound(apiErr) {
+				t.Fatal("disabled feature route 404 should not be treated as stale file cache")
+			}
+		})
+	}
+}
+
+func TestParseAPIError_XLSXInvalidMIMETypeMessage(t *testing.T) {
+	err := parseAPIError(http.StatusBadRequest, []byte(`{"error":{"code":"invalid_mime_type","message":"Unsupported Content-Type: text/plain"}}`), "")
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if got := apiErr.Error(); got != "unsupported file type — expected .xlsx, .xls, or .xlsm" {
+		t.Fatalf("unexpected invalid MIME message: %q", got)
+	}
+}
+
 func TestUploadFile_RetriesAndReplaysMultipartBody(t *testing.T) {
 	tr := &sequenceTransport{
 		t: t,

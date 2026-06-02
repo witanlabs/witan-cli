@@ -531,6 +531,14 @@ func friendlyErrorMessage(statusCode int, code, message, retryAfter string) stri
 		}
 		return "rate limited by API; retry in a moment"
 	}
+	if statusCode == http.StatusNotFound && code == "not_found" {
+		if strings.Contains(message, "/pptx/") || strings.Contains(message, "/pptx") {
+			return "PPTX commands are not enabled on this Witan deployment. Contact your administrator."
+		}
+		if strings.Contains(message, "/xlsx/") || strings.Contains(message, "/xlsx") {
+			return "XLSX commands are not enabled on this Witan deployment. Contact your administrator."
+		}
+	}
 
 	switch code {
 	case "spawn_failed":
@@ -542,6 +550,9 @@ func friendlyErrorMessage(statusCode int, code, message, retryAfter string) stri
 	case "ADDRESS_PARSE_ERROR":
 		return message
 	case "invalid_mime_type":
+		if strings.Contains(strings.ToLower(message), "pptx") {
+			return "unsupported file type - expected .pptx"
+		}
 		return "unsupported file type — expected .xlsx, .xls, or .xlsm"
 	default:
 		return ""
@@ -551,9 +562,16 @@ func friendlyErrorMessage(statusCode int, code, message, retryAfter string) stri
 // IsNotFound returns true if the error is a 404 APIError.
 func IsNotFound(err error) bool {
 	if apiErr, ok := err.(*APIError); ok {
-		return apiErr.StatusCode == 404
+		return apiErr.StatusCode == 404 && !isRouteNotFound(apiErr)
 	}
 	return false
+}
+
+func isRouteNotFound(apiErr *APIError) bool {
+	if apiErr == nil {
+		return false
+	}
+	return apiErr.Code == "not_found" && strings.HasPrefix(apiErr.Message, "Route ")
 }
 
 func parseAPIError(statusCode int, body []byte, retryAfter string) error {

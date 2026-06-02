@@ -232,6 +232,11 @@ func TestIsNotFound(t *testing.T) {
 		t.Fatal("expected IsNotFound to be true for 404")
 	}
 
+	route404 := &APIError{StatusCode: 404, Code: "not_found", Message: "Route POST /v0/orgs/org_1/pptx/exec not found"}
+	if IsNotFound(route404) {
+		t.Fatal("expected IsNotFound to be false for unmounted route 404")
+	}
+
 	err500 := &APIError{StatusCode: 500, Code: "internal", Message: "server error"}
 	if IsNotFound(err500) {
 		t.Fatal("expected IsNotFound to be false for 500")

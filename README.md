@@ -1,6 +1,6 @@
 # witan-cli
 
-The spreadsheet toolkit for coding agents — edit, render, calculate, and lint Excel workbooks.
+The Office toolkit for coding agents — edit, render, calculate, and lint Excel workbooks, plus render and script PPTX files.
 
 **[Documentation](https://witanlabs.com/agents)** | **[How we built it](https://github.com/witanlabs/research-log)**
 
@@ -143,6 +143,12 @@ Run any command with `npx witan` or `uvx witan` without installing.
 ```bash
 # Authenticate (recommended)
 witan auth login
+
+# Render a PPTX slide
+witan pptx render deck.pptx --slide 1 -o slide-1.png
+
+# Run Office.js-compatible JavaScript against a PPTX file
+witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
 
 # Create a workbook from scratch
 witan xlsx exec quickstart.xlsx --create --save --stdin <<'WITAN'

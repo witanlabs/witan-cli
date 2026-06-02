@@ -27,12 +27,13 @@ const versionHealthRequestTimeout = 5 * time.Second
 
 var rootCmd = &cobra.Command{
 	Use:   "witan",
-	Short: "Witan CLI - spreadsheet tools for agents",
-	Long: `Witan CLI provides spreadsheet workflows for calculation, script-driven read/write automation, linting, and rendering.
+	Short: "Witan CLI - spreadsheet and PPTX tools for agents",
+	Long: `Witan CLI provides spreadsheet workflows for calculation, script-driven read/write automation, linting, and rendering, plus PPTX slide rendering and Office.js-compatible execution.
 
 Workflows:
   auth     Sign in, inspect auth status, or sign out for organization-backed requests.
   read     Extract text from documents (PDF, DOCX, PPTX, HTML, text).
+  pptx     Render PPTX slides and run Office.js-compatible scripts.
   xlsx     Recalculate formulas, run read/write scripts, lint formulas, and render ranges.
 
 Modes:
@@ -46,6 +47,8 @@ Quick start:
   witan auth status
   witan read report.pdf --outline
   witan read report.pdf --pages 1-5
+  witan pptx render deck.pptx --slide 1 -o slide.png
+  witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
   witan xlsx calc report.xlsx
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
   witan xlsx lint report.xlsx --skip-rule D001

@@ -25,6 +25,9 @@ from .types import (
     DataTable,
     DataTableMutationResult,
     DataTableSpec,
+    DataValidationInfo,
+    DataValidationResult,
+    DataValidationSpec,
     DefinedName,
     DependencyResult,
     FindAndReplaceResult,
@@ -40,11 +43,15 @@ from .types import (
     RangeRef,
     Regex,
     ReplaceMatcher,
+    RowProperties,
     SearchCell,
     SearchRow,
+    SetCellsValidationMode,
+    SheetDescription,
     SheetInfo,
     SheetProperties,
     SheetPropertiesUpdate,
+    ColumnProperties,
     Style,
     SweepResult,
     TableLookupResult,
@@ -204,7 +211,7 @@ class Workbook(_WorkbookBase):
     def get_sheet_properties(self, sheet_name: str, *, columns: Sequence[int | str] | None = None, rows: Sequence[int] | None = None) -> SheetProperties:
         filter_value = _drop_none({"columns": list(columns) if columns is not None else None, "rows": list(rows) if rows is not None else None})
         args = {"sheet": sheet_name, **({"filter": filter_value} if filter_value else {})}
-        result = cast(JsonDict, self._request("get_sheet_properties", "getSheetProperties", args))
+        result = cast(SheetProperties, self._request("get_sheet_properties", "getSheetProperties", args))
         result.setdefault("columns", {})
         result.setdefault("rows", {})
         return result
@@ -212,10 +219,10 @@ class Workbook(_WorkbookBase):
     def set_sheet_properties(self, sheet_name: str, properties: SheetPropertiesUpdate) -> None:
         self._request("set_sheet_properties", "setSheetProperties", {"sheet": sheet_name, "properties": properties})
 
-    def set_row_properties(self, sheet_name: str, from_row: int, to_row: int, properties: JsonMapping) -> None:
+    def set_row_properties(self, sheet_name: str, from_row: int, to_row: int, properties: RowProperties) -> None:
         self._request("set_row_properties", "setRowProperties", {"sheet": sheet_name, "fromRow": from_row, "toRow": to_row, "properties": properties})
 
-    def set_column_properties(self, sheet_name: str, from_col: int | str, to_col: int | str, properties: JsonMapping) -> None:
+    def set_column_properties(self, sheet_name: str, from_col: int | str, to_col: int | str, properties: ColumnProperties) -> None:
         self._request("set_column_properties", "setColumnProperties", {"sheet": sheet_name, "fromCol": from_col, "toCol": to_col, "properties": properties})
 
     def list_defined_names(self) -> list[DefinedName]:
@@ -270,11 +277,11 @@ class Workbook(_WorkbookBase):
     def find_and_replace(self, find: ReplaceMatcher, replace: str, *, in_: RangeRef | None = None, match_case: bool | None = None, whole_cell: bool | None = None, in_formulas: bool | None = None, limit: int | None = None) -> FindAndReplaceResult:
         return cast(FindAndReplaceResult, self._request("find_and_replace", "findAndReplace", _drop_none({"find": _serialize_matcher(find), "replace": replace, "in": in_, "matchCase": match_case, "wholeCell": whole_cell, "inFormulas": in_formulas, "limit": limit})))
 
-    def describe_sheet(self, sheet_name: str) -> JsonDict:
-        return cast(JsonDict, self._request("describe_sheet", "describeSheet", {"sheet": sheet_name}))
+    def describe_sheet(self, sheet_name: str) -> SheetDescription:
+        return cast(SheetDescription, self._request("describe_sheet", "describeSheet", {"sheet": sheet_name}))
 
-    def describe_sheets(self) -> dict[str, JsonDict]:
-        result: dict[str, JsonDict] = {}
+    def describe_sheets(self) -> dict[str, SheetDescription]:
+        result: dict[str, SheetDescription] = {}
         for sheet in self.list_sheets():
             if not sheet.get("hidden"):
                 result[sheet["sheet"]] = self.describe_sheet(sheet["sheet"])
@@ -366,8 +373,21 @@ class Workbook(_WorkbookBase):
     def remove_conditional_formatting(self, sheet_name: str, indices: Sequence[int]) -> None:
         self._request("remove_conditional_formatting", "removeConditionalFormatting", {"sheet": sheet_name, "indices": list(indices)})
 
-    def set_cells(self, cells: Sequence[JsonMapping]) -> WriteResult:
-        return cast(WriteResult, self._request("set_cells", "setCells", {"cells": list(cells)}))
+    def get_data_validations(self, *, sheet: str | None = None, address: str | None = None) -> list[DataValidationInfo]:
+        result = cast(Mapping[str, Any], self._request("get_data_validations", "getDataValidations", _drop_none({"sheet": sheet, "address": address})))
+        return cast(list[DataValidationInfo], result.get("rules", []))
+
+    def validate_cells(self, address: str, *, max_cells_to_scan: int | None = None, max_invalid_cells: int | None = None, treat_unsupported_as_invalid: bool | None = None) -> DataValidationResult:
+        return cast(DataValidationResult, self._request("validate_cells", "validateCells", _drop_none({"address": address, "maxCellsToScan": max_cells_to_scan, "maxInvalidCells": max_invalid_cells, "treatUnsupportedAsInvalid": treat_unsupported_as_invalid})))
+
+    def set_data_validations(self, sheet_name: str, rules: Sequence[DataValidationSpec], *, clear: bool | None = None) -> None:
+        self._request("set_data_validations", "setDataValidations", _drop_none({"sheet": sheet_name, "rules": list(rules), "clear": clear}))
+
+    def remove_data_validations(self, sheet_name: str, *, indices: Sequence[int] | None = None, address: str | None = None) -> None:
+        self._request("remove_data_validations", "removeDataValidations", _drop_none({"sheet": sheet_name, "indices": list(indices) if indices is not None else None, "address": address}))
+
+    def set_cells(self, cells: Sequence[JsonMapping], *, validation_mode: SetCellsValidationMode | None = None) -> WriteResult:
+        return cast(WriteResult, self._request("set_cells", "setCells", _drop_none({"cells": list(cells), "validationMode": validation_mode})))
 
     def scale_range(self, range: RangeRef, factor: float, *, skip_formulas: bool = True) -> WriteResult | None:
         data = self.read_range(range)
@@ -411,8 +431,8 @@ class Workbook(_WorkbookBase):
     def reduce_addresses(self, addresses: Sequence[CellRef | RangeRef]) -> list[str]:
         return cast(list[str], self._request("reduce_addresses", "reduceAddresses", {"addresses": list(addresses)}))
 
-    def get_style(self, cell: CellRef) -> JsonDict:
-        return cast(JsonDict, self._request("get_style", "getStyle", {"address": cell}))
+    def get_style(self, cell: CellRef) -> Style:
+        return cast(Style, self._request("get_style", "getStyle", {"address": cell}))
 
     def set_style(self, target: CellRef | RangeRef, style: Style) -> None:
         self._request("set_style", "setStyle", {"address": target, "style": style})
@@ -506,7 +526,7 @@ class AsyncWorkbook(_WorkbookBase):
     async def get_sheet_properties(self, sheet_name: str, *, columns: Sequence[int | str] | None = None, rows: Sequence[int] | None = None) -> SheetProperties:
         filter_value = _drop_none({"columns": list(columns) if columns is not None else None, "rows": list(rows) if rows is not None else None})
         args = {"sheet": sheet_name, **({"filter": filter_value} if filter_value else {})}
-        result = cast(JsonDict, await self._request("get_sheet_properties", "getSheetProperties", args))
+        result = cast(SheetProperties, await self._request("get_sheet_properties", "getSheetProperties", args))
         result.setdefault("columns", {})
         result.setdefault("rows", {})
         return result
@@ -514,10 +534,10 @@ class AsyncWorkbook(_WorkbookBase):
     async def set_sheet_properties(self, sheet_name: str, properties: SheetPropertiesUpdate) -> None:
         await self._request("set_sheet_properties", "setSheetProperties", {"sheet": sheet_name, "properties": properties})
 
-    async def set_row_properties(self, sheet_name: str, from_row: int, to_row: int, properties: JsonMapping) -> None:
+    async def set_row_properties(self, sheet_name: str, from_row: int, to_row: int, properties: RowProperties) -> None:
         await self._request("set_row_properties", "setRowProperties", {"sheet": sheet_name, "fromRow": from_row, "toRow": to_row, "properties": properties})
 
-    async def set_column_properties(self, sheet_name: str, from_col: int | str, to_col: int | str, properties: JsonMapping) -> None:
+    async def set_column_properties(self, sheet_name: str, from_col: int | str, to_col: int | str, properties: ColumnProperties) -> None:
         await self._request("set_column_properties", "setColumnProperties", {"sheet": sheet_name, "fromCol": from_col, "toCol": to_col, "properties": properties})
 
     async def list_defined_names(self) -> list[DefinedName]:
@@ -572,11 +592,11 @@ class AsyncWorkbook(_WorkbookBase):
     async def find_and_replace(self, find: ReplaceMatcher, replace: str, *, in_: RangeRef | None = None, match_case: bool | None = None, whole_cell: bool | None = None, in_formulas: bool | None = None, limit: int | None = None) -> FindAndReplaceResult:
         return cast(FindAndReplaceResult, await self._request("find_and_replace", "findAndReplace", _drop_none({"find": _serialize_matcher(find), "replace": replace, "in": in_, "matchCase": match_case, "wholeCell": whole_cell, "inFormulas": in_formulas, "limit": limit})))
 
-    async def describe_sheet(self, sheet_name: str) -> JsonDict:
-        return cast(JsonDict, await self._request("describe_sheet", "describeSheet", {"sheet": sheet_name}))
+    async def describe_sheet(self, sheet_name: str) -> SheetDescription:
+        return cast(SheetDescription, await self._request("describe_sheet", "describeSheet", {"sheet": sheet_name}))
 
-    async def describe_sheets(self) -> dict[str, JsonDict]:
-        result: dict[str, JsonDict] = {}
+    async def describe_sheets(self) -> dict[str, SheetDescription]:
+        result: dict[str, SheetDescription] = {}
         for sheet in await self.list_sheets():
             if not sheet.get("hidden"):
                 result[sheet["sheet"]] = await self.describe_sheet(sheet["sheet"])
@@ -668,8 +688,21 @@ class AsyncWorkbook(_WorkbookBase):
     async def remove_conditional_formatting(self, sheet_name: str, indices: Sequence[int]) -> None:
         await self._request("remove_conditional_formatting", "removeConditionalFormatting", {"sheet": sheet_name, "indices": list(indices)})
 
-    async def set_cells(self, cells: Sequence[JsonMapping]) -> WriteResult:
-        return cast(WriteResult, await self._request("set_cells", "setCells", {"cells": list(cells)}))
+    async def get_data_validations(self, *, sheet: str | None = None, address: str | None = None) -> list[DataValidationInfo]:
+        result = cast(Mapping[str, Any], await self._request("get_data_validations", "getDataValidations", _drop_none({"sheet": sheet, "address": address})))
+        return cast(list[DataValidationInfo], result.get("rules", []))
+
+    async def validate_cells(self, address: str, *, max_cells_to_scan: int | None = None, max_invalid_cells: int | None = None, treat_unsupported_as_invalid: bool | None = None) -> DataValidationResult:
+        return cast(DataValidationResult, await self._request("validate_cells", "validateCells", _drop_none({"address": address, "maxCellsToScan": max_cells_to_scan, "maxInvalidCells": max_invalid_cells, "treatUnsupportedAsInvalid": treat_unsupported_as_invalid})))
+
+    async def set_data_validations(self, sheet_name: str, rules: Sequence[DataValidationSpec], *, clear: bool | None = None) -> None:
+        await self._request("set_data_validations", "setDataValidations", _drop_none({"sheet": sheet_name, "rules": list(rules), "clear": clear}))
+
+    async def remove_data_validations(self, sheet_name: str, *, indices: Sequence[int] | None = None, address: str | None = None) -> None:
+        await self._request("remove_data_validations", "removeDataValidations", _drop_none({"sheet": sheet_name, "indices": list(indices) if indices is not None else None, "address": address}))
+
+    async def set_cells(self, cells: Sequence[JsonMapping], *, validation_mode: SetCellsValidationMode | None = None) -> WriteResult:
+        return cast(WriteResult, await self._request("set_cells", "setCells", _drop_none({"cells": list(cells), "validationMode": validation_mode})))
 
     async def scale_range(self, range: RangeRef, factor: float, *, skip_formulas: bool = True) -> WriteResult | None:
         data = await self.read_range(range)
@@ -713,8 +746,8 @@ class AsyncWorkbook(_WorkbookBase):
     async def reduce_addresses(self, addresses: Sequence[CellRef | RangeRef]) -> list[str]:
         return cast(list[str], await self._request("reduce_addresses", "reduceAddresses", {"addresses": list(addresses)}))
 
-    async def get_style(self, cell: CellRef) -> JsonDict:
-        return cast(JsonDict, await self._request("get_style", "getStyle", {"address": cell}))
+    async def get_style(self, cell: CellRef) -> Style:
+        return cast(Style, await self._request("get_style", "getStyle", {"address": cell}))
 
     async def set_style(self, target: CellRef | RangeRef, style: Style) -> None:
         await self._request("set_style", "setStyle", {"address": target, "style": style})

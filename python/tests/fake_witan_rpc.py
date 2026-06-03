@@ -114,6 +114,10 @@ def result_for(op: str, args: dict[str, Any]) -> Any:
         return {"sheet": args.get("sheet"), "chart": {"name": args.get("name", "Chart1")}}
     if op == "getConditionalFormatting":
         return {"rules": []}
+    if op == "getDataValidations":
+        return {"rules": []}
+    if op == "validateCells":
+        return {"status": "Valid", "invalidCells": [], "truncated": False, "diagnostics": []}
     if op == "autoFitColumns":
         return {"columns": {"A": {"width": 12, "previousWidth": 8}}}
     if op == "autoFitRows":

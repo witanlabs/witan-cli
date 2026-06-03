@@ -9,11 +9,7 @@ description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to
 
 ## Setup
 
-Files are cached server-side by content hash so repeated operations skip re-upload.
-
-The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
-
-The CLI supports `.xls`, `.xlsx`, and `.xlsm` workbooks. Legacy `.xls` files are converted to `.xlsx` for processing when needed; new workbook creation is `.xlsx` only.
+The CLI supports `.xls`, `.xlsx`, and `.xlsm`; legacy `.xls` files are converted to `.xlsx` when needed. New workbook creation is `.xlsx` only.
 
 ## Quick Reference
 
@@ -88,38 +84,6 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
-# Bubble chart authoring
-witan xlsx exec model.xlsx --save --stdin <<'WITAN'
-await xlsx.addChart(wb, "Sheet1", {
-	name: "BubbleChart",
-	position: { from: { cell: "F2" }, to: { cell: "N18" } },
-	groups: [
-		{
-			type: "bubble",
-			varyColors: true,
-			bubbleScale: 100,
-			showNegativeBubbles: false,
-			sizeRepresents: "area",
-			series: [
-				{
-					name: { text: "Companies" },
-					xValues: "Sheet1!B2:B6",
-					yValues: "Sheet1!C2:C6",
-					bubbleSizes: "Sheet1!D2:D6"
-				}
-			]
-		}
-	],
-	title: { text: "Revenue / Margin / Headcount" },
-	legend: { position: "right" },
-	axes: {
-		category: { title: { text: "Revenue" } },
-		value: { title: { text: "Margin" } }
-	}
-})
-await xlsx.previewStyles(wb, "Sheet1!F2:N18")
-WITAN
-
 # Waterfall chart authoring with totals and connector lines
 witan xlsx exec model.xlsx --save --stdin <<'WITAN'
 await xlsx.addChart(wb, "Sheet1", {
@@ -185,11 +149,6 @@ WITAN
 witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 ```
 
-## Exit Codes
-
-- `exec` `0`: script completed successfully (`ok: true`)
-- `exec` `1`: transport/API error, invalid request, or script error (`ok: false`)
-
 ## exec — Workbook Scripting
 
 Runs JavaScript against a workbook via the Witan API. The workbook is opened server-side; scripts interact through the `xlsx` and `wb` globals.
@@ -227,18 +186,9 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 
 ### Flags
 
-- `--expr`: expression shorthand; wraps as `return (<expr>);`
-- `--code`: inline JavaScript source
-- `--script`: path to a JavaScript file
-- `--stdin`: read JavaScript source from stdin
-- `--input-json` (default `{}`): JSON value passed as `input`
-- `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
-- `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
-- `--stdin-timeout-ms` (default `2000`): maximum time to wait for EOF when reading `--stdin`; set `0` to disable
-- `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
-- `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
-- `--save` (default `false`): persist changes to the workbook file
-- `--json` (default `false`): print the full response envelope as JSON (works on any `witan` subcommand)
+- Code source: exactly one of `--stdin`, `--expr`, `--code`, or `--script`.
+- Inputs/control: `--input-json`, `--timeout-ms`, `--max-output-chars`, `--stdin-timeout-ms`, `--locale`.
+- Workbook lifecycle: `--create` creates a new `.xlsx` session; `--save` persists changes; `--json` prints the full response envelope.
 
 ### Runtime globals
 

@@ -468,7 +468,7 @@ class SheetProperties(TypedDict):
     outline: SheetOutlineProperties
     format: SheetFormatProperties
     columns: dict[str, ColumnDimension]
-    rows: dict[int, RowDimension]
+    rows: dict[str, RowDimension]
     merges: NotRequired[list[str] | None]
 
 

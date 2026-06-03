@@ -698,7 +698,7 @@ export class Workbook implements AsyncDisposable {
    * @param row - Row number after which to insert (1-based)
    * @param count - Number of rows to insert (default: 1)
    */
-  async insertRowAfter(sheet: string, row: number, count = 1): Promise<void> {
+  async insertRowAfter(sheet: string, row: number, count: number = 1): Promise<void> {
     await this.request('insertRowAfter', 'insertRowAfter', { sheet, row, count });
   }
 
@@ -709,7 +709,7 @@ export class Workbook implements AsyncDisposable {
    * @param row - Starting row number (1-based)
    * @param count - Number of rows to delete (default: 1)
    */
-  async deleteRows(sheet: string, row: number, count = 1): Promise<void> {
+  async deleteRows(sheet: string, row: number, count: number = 1): Promise<void> {
     await this.request('deleteRows', 'deleteRows', { sheet, row, count });
   }
 
@@ -720,7 +720,7 @@ export class Workbook implements AsyncDisposable {
    * @param column - Column number (1-based) or letter after which to insert
    * @param count - Number of columns to insert (default: 1)
    */
-  async insertColumnAfter(sheet: string, column: number | string, count = 1): Promise<void> {
+  async insertColumnAfter(sheet: string, column: number | string, count: number = 1): Promise<void> {
     await this.request('insertColumnAfter', 'insertColumnAfter', { sheet, column, count });
   }
 
@@ -731,7 +731,7 @@ export class Workbook implements AsyncDisposable {
    * @param column - Starting column number (1-based) or letter
    * @param count - Number of columns to delete (default: 1)
    */
-  async deleteColumns(sheet: string, column: number | string, count = 1): Promise<void> {
+  async deleteColumns(sheet: string, column: number | string, count: number = 1): Promise<void> {
     await this.request('deleteColumns', 'deleteColumns', { sheet, column, count });
   }
 

@@ -256,9 +256,8 @@ await wb.deleteDefinedName('OldName');
 ```typescript
 // Set cell style
 await wb.setStyle('Sheet1!A1', {
-  bold: true,
-  fontSize: 14,
-  fillColor: '#FFFF00',
+  font: { bold: true, size: 14 },
+  fill: { color: '#FFFF00' },
 });
 
 // Get cell style

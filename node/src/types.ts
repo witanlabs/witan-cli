@@ -293,14 +293,20 @@ export interface ColumnProperties {
   collapsed?: boolean;
 }
 
-export interface RowDimension extends RowProperties {
+export interface RowDimension {
   row: number;
   height: number;
+  hidden?: boolean;
+  outlineLevel?: number;
+  collapsed?: boolean;
 }
 
-export interface ColumnDimension extends ColumnProperties {
+export interface ColumnDimension {
   col: string;
   width: number;
+  hidden?: boolean;
+  outlineLevel?: number;
+  collapsed?: boolean;
 }
 
 export interface SheetProperties {
@@ -1084,7 +1090,9 @@ export interface DataValidationSpec {
   errorAlert?: DataValidationErrorAlert | null;
 }
 
-export interface DataValidationInfo extends DataValidationSpec {
+export interface DataValidationInfo {
+  address: string;
+  rule: DataValidationRulePayload;
   index: number;
   sheet: string;
   type:

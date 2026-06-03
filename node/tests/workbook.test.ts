@@ -516,13 +516,13 @@ describe('Workbook', () => {
         env,
       });
 
-      await wb.setStyle('A1:B2', { bold: true, fontSize: 14 });
+      await wb.setStyle('A1:B2', { font: { bold: true, size: 14 } });
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
       const styleReq = requests.find((r) => r.op === 'setStyle');
       expect(styleReq).toBeDefined();
       expect(styleReq!.args.address).toBe('A1:B2');
-      expect(styleReq!.args.style).toEqual({ bold: true, fontSize: 14 });
+      expect(styleReq!.args.style).toEqual({ font: { bold: true, size: 14 } });
     });
 
     it('copies a range', async () => {

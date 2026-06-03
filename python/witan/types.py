@@ -432,6 +432,25 @@ class SheetFormatProperties(TypedDict):
     font: FontOptions | None
 
 
+class SheetViewPropertiesUpdate(TypedDict, total=False):
+    showGridLines: bool
+    zoomScale: int
+    freezeRows: int
+    freezeColumns: int
+
+
+class SheetOutlinePropertiesUpdate(TypedDict, total=False):
+    summaryRowsBelow: bool
+    summaryColumnsRight: bool
+    showSymbols: bool
+
+
+class SheetFormatPropertiesUpdate(TypedDict, total=False):
+    defaultRowHeight: float
+    defaultColWidth: float
+    font: FontOptions | None
+
+
 class RowProperties(TypedDict, total=False):
     height: float
     hidden: bool
@@ -474,9 +493,9 @@ class SheetProperties(TypedDict):
 
 class SheetPropertiesUpdate(TypedDict, total=False):
     visibility: SheetVisibility
-    view: SheetViewProperties
-    outline: SheetOutlineProperties
-    format: SheetFormatProperties
+    view: SheetViewPropertiesUpdate
+    outline: SheetOutlinePropertiesUpdate
+    format: SheetFormatPropertiesUpdate
     merges: list[str]
 
 

@@ -227,16 +227,37 @@ console.log(result.stats);
 const table = await wb.getListObject('SalesTable');
 await wb.addListObject('Sheet1', {
   name: 'NewTable',
-  range: 'A1:D10',
-  hasHeaders: true,
+  ref: 'A1:D10',
+  columns: [
+    { name: 'Product' },
+    { name: 'Region' },
+    { name: 'Quarter' },
+    { name: 'Sales' },
+  ],
 });
 
 // Charts
 const charts = await wb.listCharts();
 const chart = await wb.getChart('Sheet1', 'Chart1');
 await wb.addChart('Sheet1', {
-  type: 'bar',
-  dataRange: 'A1:B10',
+  name: 'SalesChart',
+  position: {
+    from: { cell: 'F2' },
+    to: { cell: 'N18' },
+  },
+  groups: [
+    {
+      type: 'bar',
+      series: [
+        {
+          name: { text: 'Sales' },
+          categories: 'Sheet1!A2:A10',
+          values: 'Sheet1!B2:B10',
+        },
+      ],
+    },
+  ],
+  title: { text: 'Sales' },
 });
 ```
 

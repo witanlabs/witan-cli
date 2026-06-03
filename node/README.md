@@ -163,7 +163,7 @@ await wb.deleteSheet('OldSheet');
 
 // Get/set sheet properties
 const props = await wb.getSheetProperties('Sheet1');
-await wb.setSheetProperties('Sheet1', { hidden: true });
+await wb.setSheetProperties('Sheet1', { visibility: 'hidden' });
 ```
 
 ### Row and Column Operations

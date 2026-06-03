@@ -1277,7 +1277,7 @@ describe('Workbook', () => {
         env,
       });
 
-      await wb.setConditionalFormatting('Sheet1', [{ type: 'cellIs', operator: 'greaterThan' }]);
+      await wb.setConditionalFormatting('Sheet1', [{ address: 'A1', type: 'cellValue', operator: 'greaterThan', formula: '10' }]);
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
       const setReq = requests.find((r) => r.op === 'setConditionalFormatting');

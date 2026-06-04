@@ -516,13 +516,13 @@ describe('Workbook', () => {
         env,
       });
 
-      await wb.setStyle('A1:B2', { bold: true, fontSize: 14 });
+      await wb.setStyle('A1:B2', { font: { bold: true, size: 14 } });
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
       const styleReq = requests.find((r) => r.op === 'setStyle');
       expect(styleReq).toBeDefined();
       expect(styleReq!.args.address).toBe('A1:B2');
-      expect(styleReq!.args.style).toEqual({ bold: true, fontSize: 14 });
+      expect(styleReq!.args.style).toEqual({ font: { bold: true, size: 14 } });
     });
 
     it('copies a range', async () => {
@@ -1050,7 +1050,11 @@ describe('Workbook', () => {
         env,
       });
 
-      const result = await wb.addListObject('Sheet1', { name: 'NewTable', ref: 'A1:C10' });
+      const result = await wb.addListObject('Sheet1', {
+        name: 'NewTable',
+        ref: 'A1:C10',
+        columns: [{ name: 'Name' }, { name: 'Region' }, { name: 'Sales' }],
+      });
       expect(result.listObject).toBeDefined();
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
@@ -1065,7 +1069,7 @@ describe('Workbook', () => {
         env,
       });
 
-      await wb.setListObject('Table1', { displayName: 'UpdatedTable' });
+      await wb.setListObject('Table1', { showTotalsRow: true });
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
       const setReq = requests.find((r) => r.op === 'setListObject');
@@ -1108,7 +1112,13 @@ describe('Workbook', () => {
         env,
       });
 
-      const result = await wb.addDataTable('Sheet1', { ref: 'A1:B5' });
+      const result = await wb.addDataTable('Sheet1', {
+        type: 'oneVariableColumn',
+        ref: 'A1:B5',
+        columnInputCell: 'D1',
+        inputValues: [10, 20, 30, 40],
+        formulas: ['=C1'],
+      });
       expect(result.dataTable).toBeDefined();
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
@@ -1176,7 +1186,25 @@ describe('Workbook', () => {
         env,
       });
 
-      const chart = await wb.addChart('Sheet1', { type: 'bar', dataRange: 'A1:B5' });
+      const chart = await wb.addChart('Sheet1', {
+        name: 'Chart1',
+        position: {
+          from: { cell: 'E2' },
+          to: { cell: 'L18' },
+        },
+        groups: [
+          {
+            type: 'bar',
+            series: [
+              {
+                name: { text: 'Sales' },
+                categories: 'Sheet1!A2:A5',
+                values: 'Sheet1!B2:B5',
+              },
+            ],
+          },
+        ],
+      });
       expect(chart).toBeDefined();
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
@@ -1190,7 +1218,26 @@ describe('Workbook', () => {
         env,
       });
 
-      await wb.setChart('Sheet1', 'Chart1', { title: 'Updated Title' });
+      await wb.setChart('Sheet1', 'Chart1', {
+        name: 'Chart1',
+        position: {
+          from: { cell: 'E2' },
+          to: { cell: 'L18' },
+        },
+        groups: [
+          {
+            type: 'bar',
+            series: [
+              {
+                name: { text: 'Sales' },
+                categories: 'Sheet1!A2:A5',
+                values: 'Sheet1!B2:B5',
+              },
+            ],
+          },
+        ],
+        title: { text: 'Updated Title' },
+      });
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
       const setReq = requests.find((r) => r.op === 'setChart');
@@ -1230,7 +1277,7 @@ describe('Workbook', () => {
         env,
       });
 
-      await wb.setConditionalFormatting('Sheet1', [{ type: 'cellIs', operator: 'greaterThan' }]);
+      await wb.setConditionalFormatting('Sheet1', [{ address: 'A1', type: 'cellValue', operator: 'greaterThan', formula: '10' }]);
 
       const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
       const setReq = requests.find((r) => r.op === 'setConditionalFormatting');

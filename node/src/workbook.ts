@@ -11,6 +11,9 @@ import type {
   ChartSummary,
   ConditionalFormattingRule,
   CopyRangeResult,
+  DataValidationInfo,
+  DataValidationResult,
+  DataValidationSpec,
   DataTable,
   DataTableMutationResult,
   DataTableSpec,
@@ -18,8 +21,6 @@ import type {
   DependencyResult,
   FindAndReplaceResult,
   FormulaResult,
-  JsonDict,
-  JsonMapping,
   LintResult,
   ListObject,
   ListObjectMutationResult,
@@ -30,10 +31,15 @@ import type {
   ReplaceMatcher,
   SearchCell,
   SearchRow,
+  SetCellsValidationMode,
   SheetInfo,
   SheetProperties,
+  SheetPropertiesUpdate,
+  RowProperties,
+  ColumnProperties,
   SortKey,
   Style,
+  SheetDescription,
   SweepInput,
   SweepMode,
   SweepResult,
@@ -42,6 +48,7 @@ import type {
   TraceOutput,
   Value,
   WorkbookProperties,
+  WorkbookPropertiesUpdate,
   WriteResult,
 } from './types.js';
 
@@ -233,7 +240,7 @@ export class Workbook implements AsyncDisposable {
   /**
    * Set workbook-level properties.
    */
-  async setWorkbookProperties(properties: JsonMapping): Promise<void> {
+  async setWorkbookProperties(properties: WorkbookPropertiesUpdate): Promise<void> {
     await this.request('setWorkbookProperties', 'setWorkbookProperties', properties as Record<string, unknown>);
   }
 
@@ -313,7 +320,7 @@ export class Workbook implements AsyncDisposable {
    * @param sheet - Sheet name
    * @param properties - Properties to set
    */
-  async setSheetProperties(sheet: string, properties: JsonMapping): Promise<void> {
+  async setSheetProperties(sheet: string, properties: SheetPropertiesUpdate): Promise<void> {
     await this.request('setSheetProperties', 'setSheetProperties', {
       sheet,
       properties,
@@ -497,8 +504,15 @@ export class Workbook implements AsyncDisposable {
    * @param cells - Array of cell assignments
    * @returns Write result with changed cells and any errors
    */
-  async setCells(cells: CellAssignment[]): Promise<WriteResult> {
-    return (await this.request('setCells', 'setCells', { cells })) as WriteResult;
+  async setCells(
+    cells: CellAssignment[],
+    options: { validationMode?: SetCellsValidationMode } = {}
+  ): Promise<WriteResult> {
+    return (await this.request(
+      'setCells',
+      'setCells',
+      dropUndefined({ cells, validationMode: options.validationMode })
+    )) as WriteResult;
   }
 
   /**
@@ -684,7 +698,7 @@ export class Workbook implements AsyncDisposable {
    * @param row - Row number after which to insert (1-based)
    * @param count - Number of rows to insert (default: 1)
    */
-  async insertRowAfter(sheet: string, row: number, count = 1): Promise<void> {
+  async insertRowAfter(sheet: string, row: number, count: number = 1): Promise<void> {
     await this.request('insertRowAfter', 'insertRowAfter', { sheet, row, count });
   }
 
@@ -695,7 +709,7 @@ export class Workbook implements AsyncDisposable {
    * @param row - Starting row number (1-based)
    * @param count - Number of rows to delete (default: 1)
    */
-  async deleteRows(sheet: string, row: number, count = 1): Promise<void> {
+  async deleteRows(sheet: string, row: number, count: number = 1): Promise<void> {
     await this.request('deleteRows', 'deleteRows', { sheet, row, count });
   }
 
@@ -706,7 +720,7 @@ export class Workbook implements AsyncDisposable {
    * @param column - Column number (1-based) or letter after which to insert
    * @param count - Number of columns to insert (default: 1)
    */
-  async insertColumnAfter(sheet: string, column: number | string, count = 1): Promise<void> {
+  async insertColumnAfter(sheet: string, column: number | string, count: number = 1): Promise<void> {
     await this.request('insertColumnAfter', 'insertColumnAfter', { sheet, column, count });
   }
 
@@ -717,7 +731,7 @@ export class Workbook implements AsyncDisposable {
    * @param column - Starting column number (1-based) or letter
    * @param count - Number of columns to delete (default: 1)
    */
-  async deleteColumns(sheet: string, column: number | string, count = 1): Promise<void> {
+  async deleteColumns(sheet: string, column: number | string, count: number = 1): Promise<void> {
     await this.request('deleteColumns', 'deleteColumns', { sheet, column, count });
   }
 
@@ -737,7 +751,7 @@ export class Workbook implements AsyncDisposable {
     sheet: string,
     fromRow: number,
     toRow: number,
-    properties: JsonMapping
+    properties: RowProperties
   ): Promise<void> {
     await this.request('setRowProperties', 'setRowProperties', {
       sheet,
@@ -759,7 +773,7 @@ export class Workbook implements AsyncDisposable {
     sheet: string,
     fromCol: number | string,
     toCol: number | string,
-    properties: JsonMapping
+    properties: ColumnProperties
   ): Promise<void> {
     await this.request('setColumnProperties', 'setColumnProperties', {
       sheet,
@@ -1103,6 +1117,84 @@ export class Workbook implements AsyncDisposable {
   }
 
   // ============================================================================
+  // Data Validation
+  // ============================================================================
+
+  /**
+   * Get data validation rules.
+   *
+   * @param options - Optional sheet and address filters
+   * @returns Array of data validation rules
+   */
+  async getDataValidations(options: { sheet?: string; address?: string } = {}): Promise<DataValidationInfo[]> {
+    const result = (await this.request(
+      'getDataValidations',
+      'getDataValidations',
+      dropUndefined({ sheet: options.sheet, address: options.address })
+    )) as { rules?: DataValidationInfo[] };
+    return result.rules ?? [];
+  }
+
+  /**
+   * Validate current cell values against their data validation rules.
+   *
+   * @param address - Range address to validate
+   * @param options - Evaluation limits and unsupported-rule handling
+   * @returns Validation status, invalid cell ranges, and diagnostics
+   */
+  async validateCells(
+    address: string,
+    options: {
+      maxCellsToScan?: number;
+      maxInvalidCells?: number;
+      treatUnsupportedAsInvalid?: boolean;
+    } = {}
+  ): Promise<DataValidationResult> {
+    return (await this.request(
+      'validateCells',
+      'validateCells',
+      dropUndefined({
+        address,
+        maxCellsToScan: options.maxCellsToScan,
+        maxInvalidCells: options.maxInvalidCells,
+        treatUnsupportedAsInvalid: options.treatUnsupportedAsInvalid,
+      })
+    )) as DataValidationResult;
+  }
+
+  /**
+   * Add data validation rules to a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param rules - Rules to add
+   * @param options - Options including whether to clear existing rules
+   */
+  async setDataValidations(
+    sheet: string,
+    rules: DataValidationSpec[],
+    options: { clear?: boolean } = {}
+  ): Promise<void> {
+    await this.request(
+      'setDataValidations',
+      'setDataValidations',
+      dropUndefined({ sheet, rules, clear: options.clear })
+    );
+  }
+
+  /**
+   * Remove data validation rules by index or by range.
+   *
+   * @param sheet - Sheet name
+   * @param target - Either rule indices or an address to clear
+   */
+  async removeDataValidations(sheet: string, target: { indices: number[] } | { address: string }): Promise<void> {
+    await this.request('removeDataValidations', 'removeDataValidations', {
+      sheet,
+      ...target,
+    });
+  }
+
+  // ============================================================================
   // Formula Operations
   // ============================================================================
 
@@ -1233,8 +1325,8 @@ export class Workbook implements AsyncDisposable {
    * @param sheet - Sheet name
    * @returns Sheet description
    */
-  async describeSheet(sheet: string): Promise<JsonDict> {
-    return (await this.request('describeSheet', 'describeSheet', { sheet })) as JsonDict;
+  async describeSheet(sheet: string): Promise<SheetDescription> {
+    return (await this.request('describeSheet', 'describeSheet', { sheet })) as SheetDescription;
   }
 
   /**
@@ -1243,9 +1335,9 @@ export class Workbook implements AsyncDisposable {
    *
    * @returns Map of sheet names to descriptions
    */
-  async describeSheets(): Promise<Record<string, JsonDict>> {
+  async describeSheets(): Promise<Record<string, SheetDescription>> {
     const sheets = await this.listSheets();
-    const result: Record<string, JsonDict> = {};
+    const result: Record<string, SheetDescription> = {};
     for (const sheet of sheets) {
       if (!sheet.hidden) {
         result[sheet.sheet] = await this.describeSheet(sheet.sheet);
@@ -1333,7 +1425,7 @@ export class Workbook implements AsyncDisposable {
    * @param cell - Cell address
    * @returns Style properties
    */
-  async getStyle(cell: string): Promise<JsonDict> {
-    return (await this.request('getStyle', 'getStyle', { address: cell })) as JsonDict;
+  async getStyle(cell: string): Promise<Style> {
+    return (await this.request('getStyle', 'getStyle', { address: cell })) as Style;
   }
 }

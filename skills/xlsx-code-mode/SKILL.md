@@ -9,11 +9,7 @@ description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to
 
 ## Setup
 
-Files are cached server-side by content hash so repeated operations skip re-upload.
-
-The CLI automatically applies per-attempt request timeouts and retries transient API failures (`408`, `429`, `500`, `502`, `503`, `504`, plus timeout/network errors). Non-retryable `4xx` responses fail immediately.
-
-The CLI supports `.xls`, `.xlsx`, and `.xlsm` workbooks. Legacy `.xls` files are converted to `.xlsx` for processing when needed; new workbook creation is `.xlsx` only.
+The CLI supports `.xls`, `.xlsx`, and `.xlsm`; legacy `.xls` files are converted to `.xlsx` when needed. New workbook creation is `.xlsx` only.
 
 ## Quick Reference
 
@@ -88,34 +84,29 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
-# Bubble chart authoring
+# Waterfall chart authoring with totals and connector lines
 witan xlsx exec model.xlsx --save --stdin <<'WITAN'
 await xlsx.addChart(wb, "Sheet1", {
-	name: "BubbleChart",
+	name: "Bridge",
 	position: { from: { cell: "F2" }, to: { cell: "N18" } },
 	groups: [
 		{
-			type: "bubble",
-			varyColors: true,
-			bubbleScale: 100,
-			showNegativeBubbles: false,
-			sizeRepresents: "area",
+			type: "waterfall",
 			series: [
 				{
-					name: { text: "Companies" },
-					xValues: "Sheet1!B2:B6",
-					yValues: "Sheet1!C2:C6",
-					bubbleSizes: "Sheet1!D2:D6"
+					name: { text: "Movement" },
+					categories: "Sheet1!A2:A8",
+					values: "Sheet1!B2:B8",
+					totalIndexes: [0, 6],
+					showConnectorLines: true,
+					dataLabels: { showValue: true, position: "outsideEnd" }
 				}
 			]
 		}
 	],
-	title: { text: "Revenue / Margin / Headcount" },
-	legend: { position: "right" },
-	axes: {
-		category: { title: { text: "Revenue" } },
-		value: { title: { text: "Margin" } }
-	}
+	title: { text: "Revenue Bridge" },
+	plotVisibleOnly: true,
+	styleId: 395
 })
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
@@ -158,11 +149,6 @@ WITAN
 witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 ```
 
-## Exit Codes
-
-- `exec` `0`: script completed successfully (`ok: true`)
-- `exec` `1`: transport/API error, invalid request, or script error (`ok: false`)
-
 ## exec — Workbook Scripting
 
 Runs JavaScript against a workbook via the Witan API. The workbook is opened server-side; scripts interact through the `xlsx` and `wb` globals.
@@ -200,18 +186,9 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 
 ### Flags
 
-- `--expr`: expression shorthand; wraps as `return (<expr>);`
-- `--code`: inline JavaScript source
-- `--script`: path to a JavaScript file
-- `--stdin`: read JavaScript source from stdin
-- `--input-json` (default `{}`): JSON value passed as `input`
-- `--timeout-ms`: execution timeout in milliseconds (> 0); omit for server default
-- `--max-output-chars`: maximum stdout characters to capture (> 0); omit for server default
-- `--stdin-timeout-ms` (default `2000`): maximum time to wait for EOF when reading `--stdin`; set `0` to disable
-- `--locale`: execution locale; falls back to `WITAN_LOCALE`, then `LC_ALL` / `LC_MESSAGES` / `LANG`
-- `--create` (default `false`): create a new `.xlsx` workbook; target path must not exist
-- `--save` (default `false`): persist changes to the workbook file
-- `--json` (default `false`): print the full response envelope as JSON (works on any `witan` subcommand)
+- Code source: exactly one of `--stdin`, `--expr`, `--code`, or `--script`.
+- Inputs/control: `--input-json`, `--timeout-ms`, `--max-output-chars`, `--stdin-timeout-ms`, `--locale`.
+- Workbook lifecycle: `--create` creates a new `.xlsx` session; `--save` persists changes; `--json` prints the full response envelope.
 
 ### Runtime globals
 
@@ -257,6 +234,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Validating**
 
 - `lint`: potential workbook issues and diagnostics
+- `getDataValidations`, `validateCells`: inspect data validation rules and find invalid cells
 
 **Rendering**
 
@@ -267,6 +245,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 - `listCharts`: chart summaries for the workbook or a single sheet
 - `getChart`: canonical spec for an existing chart
 - `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
+- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, waterfall charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
 
 **Conditional Formatting**
 
@@ -277,6 +256,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Writing (ephemeral)**
 
 - Cells/ranges: `setCells`, `findAndReplace`, `scaleRange`, `copyRange`, `sortRange`
+- Data validation: `setDataValidations`, `removeDataValidations`; `setCells` supports `opts.validationMode: "reject"` to reject invalid writes
 - Structure: `insertRowAfter`, `deleteRows`, `insertColumnAfter`, `deleteColumns`, `autoFitColumns`
 - Sheets/names: `addSheet`, `deleteSheet`, `renameSheet`, `addDefinedName`, `deleteDefinedName`
 - Properties/styles: `setWorkbookProperties`, `setSheetProperties`, `setRowProperties`, `setColumnProperties`, `setStyle`
@@ -291,6 +271,7 @@ Common option patterns:
 - `sortRange`: `opts.hasHeader` defaults to `true`
 - `copyRange`: `opts.pasteType` supports `all`, `values`, `formulas`, `formats`
 - `setConditionalFormatting`: `opts.clear` replaces all existing rules
+- `setDataValidations`: `opts.clear` replaces all existing rules on the sheet
 
 ### The ephemeral write contract
 
@@ -564,6 +545,11 @@ interface ChartTextSource {text?:string;ref?:string}
 interface ChartPositionAnchor {cell:string;xOffsetPts?:number;yOffsetPts?:number}
 interface ChartPosIn {from:ChartPositionAnchor;to:ChartPositionAnchor}
 interface ChartPos extends ChartPosIn {sheet:string}
+interface ChartFillFormat {noFill?:boolean;color?:string}
+interface ChartLineFormat {noLine?:boolean;color?:string;weight?:number;lineStyle?:string}
+interface ChartFontFormat {bold?:boolean;color?:string;italic?:boolean;name?:string;size?:number;underline?:string}
+interface ChartDataLabelFormat {fill?:ChartFillFormat;border?:ChartLineFormat;font?:ChartFontFormat}
+interface ChartPlotAreaSpec {format?:{fill?:ChartFillFormat;border?:ChartLineFormat}}
 interface ChartAxisSpec {
 	title?:ChartTextSource;
 	visible?:boolean;
@@ -586,8 +572,9 @@ interface ChartSpec {
 	name:string;
 	position:ChartPosIn;
 	groups:{
-		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble";
+		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"stockHLC"|"stockOHLC"|"waterfall";
 		scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker"; /** scatter only */
+		radarStyle?:"standard"|"marker"|"filled"; /** radar only */
 		grouping?:"standard"|"stacked"|"percentStacked";
 		axis?:"primary"|"secondary";
 		gapWidth?:number;
@@ -599,10 +586,25 @@ interface ChartSpec {
 		bubbleScale?:number; /** bubble only, 0-300 */
 		showNegativeBubbles?:boolean; /** bubble only */
 		sizeRepresents?:"area"|"width"; /** bubble only */
+		dataLabels?:{
+			showLegendKey?:boolean;
+			showValue?:boolean;
+			showCategory?:boolean;
+			showSeriesName?:boolean;
+			showPercent?:boolean;
+			showBubbleSize?:boolean;
+			showLeaderLines?:boolean;
+			position?:ChartDataLabelPosition;
+			numberFormat?:string;
+			numberFormatLinked?:boolean;
+			separator?:string;
+			format?:ChartDataLabelFormat;
+		};
 		series:{
 			name?:ChartTextSource;
+			stockRole?:"volume"|"open"|"high"|"low"|"close"; /** stock charts only */
 			categories?:string;
-			categoriesRefType?:"string"|"number";
+			categoriesRefType?:"string"|"number"|"multiLevelString";
 			values?:string;
 			xValues?:string;
 			yValues?:string;
@@ -613,6 +615,8 @@ interface ChartSpec {
 			lineDashStyle?:string;
 			smooth?:boolean;
 			invertIfNegative?:boolean;
+			totalIndexes?:number[]; /** waterfall only: zero-based subtotal/total point indexes */
+			showConnectorLines?:boolean; /** waterfall only */
 			marker?:{
 				style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";
 				size?:number;
@@ -628,13 +632,21 @@ interface ChartSpec {
 				showBubbleSize?:boolean;
 				showLeaderLines?:boolean;
 				position?:ChartDataLabelPosition; /** for bubble charts only center/left/right/top/bottom */
+				numberFormat?:string;
+				numberFormatLinked?:boolean;
+				separator?:string;
+				format?:ChartDataLabelFormat;
 			};
 		}[];
 	}[];
 	title?:ChartTextSource&{overlay?:boolean};
 	legend?:{visible?:boolean;position?:"left"|"right"|"top"|"bottom"|"topRight";overlay?:boolean};
 	axes?:{category?:ChartAxisSpec;value?:ChartAxisSpec;secondaryCategory?:ChartAxisSpec;secondaryValue?:ChartAxisSpec};
+	format?:ChartDataLabelFormat; /** chart-area fill/border/font */
+	plotArea?:ChartPlotAreaSpec;
 	displayBlanksAs?:"gap"|"span"|"zero";
+	plotVisibleOnly?:boolean;
+	showDataLabelsOverMaximum?:boolean;
 	roundedCorners?:boolean;
 	styleId?:number; /** legacy styles 1-48, or modern catalog styles eg. 201,227,240,251,269,276. */
 }
@@ -802,7 +814,7 @@ function setCells(wb,cells:Array<{
 	link?:{url?:string;ref?:string;tooltip?:string}|null;
 	/** Thread payload: append via `add`, set `resolved`, or delete. */
 	thread?:{add?:Array<{author?:string;text:string}>;resolved?:boolean;delete?:boolean}|null;
-}>):Promise<WriteResult>;
+}>,opts?:{validationMode?:"ignore"|"reject"}):Promise<WriteResult>;
 function sweepInputs(wb,args:{
 	inputs:{address:CellRef;values:(number|string|boolean|null)[]}[];
 	outputs:(string|CellRef)[];
@@ -955,6 +967,41 @@ function setConditionalFormatting(wb,sheetName:string,rules:Array<CfRuleShared&{
 	type:CfWritableRuleType;
 }>,opts?:{clear?:boolean}):Promise<void>;
 function removeConditionalFormatting(wb,sheetName:string,indices:number[]):Promise<void>;
+type DvOperator="Between"|"NotBetween"|"EqualTo"|"NotEqualTo"|"GreaterThan"|"LessThan"|"GreaterThanOrEqualTo"|"LessThanOrEqualTo";
+type DvBasic={operator:DvOperator;formula1:string|number;formula2?:string|number|null};
+type DvRule={
+	wholeNumber?:DvBasic|null;
+	decimal?:DvBasic|null;
+	list?:{source:string;inCellDropDown?:boolean}|null;
+	date?:DvBasic|null;
+	time?:DvBasic|null;
+	textLength?:DvBasic|null;
+	custom?:{formula:string}|null;
+};
+type DvSpec={
+	address:string;
+	rule:DvRule;
+	ignoreBlanks?:boolean;
+	prompt?:{showPrompt?:boolean;title?:string|null;message?:string|null}|null;
+	errorAlert?:{showAlert?:boolean;style?:"Stop"|"Warning"|"Information";title?:string|null;message?:string|null}|null;
+};
+function getDataValidations(wb,opts?:{sheet?:string;address?:string}):Promise<Array<DvSpec&{
+	index:number;
+	sheet:string;
+	type:"None"|"WholeNumber"|"Decimal"|"List"|"Date"|"Time"|"TextLength"|"Custom";
+}>>;
+function validateCells(wb,address:RangeRef,opts?:{
+	maxCellsToScan?:number;
+	maxInvalidCells?:number;
+	treatUnsupportedAsInvalid?:boolean;
+}):Promise<{
+	status:"Valid"|"Invalid"|"NoValidation"|"Mixed"|"Unknown";
+	invalidCells:string[];
+	truncated:boolean;
+	diagnostics:{code:string;message:string;details?:Record<string,string>|null}[];
+}>;
+function setDataValidations(wb,sheetName:string,rules:DvSpec[],opts?:{clear?:boolean}):Promise<void>;
+function removeDataValidations(wb,sheetName:string,target:{indices:number[]}|{address:string}):Promise<void>;
 function setSheetProperties(wb,sheetName:string,properties:{
 	visibility?:"visible"|"hidden"|"veryHidden";
 	view?:{

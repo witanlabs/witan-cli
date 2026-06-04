@@ -137,11 +137,14 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         wb.describe_sheets()
         wb.table_lookup("Sheet1!A1:B2", "row", "col")
         wb.get_list_object("Table1")
-        wb.add_list_object("Sheet1", {"name": "Table1", "ref": "A1:B2", "columns": []})
+        wb.add_list_object("Sheet1", {"name": "Table1", "ref": "A1:B2", "columns": [{"name": "Name"}, {"name": "Value"}]})
         wb.set_list_object("Table1", {"showTotalsRow": True})
         wb.delete_list_object("Table1")
         wb.get_data_table("Sheet1!E1:F4")
-        wb.add_data_table("Sheet1", {"type": "oneVariableColumn"})
+        wb.add_data_table(
+            "Sheet1",
+            {"type": "oneVariableColumn", "ref": "E1:F4", "columnInputCell": "H1", "inputValues": [1, 2, 3], "formulas": ["=G1"]},
+        )
         wb.delete_data_table("Sheet1!E1:F4")
         wb.get_cell_precedents("Sheet1!B1")
         wb.get_cell_dependents("Sheet1!A1", depth=float("inf"))
@@ -155,13 +158,22 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         wb.preview_styles("Sheet1!A1:B2")
         wb.list_charts(sheet="Sheet1")
         wb.get_chart("Sheet1", "Chart1")
-        wb.add_chart("Sheet1", {"name": "Chart1"})
-        wb.set_chart("Sheet1", "Chart1", {"name": "Chart1"})
+        chart_spec = {
+            "name": "Chart1",
+            "position": {"from": {"cell": "E2"}, "to": {"cell": "L18"}},
+            "groups": [{"type": "bar", "series": [{"name": {"text": "Sales"}, "categories": "Sheet1!A2:A5", "values": "Sheet1!B2:B5"}]}],
+        }
+        wb.add_chart("Sheet1", chart_spec)
+        wb.set_chart("Sheet1", "Chart1", {**chart_spec, "title": {"text": "Updated Title"}})
         wb.delete_chart("Sheet1", "Chart1")
         wb.get_conditional_formatting("Sheet1")
         wb.set_conditional_formatting("Sheet1", [{"type": "expression", "address": "A1", "formula": "TRUE"}], clear=True)
         wb.remove_conditional_formatting("Sheet1", [0])
-        wb.set_cells([{"address": "Sheet1!A1", "value": 1}])
+        wb.get_data_validations(sheet="Sheet1")
+        wb.validate_cells("Sheet1!A1:A3", max_cells_to_scan=10, max_invalid_cells=2, treat_unsupported_as_invalid=True)
+        wb.set_data_validations("Sheet1", [{"address": "A1", "rule": {"wholeNumber": {"formula1": 0, "operator": "GreaterThan"}}}], clear=True)
+        wb.remove_data_validations("Sheet1", address="A1")
+        wb.set_cells([{"address": "Sheet1!A1", "value": 1}], validation_mode="reject")
         wb.scale_range("Sheet1!A1:B1", 2)
         wb.insert_row_after("Sheet1", 1)
         wb.delete_rows("Sheet1", 2)
@@ -229,6 +241,10 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         "getConditionalFormatting",
         "setConditionalFormatting",
         "removeConditionalFormatting",
+        "getDataValidations",
+        "validateCells",
+        "setDataValidations",
+        "removeDataValidations",
         "setCells",
         "readRange",
         "setCells",
@@ -245,6 +261,20 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         "setStyle",
         "save",
     ]
+
+    logged_requests = json_lines(requests_file)
+    args_by_op = {request["op"]: request["args"] for request in logged_requests}
+    assert args_by_op["validateCells"] == {
+        "address": "Sheet1!A1:A3",
+        "maxCellsToScan": 10,
+        "maxInvalidCells": 2,
+        "treatUnsupportedAsInvalid": True,
+    }
+    assert args_by_op["removeDataValidations"] == {"sheet": "Sheet1", "address": "A1"}
+    assert next(request["args"] for request in logged_requests if request["op"] == "setCells" and request["args"].get("validationMode") == "reject") == {
+        "cells": [{"address": "Sheet1!A1", "value": 1}],
+        "validationMode": "reject",
+    }
 
 
 def test_workbook_raises_rpc_error(tmp_path: Path) -> None:

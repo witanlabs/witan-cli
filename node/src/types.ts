@@ -682,10 +682,13 @@ export type ChartType =
   | 'radar'
   | 'stockHLC'
   | 'stockOHLC'
-  | 'waterfall';
+  | 'waterfall'
+  | 'histogram'
+  | 'pareto';
 export type ChartGrouping = 'standard' | 'stacked' | 'percentStacked';
 export type ChartAxisBinding = 'primary' | 'secondary';
 export type ChartStockRole = 'volume' | 'open' | 'high' | 'low' | 'close';
+export type ChartBinType = 'auto' | 'binCount' | 'binWidth' | 'category';
 export type ChartLegendPosition = 'left' | 'right' | 'top' | 'bottom' | 'topRight';
 export type ChartMarkerStyle =
   | 'auto'
@@ -802,6 +805,16 @@ export interface ChartDataLabelsSpec {
   format?: ChartDataLabelFormatSpec;
 }
 
+export interface ChartBinOptionsSpec {
+  type?: ChartBinType;
+  count?: number;
+  width?: number;
+  allowOverflow?: boolean;
+  overflowValue?: number;
+  allowUnderflow?: boolean;
+  underflowValue?: number;
+}
+
 export interface ChartSeriesSpec {
   name?: ChartTextSource;
   stockRole?: ChartStockRole;
@@ -819,6 +832,7 @@ export interface ChartSeriesSpec {
   invertIfNegative?: boolean;
   totalIndexes?: number[];
   showConnectorLines?: boolean;
+  binOptions?: ChartBinOptionsSpec;
   marker?: ChartMarkerSpec;
   dataLabels?: ChartDataLabelsSpec;
 }

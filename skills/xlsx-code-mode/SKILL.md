@@ -245,7 +245,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 - `listCharts`: chart summaries for the workbook or a single sheet
 - `getChart`: canonical spec for an existing chart
 - `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
-- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, waterfall charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
+- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, waterfall charts, histogram/Pareto charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
 
 **Conditional Formatting**
 
@@ -572,7 +572,7 @@ interface ChartSpec {
 	name:string;
 	position:ChartPosIn;
 	groups:{
-		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"stockHLC"|"stockOHLC"|"waterfall";
+		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"stockHLC"|"stockOHLC"|"waterfall"|"histogram"|"pareto";
 		scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker"; /** scatter only */
 		radarStyle?:"standard"|"marker"|"filled"; /** radar only */
 		grouping?:"standard"|"stacked"|"percentStacked";
@@ -617,6 +617,15 @@ interface ChartSpec {
 			invertIfNegative?:boolean;
 			totalIndexes?:number[]; /** waterfall only: zero-based subtotal/total point indexes */
 			showConnectorLines?:boolean; /** waterfall only */
+			binOptions?:{
+				type?:"auto"|"binCount"|"binWidth"|"category"; /** histogram/Pareto only */
+				count?:number; /** required when type is "binCount" */
+				width?:number; /** required when type is "binWidth" */
+				allowOverflow?:boolean;
+				overflowValue?:number;
+				allowUnderflow?:boolean;
+				underflowValue?:number;
+			};
 			marker?:{
 				style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";
 				size?:number;

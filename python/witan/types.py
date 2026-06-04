@@ -755,10 +755,13 @@ ChartType: TypeAlias = Literal[
     "stockHLC",
     "stockOHLC",
     "waterfall",
+    "histogram",
+    "pareto",
 ]
 ChartGrouping: TypeAlias = Literal["standard", "stacked", "percentStacked"]
 ChartAxisBinding: TypeAlias = Literal["primary", "secondary"]
 ChartStockRole: TypeAlias = Literal["volume", "open", "high", "low", "close"]
+ChartBinType: TypeAlias = Literal["auto", "binCount", "binWidth", "category"]
 ChartLegendPosition: TypeAlias = Literal["left", "right", "top", "bottom", "topRight"]
 ChartMarkerStyle: TypeAlias = Literal[
     "auto",
@@ -878,6 +881,16 @@ class ChartDataLabelsSpec(TypedDict, total=False):
     format: ChartDataLabelFormatSpec
 
 
+class ChartBinOptionsSpec(TypedDict, total=False):
+    type: ChartBinType
+    count: int
+    width: float
+    allowOverflow: bool
+    overflowValue: float
+    allowUnderflow: bool
+    underflowValue: float
+
+
 class ChartSeriesSpec(TypedDict, total=False):
     name: ChartTextSource
     stockRole: ChartStockRole
@@ -895,6 +908,7 @@ class ChartSeriesSpec(TypedDict, total=False):
     invertIfNegative: bool
     totalIndexes: list[int]
     showConnectorLines: bool
+    binOptions: ChartBinOptionsSpec
     marker: ChartMarkerSpec
     dataLabels: ChartDataLabelsSpec
 

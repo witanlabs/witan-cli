@@ -11,7 +11,9 @@ from .exceptions import (
     WitanProcessError,
     WitanRPCError,
     WitanTimeoutError,
+    is_google_auth_required,
 )
+from .google_sheet import AsyncGoogleSheet, GoogleSheet
 from .types import Regex
 from .workbook import AsyncWorkbook, Workbook
 
@@ -21,7 +23,9 @@ except PackageNotFoundError:
     __version__ = os.environ.get("WITAN_PY_VERSION", "0.0.0")
 
 __all__ = [
+    "AsyncGoogleSheet",
     "AsyncWorkbook",
+    "GoogleSheet",
     "Regex",
     "Workbook",
     "WitanError",
@@ -29,5 +33,6 @@ __all__ = [
     "WitanRPCError",
     "WitanTimeoutError",
     "get_binary_path",
+    "is_google_auth_required",
     "main",
 ]

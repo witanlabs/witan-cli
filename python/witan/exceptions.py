@@ -22,7 +22,7 @@ class WitanTimeoutError(WitanProcessError):
 
 
 class WitanRPCError(WitanError):
-    """Raised when the xlsx RPC endpoint returns ok=false."""
+    """Raised when an RPC endpoint returns ok=false."""
 
     def __init__(
         self,
@@ -41,3 +41,8 @@ class WitanRPCError(WitanError):
         self.request_id = request_id
         self.code = code
         self.response = dict(response or {})
+
+
+def is_google_auth_required(err: BaseException) -> bool:
+    """Return True when *err* indicates Google Sheets authorization is required."""
+    return isinstance(err, WitanRPCError) and err.code == "google_auth_required"

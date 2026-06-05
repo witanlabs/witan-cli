@@ -685,7 +685,8 @@ export type ChartType =
   | 'stockOHLC'
   | 'waterfall'
   | 'histogram'
-  | 'pareto';
+  | 'pareto'
+  | 'funnel';
 export type ChartGrouping = 'standard' | 'stacked' | 'percentStacked';
 export type ChartAxisBinding = 'primary' | 'secondary';
 export type ChartStockRole = 'volume' | 'open' | 'high' | 'low' | 'close';

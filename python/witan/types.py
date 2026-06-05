@@ -758,6 +758,7 @@ ChartType: TypeAlias = Literal[
     "waterfall",
     "histogram",
     "pareto",
+    "funnel",
 ]
 ChartGrouping: TypeAlias = Literal["standard", "stacked", "percentStacked"]
 ChartAxisBinding: TypeAlias = Literal["primary", "secondary"]

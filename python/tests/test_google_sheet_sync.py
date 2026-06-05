@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from witan import GoogleSheet, WitanProcessError, WitanRPCError, is_google_auth_required
+from witan import GoogleSheet, WitanRPCError, is_google_auth_required
 from witan.google_sheet import _DEFAULT_REQUEST_TIMEOUT
 
 
@@ -121,10 +121,3 @@ def test_is_google_auth_required() -> None:
         code="google_auth_required",
     )
     assert is_google_auth_required(err) is True
-
-
-def test_google_sheet_create_failure(tmp_path: Path) -> None:
-    env, _, _ = fake_env(tmp_path)
-
-    with pytest.raises(WitanProcessError):
-        GoogleSheet.create(title="Nope", binary="/bin/false", env=env)

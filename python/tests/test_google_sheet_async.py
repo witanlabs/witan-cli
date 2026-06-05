@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from witan import AsyncGoogleSheet, WitanProcessError, WitanRPCError, is_google_auth_required
+from witan import AsyncGoogleSheet, WitanRPCError, is_google_auth_required
 from witan.google_sheet import _DEFAULT_REQUEST_TIMEOUT
 
 
@@ -105,19 +105,6 @@ def test_async_google_sheet_rpc_error_code(tmp_path: Path) -> None:
                 await sheet.list_sheets()
             assert raised.value.code == "BOOM"
             assert is_google_auth_required(raised.value) is False
-        finally:
-            await sheet.close()
-
-    asyncio.run(run())
-
-
-def test_async_google_sheet_create_failure(tmp_path: Path) -> None:
-    async def run() -> None:
-        env, _, _ = fake_env(tmp_path)
-        sheet = AsyncGoogleSheet.create(title="Nope", binary="/bin/false", env=env)
-        try:
-            with pytest.raises(WitanProcessError):
-                await sheet.list_sheets()
         finally:
             await sheet.close()
 

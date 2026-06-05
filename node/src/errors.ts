@@ -64,3 +64,8 @@ export class WitanRPCError extends WitanError {
     this.response = options.response ?? {};
   }
 }
+
+/** Return true when `err` indicates Google Sheets authorization is required. */
+export function isGoogleAuthRequired(err: unknown): boolean {
+  return err instanceof WitanRPCError && err.code === 'google_auth_required';
+}

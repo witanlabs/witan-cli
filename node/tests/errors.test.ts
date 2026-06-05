@@ -4,6 +4,7 @@ import {
   WitanProcessError,
   WitanRPCError,
   WitanTimeoutError,
+  isGoogleAuthRequired,
 } from '../src/errors.js';
 
 describe('WitanError', () => {
@@ -78,5 +79,17 @@ describe('WitanRPCError', () => {
     expect(err.message).toBe('RPC_ERROR: generic error');
     expect(err.code).toBeNull();
     expect(err.response).toEqual({});
+  });
+});
+
+describe('isGoogleAuthRequired', () => {
+  it('returns false for other rpc errors', () => {
+    const err = new WitanRPCError('not found', {
+      method: 'readCell',
+      op: 'readRange',
+      requestId: '42',
+      code: 'NOT_FOUND',
+    });
+    expect(isGoogleAuthRequired(err)).toBe(false);
   });
 });

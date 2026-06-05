@@ -155,15 +155,3 @@ describe('GoogleSheet', () => {
     }
   });
 });
-
-describe('isGoogleAuthRequired', () => {
-  it('returns true for google_auth_required rpc errors', () => {
-    const err = new WitanRPCError('auth', {
-      method: 'listSheets',
-      op: 'listSheets',
-      requestId: '1',
-      code: 'google_auth_required',
-    });
-    expect(isGoogleAuthRequired(err)).toBe(true);
-  });
-});

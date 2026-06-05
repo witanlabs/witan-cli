@@ -65,7 +65,25 @@ export class WitanRPCError extends WitanError {
   }
 }
 
+const GOOGLE_AUTH_REQUIRED_MARKERS = [
+  'google_auth_required',
+  'Google Sheets requires authorization',
+] as const;
+
+function textIndicatesGoogleAuthRequired(text: string): boolean {
+  return GOOGLE_AUTH_REQUIRED_MARKERS.some((marker) => text.includes(marker));
+}
+
 /** Return true when `err` indicates Google Sheets authorization is required. */
 export function isGoogleAuthRequired(err: unknown): boolean {
-  return err instanceof WitanRPCError && err.code === 'google_auth_required';
+  if (err instanceof WitanRPCError && err.code === 'google_auth_required') {
+    return true;
+  }
+  if (err instanceof WitanProcessError) {
+    if (textIndicatesGoogleAuthRequired(err.message)) {
+      return true;
+    }
+    return err.stderrTail.some(textIndicatesGoogleAuthRequired);
+  }
+  return false;
 }

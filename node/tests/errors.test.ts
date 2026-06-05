@@ -83,6 +83,23 @@ describe('WitanRPCError', () => {
 });
 
 describe('isGoogleAuthRequired', () => {
+  it('returns true for google_auth_required rpc errors', () => {
+    const err = new WitanRPCError('auth', {
+      method: 'listSheets',
+      op: 'listSheets',
+      requestId: '1',
+      code: 'google_auth_required',
+    });
+    expect(isGoogleAuthRequired(err)).toBe(true);
+  });
+
+  it('returns true for auth failures surfaced during subprocess startup', () => {
+    const err = new WitanProcessError('witan subprocess exited during startup (exit=1)', [
+      "Google Sheets requires authorization. Run 'witan gsheets connect' to enable access.",
+    ]);
+    expect(isGoogleAuthRequired(err)).toBe(true);
+  });
+
   it('returns false for other rpc errors', () => {
     const err = new WitanRPCError('not found', {
       method: 'readCell',
@@ -90,6 +107,11 @@ describe('isGoogleAuthRequired', () => {
       requestId: '42',
       code: 'NOT_FOUND',
     });
+    expect(isGoogleAuthRequired(err)).toBe(false);
+  });
+
+  it('returns false for other process errors', () => {
+    const err = new WitanProcessError('witan subprocess exited before responding (exit=1)');
     expect(isGoogleAuthRequired(err)).toBe(false);
   });
 });

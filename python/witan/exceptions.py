@@ -43,6 +43,22 @@ class WitanRPCError(WitanError):
         self.response = dict(response or {})
 
 
+_GOOGLE_AUTH_REQUIRED_MARKERS = (
+    "google_auth_required",
+    "Google Sheets requires authorization",
+)
+
+
+def _text_indicates_google_auth_required(text: str) -> bool:
+    return any(marker in text for marker in _GOOGLE_AUTH_REQUIRED_MARKERS)
+
+
 def is_google_auth_required(err: BaseException) -> bool:
     """Return True when *err* indicates Google Sheets authorization is required."""
-    return isinstance(err, WitanRPCError) and err.code == "google_auth_required"
+    if isinstance(err, WitanRPCError) and err.code == "google_auth_required":
+        return True
+    if isinstance(err, WitanProcessError):
+        if _text_indicates_google_auth_required(str(err)):
+            return True
+        return any(_text_indicates_google_auth_required(line) for line in err.stderr_tail)
+    return False

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from witan import GoogleSheet, WitanRPCError, is_google_auth_required
+from witan import GoogleSheet, WitanProcessError, WitanRPCError, is_google_auth_required
 from witan.google_sheet import _DEFAULT_REQUEST_TIMEOUT
 
 
@@ -121,3 +121,14 @@ def test_is_google_auth_required() -> None:
         code="google_auth_required",
     )
     assert is_google_auth_required(err) is True
+
+    startup_err = WitanProcessError(
+        "witan subprocess exited during startup (exit=1)",
+        stderr_tail=(
+            "Google Sheets requires authorization. Run 'witan gsheets connect' to enable access.",
+        ),
+    )
+    assert is_google_auth_required(startup_err) is True
+
+    other_process_err = WitanProcessError("witan subprocess exited before responding (exit=1)")
+    assert is_google_auth_required(other_process_err) is False

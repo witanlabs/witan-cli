@@ -680,6 +680,7 @@ export type ChartType =
   | 'scatter'
   | 'bubble'
   | 'radar'
+  | 'surface'
   | 'stockHLC'
   | 'stockOHLC'
   | 'waterfall'
@@ -717,6 +718,7 @@ export type ChartCategoryAxisType = 'category' | 'date';
 export type ChartTimeUnit = 'days' | 'months' | 'years';
 export type ChartScatterStyle = 'line' | 'lineMarker' | 'marker' | 'smooth' | 'smoothMarker';
 export type ChartRadarStyle = 'standard' | 'marker' | 'filled';
+export type ChartSurfaceVariant = 'topView' | 'topViewWireframe';
 
 export interface ChartTextSource {
   text?: string;
@@ -841,6 +843,7 @@ export interface ChartGroupSpec {
   type: ChartType;
   scatterStyle?: ChartScatterStyle;
   radarStyle?: ChartRadarStyle;
+  surfaceVariant?: ChartSurfaceVariant;
   grouping?: ChartGrouping;
   axis?: ChartAxisBinding;
   gapWidth?: number;

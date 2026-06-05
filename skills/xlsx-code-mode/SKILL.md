@@ -245,7 +245,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 - `listCharts`: chart summaries for the workbook or a single sheet
 - `getChart`: canonical spec for an existing chart
 - `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
-- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, waterfall charts, histogram/Pareto charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
+- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, 2-D top-view surface charts, waterfall charts, histogram/Pareto charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
 
 **Conditional Formatting**
 
@@ -572,9 +572,10 @@ interface ChartSpec {
 	name:string;
 	position:ChartPosIn;
 	groups:{
-		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"stockHLC"|"stockOHLC"|"waterfall"|"histogram"|"pareto";
+		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"surface"|"stockHLC"|"stockOHLC"|"waterfall"|"histogram"|"pareto";
 		scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker"; /** scatter only */
 		radarStyle?:"standard"|"marker"|"filled"; /** radar only */
+		surfaceVariant?:"topView"|"topViewWireframe"; /** surface only */
 		grouping?:"standard"|"stacked"|"percentStacked";
 		axis?:"primary"|"secondary";
 		gapWidth?:number;

@@ -752,6 +752,7 @@ ChartType: TypeAlias = Literal[
     "scatter",
     "bubble",
     "radar",
+    "surface",
     "stockHLC",
     "stockOHLC",
     "waterfall",
@@ -791,6 +792,7 @@ ChartDataLabelPosition: TypeAlias = Literal[
 ChartTimeUnit: TypeAlias = Literal["days", "months", "years"]
 ChartScatterStyle: TypeAlias = Literal["line", "lineMarker", "marker", "smooth", "smoothMarker"]
 ChartRadarStyle: TypeAlias = Literal["standard", "marker", "filled"]
+ChartSurfaceVariant: TypeAlias = Literal["topView", "topViewWireframe"]
 
 
 class ChartTextSource(TypedDict, total=False):
@@ -918,6 +920,7 @@ class ChartGroupSpec(TypedDict):
     series: list[ChartSeriesSpec]
     scatterStyle: NotRequired[ChartScatterStyle]
     radarStyle: NotRequired[ChartRadarStyle]
+    surfaceVariant: NotRequired[ChartSurfaceVariant]
     grouping: NotRequired[ChartGrouping]
     axis: NotRequired[ChartAxisBinding]
     gapWidth: NotRequired[int]

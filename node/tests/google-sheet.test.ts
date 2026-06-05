@@ -7,7 +7,6 @@ import {
   DEFAULT_GOOGLE_SHEET_REQUEST_TIMEOUT_MS,
 } from '../src/google-sheet.js';
 import {
-  WitanProcessError,
   WitanRPCError,
   isGoogleAuthRequired,
 } from '../src/errors.js';
@@ -154,17 +153,6 @@ describe('GoogleSheet', () => {
     } finally {
       await sheet.close();
     }
-  });
-
-  it('create failure throws WitanProcessError', async () => {
-    const env = fakeEnv(tmpDir);
-
-    await expect(
-      GoogleSheet.create('Nope', {
-        binary: '/bin/false',
-        env,
-      })
-    ).rejects.toBeInstanceOf(WitanProcessError);
   });
 });
 

@@ -3,9 +3,9 @@ name: witan-xlsx
 description: Read, explore, analyse, author, and edit Excel workbooks (.xls, .xlsx, .xlsm) with Witan's sandboxed JavaScript engine (`witan xlsx exec`), plus lint, recalculate, and render. Excel files are binary — cat/head and ordinary file tools cannot read them; this is the way to inspect or change them. Use when the user references a spreadsheet by name or path (even casually, e.g. "check report.xlsx", "what's in the model"), asks to read cells/rows/ranges, search for values, trace how a figure is calculated, run what-if or sensitivity scenarios, or build and modify sheets, formulas, formatting, charts, tables, and conditional formatting. Also use when you need to inspect a workbook yourself as part of a larger task, or to deliver a polished, correct workbook.
 ---
 
-> **Running in Claude Cowork (or any sandbox without `witan`)?** The CLI isn't preinstalled. Read [references/cowork-setup.md](references/cowork-setup.md) for install, PATH, and network-allowlist steps before your first call.
+> **Running in Claude Cowork?** The `witan` CLI isn't preinstalled in the sandbox. Read [references/cowork-setup.md](references/cowork-setup.md) first for install, PATH and network-allowlist steps.
 >
-> **No `witan` on PATH?** Prefix every command with `npx` (e.g. `npx witan xlsx exec ...`).
+> **No `witan` on PATH?** Prefix commands with `npx` (e.g. `npx witan xlsx exec ...`).
 
 ## What this is
 
@@ -146,11 +146,7 @@ Run these, fix what they surface, repeat until clean:
 
 ## Finding things in the API
 
-Don't guess function names — the full typed surface is in [references/api.d.ts](references/api.d.ts). Grep it:
-
-```bash
-rg -n "setConditionalFormatting|addChart|ChartSpec|StyleObj|sweepInputs" skills/witan-xlsx/references/api.d.ts
-```
+Don't guess function names — the full typed surface is in [references/api.d.ts](references/api.d.ts).
 
 Highlights by purpose: **read** `readCell/readRange/readRangeTsv`, **search** `findCells/findRows/describeSheet/tableLookup`, **trace** `traceToInputs/traceToOutputs/getCellPrecedents`, **compute** `sweepInputs/evaluateFormula`, **write** `setCells/scaleRange/copyRange/sortRange`, **structure** `insert*/delete*/autoFitColumns`, **style** `setStyle/setSheetProperties/setRowProperties/setColumnProperties`, **objects** `addListObject/addDataTable`, **charts** `addChart/setChart/listCharts`, **conditional formatting** `setConditionalFormatting`.
 

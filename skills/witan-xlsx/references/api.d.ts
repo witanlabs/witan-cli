@@ -9,13 +9,6 @@
 //   - `--save`   (flag) persists changes to disk
 //
 // All functions are async; use top-level `await`. Imports are not available.
-// Find a symbol fast:  rg -n "setConditionalFormatting|ChartSpec|StyleObj" references/api.d.ts
-//
-// Provenance: shared with the in-repo xlsx-code-mode contract; a separate effort is
-// finalising type accuracy, so treat that effort as the source of truth when it lands.
-// Empirical caveats (witan 0.10.0): the data-validation functions below are NOT exposed
-// by the engine yet — do not author against them; ListObject/DataTable authoring and
-// autoFitRows DO work at runtime even though their signatures here are thin.
 
 type CellRef=string|{sheet:string;row:number;col:number|string}
 type RangeRef=string|{sheet:string}|{sheet:string;from:{row?:number;col?:number|string};to:{row?:number;col?:number|string}}

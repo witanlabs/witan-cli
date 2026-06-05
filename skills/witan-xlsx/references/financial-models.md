@@ -48,7 +48,7 @@ In addition to the general cookbook in [authoring.md](authoring.md):
 
 - **Assumptions and drivers live apart from calculations** — ideally their own sheet (e.g. `Assumptions`), or a clearly fenced input block. Every growth rate, margin, multiple, and rate is a labelled input cell, referenced by formula elsewhere (see "no magic numbers" in [authoring.md](authoring.md)).
 - **One period per column,** with an identical formula across the whole projection so every period is computed the same way. This is the backbone of a forecast; inconsistent period formulas are the classic error `lint`/`calc --verify` will help you catch.
-- **A scenario switch** (e.g. an input cell selecting Base/Bull/Bear that drives `CHOOSE`/`INDEX` lookups) keeps cases in one model instead of duplicating sheets.
+- **A scenario switch** (e.g. an input cell selecting Base/Bull/Bear that drives `INDEX` (or `CHOOSE`) lookups) keeps cases in one model instead of duplicating sheets.
 - **Inputs vs outputs are visually distinct** — colour coding (above) plus placement (inputs at top/left, outputs in a summary).
 
 ---
@@ -58,6 +58,7 @@ In addition to the general cookbook in [authoring.md](authoring.md):
 Financial statements follow a presentation grammar readers expect — match it:
 
 - **Totals sum a contiguous block directly above (or beside) them** — `=SUM(B5:B11)` over the line items, so the range is obvious and auditable. Avoid totals that add scattered cells.
+- **Distinguish a display total from one that feeds logic.** A `=SUM(...)` shown for the reader, with no downstream dependents, is presentation. The moment another formula consumes a total, give it its own explicit, labelled line rather than summing the block inline — so the dependency is visible and the range can't silently shift underneath it.
 - **Rule a border above each total** spanning the full width of the figures (and the label column), and bold the total row. Use `setStyle` `border.top` (`thin` or `medium`).
 - **Section headers** (e.g. "Income Statement", "Cash Flow") are merged or `centerContinuousSpan` banners, left-justified, dark fill with white bold text.
 - **Period headers right-aligned** to sit over their right-aligned figures; **row labels left-justified**; **sub-metrics indented** beneath their parent (`alignment.indent`), e.g. a `% growth` line under a revenue line.
@@ -70,6 +71,7 @@ Financial statements follow a presentation grammar readers expect — match it:
 
 - **Link the statements.** Net income flows IS → retained earnings on the BS and → the top of the CF; the CF's ending cash ties to the BS cash line. Build these as live links (green), not retyped numbers.
 - **Build checks.** Add explicit check rows that must be zero — e.g. `=Assets-(Liabilities+Equity)` for the balance sheet, or a cash-tie check — and surface them. Assert them in-script with `evaluateFormula` and flag non-zero with conditional formatting.
+- **Accumulate balances as opening + movements = closing,** with the opening linked to the prior period's closing — not a half-anchored `=SUM($B5:F5)` that creeps across the row. This structure is self-checking and sidesteps the range-anchor errors cumulative sums invite.
 - **Handle deliberate circularity.** Interest-on-average-debt and revolver sweeps create intended circular references. Enable iterative calculation rather than fighting it:
 
   ```js
@@ -85,6 +87,7 @@ Financial statements follow a presentation grammar readers expect — match it:
   After enabling, `setCells`/`calc` converge using these settings; if a model won't converge you'll get convergence diagnostics — check your circular path.
 
 - **Sensitivity tables.** For a clean grid a reader can see (e.g. value vs WACC and growth), author a What-If data table with `addDataTable`. For quick programmatic sweeps you read back yourself, use `sweepInputs` (cartesian for a full grid, with `includeStats`).
+- **Use `XNPV`/`XIRR`, not `NPV`/`IRR`, for dated cash flows.** `NPV` assumes evenly-spaced periods and discounts the first cash flow by a full period — wrong for end-of-period or irregular dates. `XNPV` takes an explicit date column and discounts correctly. Reach for `NPV`/`IRR` only when the periods are genuinely uniform and you've handled the period-1 timing.
 
 ---
 

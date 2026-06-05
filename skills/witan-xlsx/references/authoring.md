@@ -12,6 +12,8 @@ A workbook is good when three things are true: it **computes correctly**, it is 
 
 **No magic numbers inside formulas.** Every assumption — a growth rate, tax rate, price, multiple — lives in its own labelled cell and is referenced. Write `=C7*(1+$C$3)`, not `=C7*1.08`. A reader should be able to change one input cell and watch the model respond.
 
+**Calculate once, then link.** Compute a quantity in exactly one place. When you need it again, reference that source cell (`=Calc!B12`) rather than re-deriving it with a second formula that can drift out of step after an input changes. Point each link at the canonical source, never at a cell that merely links to it.
+
 **Get references right for fill.** Anchor what shouldn't move when a formula is copied: `=B5*$B$6` fills across columns while still pointing at the single rate in `$B$6`. Mixed anchors (`$B6`, `B$6`) matter in grids. Keep a row's formula identical across every period so column 12 behaves exactly like column 2 — inconsistent formulas across a projection are the most common modelling bug.
 
 **Name things that are referenced widely.** `addDefinedName(wb, "TaxRate", "Assumptions!$B$3")` makes `=Pretax*TaxRate` readable and stable. Use named ranges for key drivers, not for every cell.
@@ -121,6 +123,7 @@ Authoring isn't finished until it's verified. Run this loop, fix, repeat:
 
 3. **`xlsx render <file> -r RANGE`** — look at the actual output: clipped text, blown-out widths, broken merges, charts over data, misaligned numbers. `--diff baseline.png` highlights what an edit changed.
 4. **In-script assertions** — `evaluateFormula(wb, sheet, "=...")` to assert invariants (a check row sums to zero, a balance sheet balances).
+5. **Test the unhappy branch** — an error can hide where the formula isn't currently looking. `=IF(flag=1, x, 1/divisor)` reports no error while `flag=1`, and neither `calc --verify` nor `lint` sees the broken `1/divisor` branch — it only bites when the condition flips. Where an `IF` guards a bad case (a missing lookup, a divide-by-zero), flip the guard with `sweepInputs` or a temporary `setCells` and re-run `calc --verify` with the other branch active.
 
 Don't declare success on an unverified workbook. "It probably calculates" is not done.
 

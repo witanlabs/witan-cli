@@ -84,6 +84,17 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
+# Image authoring — add a PNG/JPEG from base64 input and verify placement
+witan xlsx exec model.xlsx --save --input-json '{"logoBase64":"data:image/png;base64,..."}' --stdin <<'WITAN'
+await xlsx.addImage(wb, "Sheet1", {
+	name: "Logo",
+	position: { from: { cell: "A1" }, to: { cell: "D6" } },
+	source: { base64: input.logoBase64 },
+	altText: "Company logo"
+})
+return await xlsx.listImages(wb, { sheet: "Sheet1" })
+WITAN
+
 # Waterfall chart authoring with totals and connector lines
 witan xlsx exec model.xlsx --save --stdin <<'WITAN'
 await xlsx.addChart(wb, "Sheet1", {
@@ -246,6 +257,13 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 - `getChart`: canonical spec for an existing chart
 - `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
 - Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, 2-D top-view surface charts, waterfall charts, histogram/Pareto charts, funnel charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
+
+**Images**
+
+- `listImages`: image metadata for the workbook or a single sheet
+- `getImage`: metadata for one worksheet image by `{ name }` or `{ id }`
+- `addImage`, `setImage`, `deleteImage`: create, update, replace, or remove embedded PNG/JPEG images
+- `source.base64` accepts raw base64 or `data:image/png;base64,...` / `data:image/jpeg;base64,...`; responses return metadata only, not image bytes. `preserveAspectRatio` defaults to `true` when adding or replacing image bytes.
 
 **Conditional Formatting**
 
@@ -674,6 +692,47 @@ function getChart(wb,sheet:string,name:string):Promise<Omit<ChartSpec,"position"
 function addChart(wb,sheet:string,chart:ChartSpec):Promise<ChartSpec>;
 function setChart(wb,sheet:string,name:string,chart:ChartSpec):Promise<ChartSpec>;
 function deleteChart(wb,sheet:string,name:string):Promise<void>;
+type ImageFormat="png"|"jpeg"
+interface ImagePositionAnchor {cell:string;xOffsetPts?:number;yOffsetPts?:number}
+interface ImagePositionInput {from:ImagePositionAnchor;to:ImagePositionAnchor}
+interface ImagePosition extends ImagePositionInput {sheet?:string}
+interface ImageSource {base64:string}
+interface ImageSpec {
+	name:string;
+	position:ImagePositionInput;
+	source:ImageSource;
+	format?:ImageFormat;
+	altText?:string|null;
+	altTextTitle?:string|null;
+	preserveAspectRatio?:boolean;
+}
+interface ImageUpdate {
+	name?:string;
+	position?:ImagePositionInput;
+	source?:ImageSource;
+	format?:ImageFormat;
+	altText?:string|null;
+	altTextTitle?:string|null;
+	preserveAspectRatio?:boolean;
+}
+interface ImageInfo {
+	id?:number;
+	sheet:string;
+	name:string;
+	position:ImagePosition;
+	format?:ImageFormat;
+	widthPts?:number;
+	heightPts?:number;
+	naturalWidthPx?:number;
+	naturalHeightPx?:number;
+	altText?:string|null;
+	altTextTitle?:string|null;
+}
+function listImages(wb,options?:{ sheet?:string }):Promise<ImageInfo[]>;
+function getImage(wb,sheet:string,selector:{ name?:string;id?:number }):Promise<ImageInfo>;
+function addImage(wb,sheet:string,image:ImageSpec):Promise<ImageInfo>;
+function setImage(wb,sheet:string,selector:{ name?:string;id?:number },image:ImageUpdate):Promise<ImageInfo>;
+function deleteImage(wb,sheet:string,selector:{ name?:string;id?:number }):Promise<void>;
 interface NameDef {name:string;range:string;scope:string|null}
 function listDefinedNames(wb):Promise<NameDef[]>;
 function addDefinedName(wb,name:string,range:string,scope?:string):Promise<NameDef>;

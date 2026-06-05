@@ -935,6 +935,70 @@ export interface ChartSummary {
 }
 
 // ============================================================================
+// Images
+// ============================================================================
+
+export type ImageFormat = 'png' | 'jpeg';
+
+export interface ImagePositionAnchor {
+  cell: string;
+  xOffsetPts?: number;
+  yOffsetPts?: number;
+}
+
+export interface ImagePositionInput {
+  from: ImagePositionAnchor;
+  to: ImagePositionAnchor;
+}
+
+export interface ImagePosition extends ImagePositionInput {
+  sheet?: string;
+}
+
+export interface ImageSource {
+  base64: string;
+}
+
+export interface ImageSpec {
+  name: string;
+  position: ImagePositionInput;
+  source: ImageSource;
+  format?: ImageFormat;
+  altText?: string | null;
+  altTextTitle?: string | null;
+  preserveAspectRatio?: boolean;
+}
+
+export interface ImageUpdate {
+  name?: string;
+  position?: ImagePositionInput;
+  source?: ImageSource;
+  format?: ImageFormat;
+  altText?: string | null;
+  altTextTitle?: string | null;
+  preserveAspectRatio?: boolean;
+}
+
+export interface ImageInfo {
+  id?: number;
+  sheet: string;
+  name: string;
+  position: ImagePosition;
+  format?: ImageFormat;
+  widthPts?: number;
+  heightPts?: number;
+  naturalWidthPx?: number;
+  naturalHeightPx?: number;
+  altText?: string | null;
+  altTextTitle?: string | null;
+}
+
+export interface ImageSelector {
+  name?: string;
+  id?: number;
+}
+
+// ============================================================================
 // Conditional Formatting
 // ============================================================================
 

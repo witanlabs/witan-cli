@@ -1023,6 +1023,60 @@ class ChartSummary(TypedDict):
     id: NotRequired[int]
 
 
+ImageFormat: TypeAlias = Literal["png", "jpeg"]
+
+
+class ImagePositionAnchor(TypedDict, total=False):
+    cell: str
+    xOffsetPts: float
+    yOffsetPts: float
+
+
+ImagePositionInput = TypedDict("ImagePositionInput", {"from": ImagePositionAnchor, "to": ImagePositionAnchor})
+
+
+class ImagePosition(ImagePositionInput, total=False):
+    sheet: str
+
+
+class ImageSource(TypedDict):
+    base64: str
+
+
+class ImageSpec(TypedDict):
+    name: str
+    position: ImagePositionInput
+    source: ImageSource
+    format: NotRequired[ImageFormat]
+    altText: NotRequired[str | None]
+    altTextTitle: NotRequired[str | None]
+    preserveAspectRatio: NotRequired[bool]
+
+
+class ImageUpdate(TypedDict, total=False):
+    name: str
+    position: ImagePositionInput
+    source: ImageSource
+    format: ImageFormat
+    altText: str | None
+    altTextTitle: str | None
+    preserveAspectRatio: bool
+
+
+class ImageInfo(TypedDict):
+    sheet: str
+    name: str
+    position: ImagePosition
+    id: NotRequired[int]
+    format: NotRequired[ImageFormat]
+    widthPts: NotRequired[float]
+    heightPts: NotRequired[float]
+    naturalWidthPx: NotRequired[int]
+    naturalHeightPx: NotRequired[int]
+    altText: NotRequired[str | None]
+    altTextTitle: NotRequired[str | None]
+
+
 CfThresholdType: TypeAlias = Literal["formula", "max", "min", "num", "percent", "percentile", "autoMin", "autoMax"]
 
 

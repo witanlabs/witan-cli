@@ -32,6 +32,9 @@ from .types import (
     DependencyResult,
     FindAndReplaceResult,
     FormulaResult,
+    ImageInfo,
+    ImageSpec,
+    ImageUpdate,
     JsonDict,
     JsonMapping,
     LintResult,
@@ -363,6 +366,25 @@ class Workbook(_WorkbookBase):
     def delete_chart(self, sheet: str, name: str) -> None:
         self._request("delete_chart", "deleteChart", {"sheet": sheet, "name": name})
 
+    def list_images(self, *, sheet: str | None = None) -> list[ImageInfo]:
+        result = cast(Mapping[str, Any], self._request("list_images", "listImages", _drop_none({"sheet": sheet})))
+        return cast(list[ImageInfo], result.get("images", []))
+
+    def get_image(self, sheet: str, *, name: str | None = None, id: int | None = None) -> ImageInfo:
+        result = cast(Mapping[str, Any], self._request("get_image", "getImage", _drop_none({"sheet": sheet, "name": name, "id": id})))
+        return cast(ImageInfo, result.get("image", {}))
+
+    def add_image(self, sheet: str, image: ImageSpec) -> ImageInfo:
+        result = cast(Mapping[str, Any], self._request("add_image", "addImage", {"sheet": sheet, "image": image}))
+        return cast(ImageInfo, result.get("image", {}))
+
+    def set_image(self, sheet: str, image: ImageUpdate, *, name: str | None = None, id: int | None = None) -> ImageInfo:
+        result = cast(Mapping[str, Any], self._request("set_image", "setImage", _drop_none({"sheet": sheet, "name": name, "id": id, "image": image})))
+        return cast(ImageInfo, result.get("image", {}))
+
+    def delete_image(self, sheet: str, *, name: str | None = None, id: int | None = None) -> None:
+        self._request("delete_image", "deleteImage", _drop_none({"sheet": sheet, "name": name, "id": id}))
+
     def get_conditional_formatting(self, sheet_name: str) -> list[ConditionalFormattingRule]:
         result = cast(Mapping[str, Any], self._request("get_conditional_formatting", "getConditionalFormatting", {"sheet": sheet_name}))
         return cast(list[ConditionalFormattingRule], result.get("rules", []))
@@ -677,6 +699,25 @@ class AsyncWorkbook(_WorkbookBase):
 
     async def delete_chart(self, sheet: str, name: str) -> None:
         await self._request("delete_chart", "deleteChart", {"sheet": sheet, "name": name})
+
+    async def list_images(self, *, sheet: str | None = None) -> list[ImageInfo]:
+        result = cast(Mapping[str, Any], await self._request("list_images", "listImages", _drop_none({"sheet": sheet})))
+        return cast(list[ImageInfo], result.get("images", []))
+
+    async def get_image(self, sheet: str, *, name: str | None = None, id: int | None = None) -> ImageInfo:
+        result = cast(Mapping[str, Any], await self._request("get_image", "getImage", _drop_none({"sheet": sheet, "name": name, "id": id})))
+        return cast(ImageInfo, result.get("image", {}))
+
+    async def add_image(self, sheet: str, image: ImageSpec) -> ImageInfo:
+        result = cast(Mapping[str, Any], await self._request("add_image", "addImage", {"sheet": sheet, "image": image}))
+        return cast(ImageInfo, result.get("image", {}))
+
+    async def set_image(self, sheet: str, image: ImageUpdate, *, name: str | None = None, id: int | None = None) -> ImageInfo:
+        result = cast(Mapping[str, Any], await self._request("set_image", "setImage", _drop_none({"sheet": sheet, "name": name, "id": id, "image": image})))
+        return cast(ImageInfo, result.get("image", {}))
+
+    async def delete_image(self, sheet: str, *, name: str | None = None, id: int | None = None) -> None:
+        await self._request("delete_image", "deleteImage", _drop_none({"sheet": sheet, "name": name, "id": id}))
 
     async def get_conditional_formatting(self, sheet_name: str) -> list[ConditionalFormattingRule]:
         result = cast(Mapping[str, Any], await self._request("get_conditional_formatting", "getConditionalFormatting", {"sheet": sheet_name}))

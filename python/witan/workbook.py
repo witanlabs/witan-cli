@@ -12,7 +12,7 @@ from ._binary import get_binary_path
 from ._process import StdioRPCProcess
 from ._spreadsheet_base import _AsyncSpreadsheetSessionBase, _SpreadsheetSessionBase, drop_none
 from .exceptions import WitanProcessError
-from .types import (
+from .generated_types import (
     DataValidationInfo,
     DataValidationResult,
     DataValidationSpec,

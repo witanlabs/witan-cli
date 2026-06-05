@@ -20,4 +20,6 @@ venv/
 examples/node_modules/
 examples/.env
 examples/output/
+/node/src/generated-types.ts
+/python/witan/generated_types.py
 .DS_Store

@@ -21,9 +21,7 @@ import type {
   ListObjectMutationResult,
   ListObjectSpec,
   ListObjectUpdate,
-  Matcher,
   PasteType,
-  ReplaceMatcher,
   SearchCell,
   SearchRow,
   SetCellsValidationMode,
@@ -32,7 +30,6 @@ import type {
   SheetPropertiesUpdate,
   RowProperties,
   ColumnProperties,
-  SortKey,
   Style,
   SheetDescription,
   SweepInput,
@@ -45,7 +42,91 @@ import type {
   WorkbookProperties,
   WorkbookPropertiesUpdate,
   WriteResult,
-} from './types.js';
+} from './generated-types.js';
+
+// SDK-specific utility types (not part of RPC wire format)
+export type Matcher = string | number | boolean | RegExp | (string | RegExp)[];
+export type ReplaceMatcher = string | RegExp;
+
+export interface FindCellsOptions {
+  /** Range to search within (e.g., "Sheet1!A:Z") */
+  in?: string;
+  /** Number of context rows/cols (default: 2) */
+  context?: number;
+  /** Maximum results (default: 20) */
+  limit?: number;
+  /** Skip first N results (default: 0) */
+  offset?: number;
+  /** Search in formulas instead of values */
+  formulas?: boolean;
+}
+
+export interface FindRowsOptions {
+  /** Range to search within */
+  in?: string;
+  /** Number of context rows */
+  context?: number;
+  /** Maximum results (default: 20) */
+  limit?: number;
+  /** Skip first N results (default: 0) */
+  offset?: number;
+}
+
+export interface FindAndReplaceOptions {
+  /** Range to search within */
+  in?: string;
+  /** Case-sensitive matching */
+  matchCase?: boolean;
+  /** Match entire cell content only */
+  wholeCell?: boolean;
+  /** Replace in formulas */
+  inFormulas?: boolean;
+  /** Maximum replacements */
+  limit?: number;
+}
+
+export interface SweepOptions {
+  /** Sweep mode: "cartesian" (all combinations) or "parallel" (zip) */
+  mode?: SweepMode;
+  /** Include min/max/mean statistics */
+  includeStats?: boolean;
+}
+
+export interface LintOptions {
+  /** Specific ranges to lint */
+  rangeAddresses?: string[];
+  /** Rule IDs to skip */
+  skipRuleIds?: string[];
+  /** Only run these rule IDs */
+  onlyRuleIds?: string[];
+}
+
+export interface AutoFitColumnsOptions {
+  /** Specific columns to fit (default: all) */
+  columns?: (number | string)[];
+  /** Minimum width */
+  minWidth?: number;
+  /** Maximum width */
+  maxWidth?: number;
+  /** Extra padding */
+  padding?: number;
+}
+
+export interface AutoFitRowsOptions {
+  /** Specific rows to fit (default: all) */
+  rows?: number[];
+  /** Minimum height */
+  minHeight?: number;
+  /** Maximum height */
+  maxHeight?: number;
+}
+
+export interface SortKey {
+  /** Column index or letter */
+  column: number | string;
+  /** Sort direction */
+  descending?: boolean;
+}
 
 /**
  * Shared spreadsheet RPC operations for XLSX workbooks and Google Sheets sessions.

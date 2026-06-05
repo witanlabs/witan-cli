@@ -4,12 +4,12 @@ import itertools
 import math
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal, cast
+from dataclasses import dataclass
+from typing import Any, Literal, Pattern, TypeAlias, cast
 
-from .types import (
+from .generated_types import (
     AutoFitColumnResult,
     AutoFitRowResult,
-    CellRef,
     ChartInfo,
     ChartSpec,
     ChartSummary,
@@ -23,17 +23,11 @@ from .types import (
     FindAndReplaceResult,
     FormulaResult,
     ColumnProperties,
-    JsonDict,
-    JsonMapping,
     LintResult,
     ListObject,
     ListObjectMutationResult,
     ListObjectSpec,
     ListObjectUpdate,
-    Matcher,
-    RangeRef,
-    Regex,
-    ReplaceMatcher,
     RowProperties,
     SearchCell,
     SearchRow,
@@ -51,15 +45,41 @@ from .types import (
     WorkbookProperties,
     WorkbookPropertiesUpdate,
     WriteResult,
-    regex_from_pattern,
 )
 
+# SDK-specific utility types (not part of RPC wire format)
+CellRef: TypeAlias = str | Mapping[str, Any]
+RangeRef: TypeAlias = str | Mapping[str, Any]
 
-def drop_none(values: Mapping[str, Any]) -> JsonDict:
+
+@dataclass(frozen=True)
+class Regex:
+    """JavaScript-compatible regex matcher for search operations."""
+
+    source: str
+    flags: str = ""
+
+
+Matcher: TypeAlias = str | list[str] | int | float | bool | Regex | Pattern[str] | list[Regex] | list[Pattern[str]]
+ReplaceMatcher: TypeAlias = str | Regex | Pattern[str]
+
+
+def regex_from_pattern(pattern: Pattern[str]) -> Regex:
+    flags = ""
+    if pattern.flags & re.IGNORECASE:
+        flags += "i"
+    if pattern.flags & re.MULTILINE:
+        flags += "m"
+    if pattern.flags & re.DOTALL:
+        flags += "s"
+    return Regex(pattern.pattern, flags)
+
+
+def drop_none(values: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in values.items() if value is not None}
 
 
-def regex_payload(value: Regex | re.Pattern[str]) -> JsonDict:
+def regex_payload(value: Regex | re.Pattern[str]) -> dict[str, Any]:
     regex = regex_from_pattern(value) if isinstance(value, re.Pattern) else value
     return {"source": regex.source, "flags": regex.flags}
 
@@ -231,10 +251,10 @@ class _SpreadsheetSessionBase:
     def trace_to_outputs(self, cell: CellRef) -> list[TraceOutput]:
         return cast(list[TraceOutput], self._request("trace_to_outputs", "traceToOutputs", {"address": cell}))
 
-    def sweep_inputs(self, inputs: Sequence[JsonMapping], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
+    def sweep_inputs(self, inputs: Sequence[Mapping[str, Any]], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
         return cast(SweepResult, self._request("sweep_inputs", "sweepInputs", drop_none({"inputs": list(inputs), "outputs": list(outputs), "mode": mode, "includeStats": include_stats})))
 
-    def scenarios(self, inputs: Sequence[JsonMapping], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
+    def scenarios(self, inputs: Sequence[Mapping[str, Any]], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
         return self.sweep_inputs(inputs, outputs, mode=mode, include_stats=include_stats)
 
     def evaluate_formulas(self, sheet: str, formulas: Sequence[str]) -> list[FormulaResult]:
@@ -281,7 +301,7 @@ class _SpreadsheetSessionBase:
 
     def set_cells(
         self,
-        cells: Sequence[JsonMapping],
+        cells: Sequence[Mapping[str, Any]],
         *,
         validation_mode: SetCellsValidationMode | None = None,
     ) -> WriteResult:
@@ -292,7 +312,7 @@ class _SpreadsheetSessionBase:
 
     def scale_range(self, range: RangeRef, factor: float, *, skip_formulas: bool = True) -> WriteResult | None:
         data = self.read_range(range)
-        assignments: list[JsonDict] = []
+        assignments: list[dict[str, Any]] = []
         for row in data:
             for cell in row:
                 value = cell.get("value")
@@ -323,7 +343,7 @@ class _SpreadsheetSessionBase:
         result = cast(Mapping[str, Any], self._request("auto_fit_rows", "autoFitRows", drop_none({"sheet": sheet_name, "rows": list(rows) if rows is not None else None, "minHeight": min_height, "maxHeight": max_height})))
         return cast(dict[str, AutoFitRowResult], result.get("rows", {}))
 
-    def sort_range(self, range: RangeRef, keys: Sequence[JsonMapping], *, has_header: bool | None = None) -> None:
+    def sort_range(self, range: RangeRef, keys: Sequence[Mapping[str, Any]], *, has_header: bool | None = None) -> None:
         self._request("sort_range", "sortRange", drop_none({"range": range, "keys": list(keys), "hasHeader": has_header}))
 
     def copy_range(self, source: RangeRef, destination: CellRef, *, paste_type: Literal["all", "values", "formulas", "formats"] | None = None) -> CopyRangeResult:
@@ -482,10 +502,10 @@ class _AsyncSpreadsheetSessionBase:
     async def trace_to_outputs(self, cell: CellRef) -> list[TraceOutput]:
         return cast(list[TraceOutput], await self._request("trace_to_outputs", "traceToOutputs", {"address": cell}))
 
-    async def sweep_inputs(self, inputs: Sequence[JsonMapping], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
+    async def sweep_inputs(self, inputs: Sequence[Mapping[str, Any]], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
         return cast(SweepResult, await self._request("sweep_inputs", "sweepInputs", drop_none({"inputs": list(inputs), "outputs": list(outputs), "mode": mode, "includeStats": include_stats})))
 
-    async def scenarios(self, inputs: Sequence[JsonMapping], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
+    async def scenarios(self, inputs: Sequence[Mapping[str, Any]], outputs: Sequence[str | CellRef], *, mode: Literal["cartesian", "parallel"] | None = None, include_stats: bool | None = None) -> SweepResult:
         return await self.sweep_inputs(inputs, outputs, mode=mode, include_stats=include_stats)
 
     async def evaluate_formulas(self, sheet: str, formulas: Sequence[str]) -> list[FormulaResult]:
@@ -532,7 +552,7 @@ class _AsyncSpreadsheetSessionBase:
 
     async def set_cells(
         self,
-        cells: Sequence[JsonMapping],
+        cells: Sequence[Mapping[str, Any]],
         *,
         validation_mode: SetCellsValidationMode | None = None,
     ) -> WriteResult:
@@ -543,7 +563,7 @@ class _AsyncSpreadsheetSessionBase:
 
     async def scale_range(self, range: RangeRef, factor: float, *, skip_formulas: bool = True) -> WriteResult | None:
         data = await self.read_range(range)
-        assignments: list[JsonDict] = []
+        assignments: list[dict[str, Any]] = []
         for row in data:
             for cell in row:
                 value = cell.get("value")
@@ -574,7 +594,7 @@ class _AsyncSpreadsheetSessionBase:
         result = cast(Mapping[str, Any], await self._request("auto_fit_rows", "autoFitRows", drop_none({"sheet": sheet_name, "rows": list(rows) if rows is not None else None, "minHeight": min_height, "maxHeight": max_height})))
         return cast(dict[str, AutoFitRowResult], result.get("rows", {}))
 
-    async def sort_range(self, range: RangeRef, keys: Sequence[JsonMapping], *, has_header: bool | None = None) -> None:
+    async def sort_range(self, range: RangeRef, keys: Sequence[Mapping[str, Any]], *, has_header: bool | None = None) -> None:
         await self._request("sort_range", "sortRange", drop_none({"range": range, "keys": list(keys), "hasHeader": has_header}))
 
     async def copy_range(self, source: RangeRef, destination: CellRef, *, paste_type: Literal["all", "values", "formulas", "formats"] | None = None) -> CopyRangeResult:

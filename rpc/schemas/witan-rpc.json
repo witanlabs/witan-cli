@@ -1,0 +1,4473 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "witan-rpc",
+  "title": "Witan RPC Types",
+  "description": "JSON Schema for types used in the Witan NDJSON RPC protocol between SDKs and the Go CLI.",
+  "$defs": {
+    "Visibility": {
+      "type": "string",
+      "enum": [
+        "visible",
+        "outsidePrintArea",
+        "collapsed",
+        "hidden"
+      ]
+    },
+    "SheetVisibility": {
+      "type": "string",
+      "enum": [
+        "visible",
+        "hidden",
+        "veryHidden"
+      ]
+    },
+    "SetCellsValidationMode": {
+      "type": "string",
+      "enum": [
+        "ignore",
+        "reject"
+      ]
+    },
+    "PasteType": {
+      "type": "string",
+      "enum": [
+        "all",
+        "values",
+        "formulas",
+        "formats"
+      ]
+    },
+    "NumberType": {
+      "type": "string",
+      "enum": [
+        "currency",
+        "percent",
+        "fraction",
+        "exponential",
+        "date",
+        "text",
+        "number"
+      ]
+    },
+    "ValueType": {
+      "type": "string",
+      "enum": [
+        "string",
+        "number",
+        "bool",
+        "date",
+        "error",
+        "blank"
+      ]
+    },
+    "SweepMode": {
+      "type": "string",
+      "enum": [
+        "cartesian",
+        "parallel"
+      ]
+    },
+    "LintSeverity": {
+      "type": "string",
+      "enum": [
+        "Info",
+        "Warning",
+        "Error"
+      ]
+    },
+    "ReferenceType": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "range",
+        "named",
+        "table"
+      ]
+    },
+    "LinkType": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "external"
+      ]
+    },
+    "DataValidationOperator": {
+      "type": "string",
+      "enum": [
+        "Between",
+        "NotBetween",
+        "EqualTo",
+        "NotEqualTo",
+        "GreaterThan",
+        "LessThan",
+        "GreaterThanOrEqualTo",
+        "LessThanOrEqualTo"
+      ]
+    },
+    "DataValidationAlertStyle": {
+      "type": "string",
+      "enum": [
+        "Stop",
+        "Warning",
+        "Information"
+      ]
+    },
+    "DataValidationStatus": {
+      "type": "string",
+      "enum": [
+        "Valid",
+        "Invalid",
+        "NoValidation",
+        "Mixed",
+        "Unknown"
+      ]
+    },
+    "ChartType": {
+      "type": "string",
+      "enum": [
+        "column",
+        "bar",
+        "line",
+        "area",
+        "pie",
+        "doughnut",
+        "scatter",
+        "bubble",
+        "radar",
+        "stockHLC",
+        "stockOHLC",
+        "waterfall"
+      ]
+    },
+    "ChartGrouping": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "stacked",
+        "percentStacked"
+      ]
+    },
+    "ChartAxisBinding": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary"
+      ]
+    },
+    "ChartStockRole": {
+      "type": "string",
+      "enum": [
+        "volume",
+        "open",
+        "high",
+        "low",
+        "close"
+      ]
+    },
+    "ChartLegendPosition": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "top",
+        "bottom",
+        "topRight"
+      ]
+    },
+    "ChartMarkerStyle": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "none",
+        "circle",
+        "dash",
+        "diamond",
+        "dot",
+        "picture",
+        "plus",
+        "square",
+        "star",
+        "triangle",
+        "x"
+      ]
+    },
+    "ChartDataLabelPosition": {
+      "type": "string",
+      "enum": [
+        "bestFit",
+        "center",
+        "insideBase",
+        "insideEnd",
+        "outsideEnd",
+        "left",
+        "right",
+        "top",
+        "bottom"
+      ]
+    },
+    "ChartTimeUnit": {
+      "type": "string",
+      "enum": [
+        "days",
+        "months",
+        "years"
+      ]
+    },
+    "ChartScatterStyle": {
+      "type": "string",
+      "enum": [
+        "line",
+        "lineMarker",
+        "marker",
+        "smooth",
+        "smoothMarker"
+      ]
+    },
+    "ChartRadarStyle": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "marker",
+        "filled"
+      ]
+    },
+    "ChartCategoryAxisType": {
+      "type": "string",
+      "enum": [
+        "category",
+        "date"
+      ]
+    },
+    "ThemeColorName": {
+      "type": "string",
+      "enum": [
+        "background1",
+        "light1",
+        "text1",
+        "dark1",
+        "background2",
+        "light2",
+        "text2",
+        "dark2",
+        "accent1",
+        "accent2",
+        "accent3",
+        "accent4",
+        "accent5",
+        "accent6",
+        "hyperlink",
+        "followedHyperlink"
+      ]
+    },
+    "CfThresholdType": {
+      "type": "string",
+      "enum": [
+        "formula",
+        "max",
+        "min",
+        "num",
+        "percent",
+        "percentile",
+        "autoMin",
+        "autoMax"
+      ]
+    },
+    "ConditionalFormattingRuleType": {
+      "type": "string",
+      "enum": [
+        "cellValue",
+        "containsText",
+        "notContainsText",
+        "beginsWith",
+        "endsWith",
+        "containsBlanks",
+        "notContainsBlanks",
+        "containsErrors",
+        "notContainsErrors",
+        "expression",
+        "timePeriod",
+        "top",
+        "bottom",
+        "aboveAverage",
+        "belowAverage",
+        "duplicateValues",
+        "uniqueValues",
+        "twoColorScale",
+        "threeColorScale",
+        "dataBar",
+        "iconSet"
+      ]
+    },
+    "ConditionalFormattingOperator": {
+      "type": "string",
+      "enum": [
+        "equal",
+        "notEqual",
+        "greaterThan",
+        "greaterThanOrEqual",
+        "lessThan",
+        "lessThanOrEqual",
+        "between",
+        "notBetween"
+      ]
+    },
+    "ConditionalFormattingTimePeriod": {
+      "type": "string",
+      "enum": [
+        "today",
+        "yesterday",
+        "tomorrow",
+        "last7Days",
+        "thisWeek",
+        "lastWeek",
+        "nextWeek",
+        "thisMonth",
+        "lastMonth",
+        "nextMonth"
+      ]
+    },
+    "CellCoordinates": {
+      "type": "object",
+      "description": "Cell coordinates",
+      "properties": {
+        "sheet": {
+          "type": "string"
+        },
+        "row": {
+          "type": "integer"
+        },
+        "col": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "sheet",
+        "row",
+        "col"
+      ],
+      "additionalProperties": true
+    },
+    "Note": {
+      "type": "object",
+      "description": "Cell note",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "author",
+        "text"
+      ],
+      "additionalProperties": true
+    },
+    "Link": {
+      "type": "object",
+      "description": "Hyperlink",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/LinkType"
+        },
+        "target": {
+          "type": "string"
+        },
+        "tooltip": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "target"
+      ],
+      "additionalProperties": true
+    },
+    "ThreadComment": {
+      "type": "object",
+      "description": "Thread comment",
+      "properties": {
+        "authorId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authorId",
+        "text",
+        "createdAt"
+      ],
+      "additionalProperties": true
+    },
+    "ThreadInfo": {
+      "type": "object",
+      "description": "Thread info",
+      "properties": {
+        "resolved": {
+          "type": "boolean"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThreadComment"
+          }
+        }
+      },
+      "required": [
+        "resolved",
+        "comments"
+      ],
+      "additionalProperties": true
+    },
+    "Value": {
+      "type": "object",
+      "description": "Cell value returned by read operations",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "row": {
+          "type": "integer"
+        },
+        "col": {
+          "type": "integer"
+        },
+        "colLetter": {
+          "type": "string"
+        },
+        "value": {
+          "description": "The raw cell value"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "text": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "numberType": {
+          "$ref": "#/$defs/NumberType"
+        },
+        "visibility": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "context": {
+          "type": "string"
+        },
+        "note": {
+          "$ref": "#/$defs/Note"
+        },
+        "link": {
+          "$ref": "#/$defs/Link"
+        },
+        "thread": {
+          "$ref": "#/$defs/ThreadInfo"
+        }
+      },
+      "required": [
+        "address",
+        "sheet",
+        "row",
+        "col",
+        "colLetter",
+        "value",
+        "type",
+        "text",
+        "visibility"
+      ],
+      "additionalProperties": true
+    },
+    "Diagnostic": {
+      "type": "object",
+      "description": "Cell diagnostic / error",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "formula": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "address"
+      ],
+      "additionalProperties": true
+    },
+    "ViewRangeBounds": {
+      "type": "object",
+      "description": "Used range bounds",
+      "properties": {
+        "startRow": {
+          "type": "integer"
+        },
+        "startCol": {
+          "type": "integer"
+        },
+        "endRow": {
+          "type": "integer"
+        },
+        "endCol": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "startRow",
+        "startCol",
+        "endRow",
+        "endCol"
+      ],
+      "additionalProperties": true
+    },
+    "UpdatedSheetInfo": {
+      "type": "object",
+      "description": "Updated sheet info after mutation",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "usedRange": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ViewRangeBounds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tileRowCount": {
+          "type": "integer"
+        },
+        "tileColCount": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "usedRange",
+        "tileRowCount",
+        "tileColCount"
+      ],
+      "additionalProperties": true
+    },
+    "InvalidatedTile": {
+      "type": "object",
+      "description": "Invalidated tile",
+      "properties": {
+        "sheet": {
+          "type": "string"
+        },
+        "tileRow": {
+          "type": "integer"
+        },
+        "tileCol": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sheet",
+        "tileRow",
+        "tileCol"
+      ],
+      "additionalProperties": true
+    },
+    "WriteResult": {
+      "type": "object",
+      "description": "Result of a write/mutation operation",
+      "properties": {
+        "touched": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Map of cell address -> stringified value"
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "invalidatedTiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InvalidatedTile"
+          }
+        },
+        "updatedSheets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UpdatedSheetInfo"
+          }
+        }
+      },
+      "required": [
+        "touched",
+        "changed",
+        "errors",
+        "invalidatedTiles",
+        "updatedSheets"
+      ],
+      "additionalProperties": true
+    },
+    "FindAndReplaceResult": {
+      "type": "object",
+      "description": "Find and replace result",
+      "properties": {
+        "replaced": {
+          "type": "integer"
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        }
+      },
+      "required": [
+        "replaced",
+        "cells",
+        "errors"
+      ],
+      "additionalProperties": true
+    },
+    "CopyRangeResult": {
+      "type": "object",
+      "description": "Copy range result",
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "cellsCopied": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "destination",
+        "cellsCopied"
+      ],
+      "additionalProperties": true
+    },
+    "AutoFitColumnResult": {
+      "type": "object",
+      "description": "Auto-fit column result",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "previousWidth": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "width",
+        "previousWidth"
+      ],
+      "additionalProperties": true
+    },
+    "AutoFitRowResult": {
+      "type": "object",
+      "description": "Auto-fit row result",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "previousHeight": {
+          "type": "number"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "previousHidden": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "height",
+        "previousHeight",
+        "hidden",
+        "previousHidden"
+      ],
+      "additionalProperties": true
+    },
+    "CellWriteNote": {
+      "type": "object",
+      "description": "Note payload for cell writes",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "CellWriteLink": {
+      "type": "object",
+      "description": "Link payload for cell writes",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "tooltip": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "CellWriteThreadComment": {
+      "type": "object",
+      "description": "Thread comment to add",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": true
+    },
+    "CellWriteThread": {
+      "type": "object",
+      "description": "Thread payload for cell writes",
+      "properties": {
+        "add": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CellWriteThreadComment"
+          }
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "delete": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "CellWrite": {
+      "type": "object",
+      "description": "Cell write payload",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "formula": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CellWriteNote"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "link": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CellWriteLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CellWriteThread"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "CellAssignment": {
+      "type": "object",
+      "description": "Cell assignment (address + write payload)",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "formula": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CellWriteNote"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "link": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CellWriteLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CellWriteThread"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "address"
+      ],
+      "additionalProperties": true
+    },
+    "SheetInfo": {
+      "type": "object",
+      "description": "Sheet metadata",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "integer"
+        },
+        "cols": {
+          "type": "integer"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "printArea": {
+          "type": "string"
+        },
+        "listObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dataTables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precedents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "address",
+        "rows",
+        "cols",
+        "sheet"
+      ],
+      "additionalProperties": true
+    },
+    "FontOptions": {
+      "type": "object",
+      "description": "Font options",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "WorkbookDefaultFont": {
+      "type": "object",
+      "description": "Workbook default font",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "size"
+      ],
+      "additionalProperties": true
+    },
+    "ThemeColors": {
+      "type": "object",
+      "description": "Theme colors",
+      "properties": {
+        "dark1": {
+          "type": "string"
+        },
+        "light1": {
+          "type": "string"
+        },
+        "dark2": {
+          "type": "string"
+        },
+        "light2": {
+          "type": "string"
+        },
+        "accent1": {
+          "type": "string"
+        },
+        "accent2": {
+          "type": "string"
+        },
+        "accent3": {
+          "type": "string"
+        },
+        "accent4": {
+          "type": "string"
+        },
+        "accent5": {
+          "type": "string"
+        },
+        "accent6": {
+          "type": "string"
+        },
+        "hyperlink": {
+          "type": "string"
+        },
+        "followedHyperlink": {
+          "type": "string"
+        },
+        "majorFont": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minorFont": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "dark1",
+        "light1",
+        "dark2",
+        "light2",
+        "accent1",
+        "accent2",
+        "accent3",
+        "accent4",
+        "accent5",
+        "accent6",
+        "hyperlink",
+        "followedHyperlink"
+      ],
+      "additionalProperties": true
+    },
+    "WorkbookMetadata": {
+      "type": "object",
+      "description": "Workbook metadata",
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "company": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modified": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "IterativeCalculationSettings": {
+      "type": "object",
+      "description": "Iterative calculation settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "maxIterations": {
+          "type": "integer"
+        },
+        "maxChange": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "maxIterations",
+        "maxChange"
+      ],
+      "additionalProperties": true
+    },
+    "WorkbookProperties": {
+      "type": "object",
+      "description": "Workbook properties",
+      "properties": {
+        "activeSheetIndex": {
+          "type": "integer"
+        },
+        "defaultFont": {
+          "$ref": "#/$defs/WorkbookDefaultFont"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkbookMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "themeColors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThemeColors"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "iterativeCalculation": {
+          "$ref": "#/$defs/IterativeCalculationSettings"
+        }
+      },
+      "required": [
+        "activeSheetIndex",
+        "defaultFont",
+        "iterativeCalculation"
+      ],
+      "additionalProperties": true
+    },
+    "WorkbookPropertiesUpdate": {
+      "type": "object",
+      "description": "Workbook properties update (partial)",
+      "properties": {
+        "activeSheetIndex": {
+          "type": "integer"
+        },
+        "defaultFont": {
+          "$ref": "#/$defs/FontOptions"
+        },
+        "metadata": {
+          "$ref": "#/$defs/WorkbookMetadata"
+        },
+        "themeColors": {
+          "$ref": "#/$defs/ThemeColors"
+        },
+        "iterativeCalculation": {
+          "$ref": "#/$defs/IterativeCalculationSettings"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "SheetViewProperties": {
+      "type": "object",
+      "description": "Sheet view properties",
+      "properties": {
+        "showGridLines": {
+          "type": "boolean"
+        },
+        "zoomScale": {
+          "type": "integer"
+        },
+        "freezeRows": {
+          "type": "integer"
+        },
+        "freezeColumns": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "showGridLines",
+        "zoomScale",
+        "freezeRows",
+        "freezeColumns"
+      ],
+      "additionalProperties": true
+    },
+    "SheetOutlineProperties": {
+      "type": "object",
+      "description": "Sheet outline properties",
+      "properties": {
+        "summaryRowsBelow": {
+          "type": "boolean"
+        },
+        "summaryColumnsRight": {
+          "type": "boolean"
+        },
+        "showSymbols": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "summaryRowsBelow",
+        "summaryColumnsRight",
+        "showSymbols"
+      ],
+      "additionalProperties": true
+    },
+    "SheetFormatProperties": {
+      "type": "object",
+      "description": "Sheet format properties",
+      "properties": {
+        "defaultRowHeight": {
+          "type": "number"
+        },
+        "defaultColWidth": {
+          "type": "number"
+        },
+        "font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FontOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "defaultRowHeight",
+        "defaultColWidth",
+        "font"
+      ],
+      "additionalProperties": true
+    },
+    "SheetViewPropertiesUpdate": {
+      "type": "object",
+      "description": "Sheet view properties update (partial)",
+      "properties": {
+        "showGridLines": {
+          "type": "boolean"
+        },
+        "zoomScale": {
+          "type": "integer"
+        },
+        "freezeRows": {
+          "type": "integer"
+        },
+        "freezeColumns": {
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "SheetOutlinePropertiesUpdate": {
+      "type": "object",
+      "description": "Sheet outline properties update (partial)",
+      "properties": {
+        "summaryRowsBelow": {
+          "type": "boolean"
+        },
+        "summaryColumnsRight": {
+          "type": "boolean"
+        },
+        "showSymbols": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "SheetFormatPropertiesUpdate": {
+      "type": "object",
+      "description": "Sheet format properties update (partial)",
+      "properties": {
+        "defaultRowHeight": {
+          "type": "number"
+        },
+        "defaultColWidth": {
+          "type": "number"
+        },
+        "font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FontOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "RowProperties": {
+      "type": "object",
+      "description": "Row properties for updates",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "outlineLevel": {
+          "type": "integer"
+        },
+        "collapsed": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ColumnProperties": {
+      "type": "object",
+      "description": "Column properties for updates",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "outlineLevel": {
+          "type": "integer"
+        },
+        "collapsed": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "RowDimension": {
+      "type": "object",
+      "description": "Row dimension (returned by getSheetProperties)",
+      "properties": {
+        "row": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "number"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "outlineLevel": {
+          "type": "integer"
+        },
+        "collapsed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "row"
+      ],
+      "additionalProperties": true
+    },
+    "ColumnDimension": {
+      "type": "object",
+      "description": "Column dimension (returned by getSheetProperties)",
+      "properties": {
+        "col": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "outlineLevel": {
+          "type": "integer"
+        },
+        "collapsed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "col"
+      ],
+      "additionalProperties": true
+    },
+    "SheetProperties": {
+      "type": "object",
+      "description": "Sheet properties",
+      "properties": {
+        "visibility": {
+          "$ref": "#/$defs/SheetVisibility"
+        },
+        "view": {
+          "$ref": "#/$defs/SheetViewProperties"
+        },
+        "outline": {
+          "$ref": "#/$defs/SheetOutlineProperties"
+        },
+        "format": {
+          "$ref": "#/$defs/SheetFormatProperties"
+        },
+        "columns": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ColumnDimension"
+          }
+        },
+        "rows": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/RowDimension"
+          }
+        },
+        "merges": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "visibility",
+        "view",
+        "outline",
+        "format",
+        "columns",
+        "rows"
+      ],
+      "additionalProperties": true
+    },
+    "SheetPropertiesUpdate": {
+      "type": "object",
+      "description": "Sheet properties update (partial)",
+      "properties": {
+        "visibility": {
+          "$ref": "#/$defs/SheetVisibility"
+        },
+        "view": {
+          "$ref": "#/$defs/SheetViewPropertiesUpdate"
+        },
+        "outline": {
+          "$ref": "#/$defs/SheetOutlinePropertiesUpdate"
+        },
+        "format": {
+          "$ref": "#/$defs/SheetFormatPropertiesUpdate"
+        },
+        "merges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "RichTextRun": {
+      "type": "object",
+      "description": "Rich text run",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/$defs/FontStyle"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": true
+    },
+    "GradientFill": {
+      "type": "object",
+      "description": "Gradient fill",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "color1": {
+          "type": "string"
+        },
+        "color2": {
+          "type": "string"
+        },
+        "degree": {
+          "type": "number"
+        },
+        "top": {
+          "type": "number"
+        },
+        "bottom": {
+          "type": "number"
+        },
+        "left": {
+          "type": "number"
+        },
+        "right": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "color1",
+        "color2"
+      ],
+      "additionalProperties": true
+    },
+    "FillStyle": {
+      "type": "object",
+      "description": "Fill style",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "patternColor": {
+          "type": "string"
+        },
+        "gradient": {
+          "$ref": "#/$defs/GradientFill"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "FontStyle": {
+      "type": "object",
+      "description": "Font style",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "strike": {
+          "type": "boolean"
+        },
+        "underline": {
+          "type": "string"
+        },
+        "verticalAlign": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "AlignmentStyle": {
+      "type": "object",
+      "description": "Alignment style",
+      "properties": {
+        "horizontal": {
+          "type": "string"
+        },
+        "vertical": {
+          "type": "string"
+        },
+        "rotation": {
+          "type": "integer"
+        },
+        "wrapText": {
+          "type": "boolean"
+        },
+        "shrinkToFit": {
+          "type": "boolean"
+        },
+        "indent": {
+          "type": "number"
+        },
+        "readingOrder": {
+          "type": "string",
+          "enum": [
+            "context",
+            "leftToRight",
+            "rightToLeft"
+          ]
+        },
+        "autoIndent": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ProtectionStyle": {
+      "type": "object",
+      "description": "Protection style",
+      "properties": {
+        "locked": {
+          "type": "boolean"
+        },
+        "formulaHidden": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "BorderEdgeStyle": {
+      "type": "object",
+      "description": "Border edge style",
+      "properties": {
+        "style": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "themeColor": {
+          "$ref": "#/$defs/ThemeColorName"
+        },
+        "tintAndShade": {
+          "type": "number"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "DiagonalBorderStyle": {
+      "type": "object",
+      "description": "Diagonal border style",
+      "properties": {
+        "style": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "themeColor": {
+          "$ref": "#/$defs/ThemeColorName"
+        },
+        "tintAndShade": {
+          "type": "number"
+        },
+        "up": {
+          "type": "boolean"
+        },
+        "down": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "BorderStyle": {
+      "type": "object",
+      "description": "Border style",
+      "properties": {
+        "top": {
+          "$ref": "#/$defs/BorderEdgeStyle"
+        },
+        "bottom": {
+          "$ref": "#/$defs/BorderEdgeStyle"
+        },
+        "left": {
+          "$ref": "#/$defs/BorderEdgeStyle"
+        },
+        "right": {
+          "$ref": "#/$defs/BorderEdgeStyle"
+        },
+        "diagonal": {
+          "$ref": "#/$defs/DiagonalBorderStyle"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "Style": {
+      "type": "object",
+      "description": "Cell style",
+      "properties": {
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FillStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FontStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "alignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AlignmentStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "protection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProtectionStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "border": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BorderStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "numberFormat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "centerContinuousSpan": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "richText": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/RichTextRun"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ListObjectColumn": {
+      "type": "object",
+      "description": "List object (table) column",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "totalsRowFunction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "totalsRowLabel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "totalsRowFormula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calculatedColumnFormula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    },
+    "ListObject": {
+      "type": "object",
+      "description": "List object (table)",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "showHeaderRow": {
+          "type": "boolean"
+        },
+        "showTotalsRow": {
+          "type": "boolean"
+        },
+        "showAutoFilter": {
+          "type": "boolean"
+        },
+        "tableStyleName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "showFirstColumn": {
+          "type": "boolean"
+        },
+        "showLastColumn": {
+          "type": "boolean"
+        },
+        "showRowStripes": {
+          "type": "boolean"
+        },
+        "showColumnStripes": {
+          "type": "boolean"
+        },
+        "headerRowRange": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dataRange": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "totalsRowRange": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ListObjectColumn"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "sheet",
+        "ref",
+        "showHeaderRow",
+        "showTotalsRow",
+        "showAutoFilter",
+        "tableStyleName",
+        "showFirstColumn",
+        "showLastColumn",
+        "showRowStripes",
+        "showColumnStripes",
+        "headerRowRange",
+        "dataRange",
+        "totalsRowRange",
+        "columns"
+      ],
+      "additionalProperties": true
+    },
+    "ListObjectSpec": {
+      "type": "object",
+      "description": "List object spec for creation",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "showHeaderRow": {
+          "type": "boolean"
+        },
+        "showTotalsRow": {
+          "type": "boolean"
+        },
+        "showAutoFilter": {
+          "type": "boolean"
+        },
+        "tableStyleName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "showFirstColumn": {
+          "type": "boolean"
+        },
+        "showLastColumn": {
+          "type": "boolean"
+        },
+        "showRowStripes": {
+          "type": "boolean"
+        },
+        "showColumnStripes": {
+          "type": "boolean"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ListObjectColumn"
+          }
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/CellWrite"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "ref",
+        "columns"
+      ],
+      "additionalProperties": true
+    },
+    "ListObjectUpdate": {
+      "type": "object",
+      "description": "List object update (partial)",
+      "properties": {
+        "ref": {
+          "type": "string"
+        },
+        "showHeaderRow": {
+          "type": "boolean"
+        },
+        "showTotalsRow": {
+          "type": "boolean"
+        },
+        "showAutoFilter": {
+          "type": "boolean"
+        },
+        "tableStyleName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "showFirstColumn": {
+          "type": "boolean"
+        },
+        "showLastColumn": {
+          "type": "boolean"
+        },
+        "showRowStripes": {
+          "type": "boolean"
+        },
+        "showColumnStripes": {
+          "type": "boolean"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ListObjectColumn"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/CellWrite"
+            }
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ListObjectMutationResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/WriteResult"
+        },
+        {
+          "type": "object",
+          "description": "List object mutation result",
+          "properties": {
+            "listObject": {
+              "$ref": "#/$defs/ListObject"
+            }
+          },
+          "required": [
+            "listObject"
+          ],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "DataTableSourceFormula": {
+      "type": "object",
+      "description": "Data table source formula",
+      "properties": {
+        "formula": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "formula"
+      ],
+      "additionalProperties": true
+    },
+    "OneVariableColumnDataTable": {
+      "type": "object",
+      "description": "One-variable column data table",
+      "properties": {
+        "type": {
+          "const": "oneVariableColumn"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "dataTableRange": {
+          "type": "string"
+        },
+        "rowInputCell": {
+          "type": "null"
+        },
+        "columnInputCell": {
+          "type": "string"
+        },
+        "inputValues": {
+          "type": "null"
+        },
+        "rowInputValues": {
+          "type": "null"
+        },
+        "columnInputValues": {
+          "type": "null"
+        },
+        "formulas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DataTableSourceFormula"
+          }
+        },
+        "formula": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "type",
+        "sheet",
+        "ref",
+        "dataTableRange",
+        "rowInputCell",
+        "columnInputCell",
+        "inputValues",
+        "rowInputValues",
+        "columnInputValues",
+        "formulas",
+        "formula"
+      ],
+      "additionalProperties": true
+    },
+    "OneVariableRowDataTable": {
+      "type": "object",
+      "description": "One-variable row data table",
+      "properties": {
+        "type": {
+          "const": "oneVariableRow"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "dataTableRange": {
+          "type": "string"
+        },
+        "rowInputCell": {
+          "type": "string"
+        },
+        "columnInputCell": {
+          "type": "null"
+        },
+        "inputValues": {
+          "type": "null"
+        },
+        "rowInputValues": {
+          "type": "null"
+        },
+        "columnInputValues": {
+          "type": "null"
+        },
+        "formulas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DataTableSourceFormula"
+          }
+        },
+        "formula": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "type",
+        "sheet",
+        "ref",
+        "dataTableRange",
+        "rowInputCell",
+        "columnInputCell",
+        "inputValues",
+        "rowInputValues",
+        "columnInputValues",
+        "formulas",
+        "formula"
+      ],
+      "additionalProperties": true
+    },
+    "TwoVariableDataTable": {
+      "type": "object",
+      "description": "Two-variable data table",
+      "properties": {
+        "type": {
+          "const": "twoVariable"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "dataTableRange": {
+          "type": "string"
+        },
+        "rowInputCell": {
+          "type": "string"
+        },
+        "columnInputCell": {
+          "type": "string"
+        },
+        "inputValues": {
+          "type": "null"
+        },
+        "rowInputValues": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "columnInputValues": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "formulas": {
+          "type": "null"
+        },
+        "formula": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "sheet",
+        "ref",
+        "dataTableRange",
+        "rowInputCell",
+        "columnInputCell",
+        "inputValues",
+        "rowInputValues",
+        "columnInputValues",
+        "formulas",
+        "formula"
+      ],
+      "additionalProperties": true
+    },
+    "DataTable": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OneVariableColumnDataTable"
+        },
+        {
+          "$ref": "#/$defs/OneVariableRowDataTable"
+        },
+        {
+          "$ref": "#/$defs/TwoVariableDataTable"
+        }
+      ]
+    },
+    "OneVariableColumnDataTableSpec": {
+      "type": "object",
+      "description": "One-variable column data table spec",
+      "properties": {
+        "type": {
+          "const": "oneVariableColumn"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "columnInputCell": {
+          "type": "string"
+        },
+        "inputValues": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "formulas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "ref",
+        "columnInputCell",
+        "inputValues",
+        "formulas"
+      ],
+      "additionalProperties": true
+    },
+    "OneVariableRowDataTableSpec": {
+      "type": "object",
+      "description": "One-variable row data table spec",
+      "properties": {
+        "type": {
+          "const": "oneVariableRow"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "rowInputCell": {
+          "type": "string"
+        },
+        "inputValues": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "formulas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "ref",
+        "rowInputCell",
+        "inputValues",
+        "formulas"
+      ],
+      "additionalProperties": true
+    },
+    "TwoVariableDataTableSpec": {
+      "type": "object",
+      "description": "Two-variable data table spec",
+      "properties": {
+        "type": {
+          "const": "twoVariable"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "rowInputCell": {
+          "type": "string"
+        },
+        "columnInputCell": {
+          "type": "string"
+        },
+        "rowInputValues": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "columnInputValues": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "formula": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "ref",
+        "rowInputCell",
+        "columnInputCell",
+        "rowInputValues",
+        "columnInputValues",
+        "formula"
+      ],
+      "additionalProperties": true
+    },
+    "DataTableSpec": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OneVariableColumnDataTableSpec"
+        },
+        {
+          "$ref": "#/$defs/OneVariableRowDataTableSpec"
+        },
+        {
+          "$ref": "#/$defs/TwoVariableDataTableSpec"
+        }
+      ]
+    },
+    "DataTableMutationResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/WriteResult"
+        },
+        {
+          "type": "object",
+          "description": "Data table mutation result",
+          "properties": {
+            "dataTable": {
+              "$ref": "#/$defs/DataTable"
+            }
+          },
+          "required": [
+            "dataTable"
+          ],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "ChartTextSource": {
+      "type": "object",
+      "description": "Chart text source",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartPositionAnchor": {
+      "type": "object",
+      "description": "Chart position anchor",
+      "properties": {
+        "cell": {
+          "type": "string"
+        },
+        "xOffsetPts": {
+          "type": "number"
+        },
+        "yOffsetPts": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "cell"
+      ],
+      "additionalProperties": true
+    },
+    "ChartPositionInput": {
+      "type": "object",
+      "description": "Chart position input",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/ChartPositionAnchor"
+        },
+        "to": {
+          "$ref": "#/$defs/ChartPositionAnchor"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": true
+    },
+    "ChartPosition": {
+      "type": "object",
+      "description": "Chart position (includes sheet)",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/ChartPositionAnchor"
+        },
+        "to": {
+          "$ref": "#/$defs/ChartPositionAnchor"
+        },
+        "sheet": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "sheet"
+      ],
+      "additionalProperties": true
+    },
+    "ChartFillFormatSpec": {
+      "type": "object",
+      "description": "Chart fill format spec",
+      "properties": {
+        "noFill": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartBorderFormatSpec": {
+      "type": "object",
+      "description": "Chart border format spec",
+      "properties": {
+        "noLine": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "lineStyle": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartLineFormatSpec": {
+      "$ref": "#/$defs/ChartBorderFormatSpec"
+    },
+    "ChartFontFormatSpec": {
+      "type": "object",
+      "description": "Chart font format spec",
+      "properties": {
+        "bold": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number"
+        },
+        "underline": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartDataLabelFormatSpec": {
+      "type": "object",
+      "description": "Chart data label format spec",
+      "properties": {
+        "fill": {
+          "$ref": "#/$defs/ChartFillFormatSpec"
+        },
+        "border": {
+          "$ref": "#/$defs/ChartBorderFormatSpec"
+        },
+        "font": {
+          "$ref": "#/$defs/ChartFontFormatSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartAreaFormatSpec": {
+      "$ref": "#/$defs/ChartDataLabelFormatSpec"
+    },
+    "ChartPlotAreaFormatSpec": {
+      "type": "object",
+      "description": "Chart plot area format spec",
+      "properties": {
+        "fill": {
+          "$ref": "#/$defs/ChartFillFormatSpec"
+        },
+        "border": {
+          "$ref": "#/$defs/ChartBorderFormatSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartPlotAreaSpec": {
+      "type": "object",
+      "description": "Chart plot area spec",
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/ChartPlotAreaFormatSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartSeriesFormatSpec": {
+      "type": "object",
+      "description": "Chart series format spec",
+      "properties": {
+        "fill": {
+          "$ref": "#/$defs/ChartFillFormatSpec"
+        },
+        "line": {
+          "$ref": "#/$defs/ChartLineFormatSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartMarkerSpec": {
+      "type": "object",
+      "description": "Chart marker spec",
+      "properties": {
+        "style": {
+          "$ref": "#/$defs/ChartMarkerStyle"
+        },
+        "size": {
+          "type": "number"
+        },
+        "fillColor": {
+          "type": "string"
+        },
+        "borderColor": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartDataLabelsSpec": {
+      "type": "object",
+      "description": "Chart data labels spec",
+      "properties": {
+        "showLegendKey": {
+          "type": "boolean"
+        },
+        "showValue": {
+          "type": "boolean"
+        },
+        "showCategory": {
+          "type": "boolean"
+        },
+        "showSeriesName": {
+          "type": "boolean"
+        },
+        "showPercent": {
+          "type": "boolean"
+        },
+        "showBubbleSize": {
+          "type": "boolean"
+        },
+        "showLeaderLines": {
+          "type": "boolean"
+        },
+        "position": {
+          "$ref": "#/$defs/ChartDataLabelPosition"
+        },
+        "numberFormat": {
+          "type": "string"
+        },
+        "numberFormatLinked": {
+          "type": "boolean"
+        },
+        "separator": {
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/ChartDataLabelFormatSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartSeriesSpec": {
+      "type": "object",
+      "description": "Chart series spec",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/ChartTextSource"
+        },
+        "stockRole": {
+          "$ref": "#/$defs/ChartStockRole"
+        },
+        "categories": {
+          "type": "string"
+        },
+        "categoriesRefType": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "multiLevelString"
+          ]
+        },
+        "values": {
+          "type": "string"
+        },
+        "xValues": {
+          "type": "string"
+        },
+        "yValues": {
+          "type": "string"
+        },
+        "bubbleSizes": {
+          "type": "string"
+        },
+        "fillColor": {
+          "type": "string"
+        },
+        "lineColor": {
+          "type": "string"
+        },
+        "lineWidth": {
+          "type": "number"
+        },
+        "lineDashStyle": {
+          "type": "string"
+        },
+        "smooth": {
+          "type": "boolean"
+        },
+        "invertIfNegative": {
+          "type": "boolean"
+        },
+        "totalIndexes": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "showConnectorLines": {
+          "type": "boolean"
+        },
+        "marker": {
+          "$ref": "#/$defs/ChartMarkerSpec"
+        },
+        "dataLabels": {
+          "$ref": "#/$defs/ChartDataLabelsSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartGroupSpec": {
+      "type": "object",
+      "description": "Chart group spec",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ChartType"
+        },
+        "scatterStyle": {
+          "$ref": "#/$defs/ChartScatterStyle"
+        },
+        "radarStyle": {
+          "$ref": "#/$defs/ChartRadarStyle"
+        },
+        "grouping": {
+          "$ref": "#/$defs/ChartGrouping"
+        },
+        "axis": {
+          "$ref": "#/$defs/ChartAxisBinding"
+        },
+        "gapWidth": {
+          "type": "integer"
+        },
+        "overlap": {
+          "type": "integer"
+        },
+        "varyColors": {
+          "type": "boolean"
+        },
+        "smooth": {
+          "type": "boolean"
+        },
+        "bubbleScale": {
+          "type": "integer"
+        },
+        "showNegativeBubbles": {
+          "type": "boolean"
+        },
+        "sizeRepresents": {
+          "type": "string",
+          "enum": [
+            "area",
+            "width"
+          ]
+        },
+        "firstSliceAngle": {
+          "type": "integer"
+        },
+        "holeSize": {
+          "type": "integer"
+        },
+        "dataLabels": {
+          "$ref": "#/$defs/ChartDataLabelsSpec"
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChartSeriesSpec"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "series"
+      ],
+      "additionalProperties": true
+    },
+    "ChartTitleSpec": {
+      "type": "object",
+      "description": "Chart title spec",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "overlay": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartLegendSpec": {
+      "type": "object",
+      "description": "Chart legend spec",
+      "properties": {
+        "visible": {
+          "type": "boolean"
+        },
+        "position": {
+          "$ref": "#/$defs/ChartLegendPosition"
+        },
+        "overlay": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartAxisSpec": {
+      "type": "object",
+      "description": "Chart axis spec",
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/ChartTextSource"
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "categoryType": {
+          "$ref": "#/$defs/ChartCategoryAxisType"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "majorUnit": {
+          "type": "number"
+        },
+        "minorUnit": {
+          "type": "number"
+        },
+        "baseTimeUnit": {
+          "$ref": "#/$defs/ChartTimeUnit"
+        },
+        "majorTimeUnit": {
+          "$ref": "#/$defs/ChartTimeUnit"
+        },
+        "minorTimeUnit": {
+          "$ref": "#/$defs/ChartTimeUnit"
+        },
+        "numberFormat": {
+          "type": "string"
+        },
+        "numberFormatLinked": {
+          "type": "boolean"
+        },
+        "reversed": {
+          "type": "boolean"
+        },
+        "majorGridlines": {
+          "type": "boolean"
+        },
+        "minorGridlines": {
+          "type": "boolean"
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartAxesSpec": {
+      "type": "object",
+      "description": "Chart axes spec",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/ChartAxisSpec"
+        },
+        "value": {
+          "$ref": "#/$defs/ChartAxisSpec"
+        },
+        "secondaryCategory": {
+          "$ref": "#/$defs/ChartAxisSpec"
+        },
+        "secondaryValue": {
+          "$ref": "#/$defs/ChartAxisSpec"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ChartSpec": {
+      "type": "object",
+      "description": "Chart spec",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/ChartPositionInput"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChartGroupSpec"
+          }
+        },
+        "title": {
+          "$ref": "#/$defs/ChartTitleSpec"
+        },
+        "legend": {
+          "$ref": "#/$defs/ChartLegendSpec"
+        },
+        "axes": {
+          "$ref": "#/$defs/ChartAxesSpec"
+        },
+        "format": {
+          "$ref": "#/$defs/ChartAreaFormatSpec"
+        },
+        "plotArea": {
+          "$ref": "#/$defs/ChartPlotAreaSpec"
+        },
+        "displayBlanksAs": {
+          "type": "string",
+          "enum": [
+            "gap",
+            "span",
+            "zero"
+          ]
+        },
+        "plotVisibleOnly": {
+          "type": "boolean"
+        },
+        "showDataLabelsOverMaximum": {
+          "type": "boolean"
+        },
+        "roundedCorners": {
+          "type": "boolean"
+        },
+        "styleId": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "position",
+        "groups"
+      ],
+      "additionalProperties": true
+    },
+    "ChartInfo": {
+      "type": "object",
+      "description": "Chart info (returned by listCharts)",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChartGroupSpec"
+          }
+        },
+        "position": {
+          "$ref": "#/$defs/ChartPosition"
+        },
+        "title": {
+          "$ref": "#/$defs/ChartTitleSpec"
+        },
+        "legend": {
+          "$ref": "#/$defs/ChartLegendSpec"
+        },
+        "axes": {
+          "$ref": "#/$defs/ChartAxesSpec"
+        },
+        "format": {
+          "$ref": "#/$defs/ChartAreaFormatSpec"
+        },
+        "plotArea": {
+          "$ref": "#/$defs/ChartPlotAreaSpec"
+        },
+        "displayBlanksAs": {
+          "type": "string",
+          "enum": [
+            "gap",
+            "span",
+            "zero"
+          ]
+        },
+        "plotVisibleOnly": {
+          "type": "boolean"
+        },
+        "showDataLabelsOverMaximum": {
+          "type": "boolean"
+        },
+        "roundedCorners": {
+          "type": "boolean"
+        },
+        "styleId": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "groups",
+        "position"
+      ],
+      "additionalProperties": true
+    },
+    "ChartGroupSummary": {
+      "type": "object",
+      "description": "Chart group summary",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "axis": {
+          "$ref": "#/$defs/ChartAxisBinding"
+        },
+        "seriesCount": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "seriesCount"
+      ],
+      "additionalProperties": true
+    },
+    "ChartSummary": {
+      "type": "object",
+      "description": "Chart summary",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChartGroupSummary"
+          }
+        },
+        "groupCount": {
+          "type": "integer"
+        },
+        "seriesCount": {
+          "type": "integer"
+        },
+        "position": {
+          "$ref": "#/$defs/ChartPosition"
+        }
+      },
+      "required": [
+        "sheet",
+        "name",
+        "type",
+        "groups",
+        "groupCount",
+        "seriesCount",
+        "position"
+      ],
+      "additionalProperties": true
+    },
+    "CfColorScalePoint": {
+      "type": "object",
+      "description": "Conditional formatting color scale point",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/CfThresholdType"
+        },
+        "value": {
+          "type": "number"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": true
+    },
+    "CfDataBarThreshold": {
+      "type": "object",
+      "description": "Conditional formatting data bar threshold",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/CfThresholdType"
+        },
+        "value": {
+          "type": "number"
+        },
+        "formula": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": true
+    },
+    "CfDataBarConfig": {
+      "type": "object",
+      "description": "Conditional formatting data bar config",
+      "properties": {
+        "showValue": {
+          "type": "boolean"
+        },
+        "gradient": {
+          "type": "boolean"
+        },
+        "border": {
+          "type": "boolean"
+        },
+        "negativeBarColorSameAsPositive": {
+          "type": "boolean"
+        },
+        "negativeBarBorderColorSameAsPositive": {
+          "type": "boolean"
+        },
+        "axisPosition": {
+          "type": "string",
+          "enum": [
+            "automatic",
+            "middle",
+            "none"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "context",
+            "leftToRight",
+            "rightToLeft"
+          ]
+        },
+        "fillColor": {
+          "type": "string"
+        },
+        "borderColor": {
+          "type": "string"
+        },
+        "negativeFillColor": {
+          "type": "string"
+        },
+        "negativeBorderColor": {
+          "type": "string"
+        },
+        "axisColor": {
+          "type": "string"
+        },
+        "lowValue": {
+          "$ref": "#/$defs/CfDataBarThreshold"
+        },
+        "highValue": {
+          "$ref": "#/$defs/CfDataBarThreshold"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "ConditionalFormattingRule": {
+      "type": "object",
+      "description": "Conditional formatting rule",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ConditionalFormattingRuleType"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "stopIfTrue": {
+          "type": "boolean"
+        },
+        "style": {
+          "$ref": "#/$defs/Style"
+        },
+        "operator": {
+          "$ref": "#/$defs/ConditionalFormattingOperator"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "formula2": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        },
+        "percent": {
+          "type": "boolean"
+        },
+        "equalAverage": {
+          "type": "boolean"
+        },
+        "stdDev": {
+          "type": "integer"
+        },
+        "lowValue": {
+          "$ref": "#/$defs/CfColorScalePoint"
+        },
+        "midValue": {
+          "$ref": "#/$defs/CfColorScalePoint"
+        },
+        "highValue": {
+          "$ref": "#/$defs/CfColorScalePoint"
+        },
+        "dataBar": {
+          "$ref": "#/$defs/CfDataBarConfig"
+        },
+        "iconSetStyle": {
+          "type": "string"
+        },
+        "timePeriod": {
+          "$ref": "#/$defs/ConditionalFormattingTimePeriod"
+        }
+      },
+      "required": [
+        "address",
+        "type"
+      ],
+      "additionalProperties": true
+    },
+    "BasicDataValidationRule": {
+      "type": "object",
+      "description": "Basic data validation rule",
+      "properties": {
+        "operator": {
+          "$ref": "#/$defs/DataValidationOperator"
+        },
+        "formula1": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "formula2": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "operator",
+        "formula1"
+      ],
+      "additionalProperties": true
+    },
+    "ListDataValidationRule": {
+      "type": "object",
+      "description": "List data validation rule",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "inCellDropDown": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "additionalProperties": true
+    },
+    "CustomDataValidationRule": {
+      "type": "object",
+      "description": "Custom data validation rule",
+      "properties": {
+        "formula": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "formula"
+      ],
+      "additionalProperties": true
+    },
+    "DataValidationRulePayload": {
+      "type": "object",
+      "description": "Data validation rule payload",
+      "properties": {
+        "wholeNumber": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BasicDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decimal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BasicDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "list": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ListDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "date": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BasicDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BasicDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "textLength": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BasicDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "custom": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CustomDataValidationRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "DataValidationPrompt": {
+      "type": "object",
+      "description": "Data validation prompt",
+      "properties": {
+        "showPrompt": {
+          "type": "boolean"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "DataValidationErrorAlert": {
+      "type": "object",
+      "description": "Data validation error alert",
+      "properties": {
+        "showAlert": {
+          "type": "boolean"
+        },
+        "style": {
+          "$ref": "#/$defs/DataValidationAlertStyle"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "DataValidationSpec": {
+      "type": "object",
+      "description": "Data validation spec",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "rule": {
+          "$ref": "#/$defs/DataValidationRulePayload"
+        },
+        "ignoreBlanks": {
+          "type": "boolean"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DataValidationPrompt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errorAlert": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DataValidationErrorAlert"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "address",
+        "rule"
+      ],
+      "additionalProperties": true
+    },
+    "DataValidationInfo": {
+      "type": "object",
+      "description": "Data validation info (returned by getDataValidations)",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "rule": {
+          "$ref": "#/$defs/DataValidationRulePayload"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "None",
+            "WholeNumber",
+            "Decimal",
+            "List",
+            "Date",
+            "Time",
+            "TextLength",
+            "Custom"
+          ]
+        },
+        "ignoreBlanks": {
+          "type": "boolean"
+        },
+        "prompt": {
+          "$ref": "#/$defs/DataValidationPrompt"
+        },
+        "errorAlert": {
+          "$ref": "#/$defs/DataValidationErrorAlert"
+        }
+      },
+      "required": [
+        "address",
+        "rule",
+        "index",
+        "sheet",
+        "type",
+        "ignoreBlanks",
+        "prompt",
+        "errorAlert"
+      ],
+      "additionalProperties": true
+    },
+    "DataValidationDiagnostic": {
+      "type": "object",
+      "description": "Data validation diagnostic",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": true
+    },
+    "DataValidationResult": {
+      "type": "object",
+      "description": "Data validation result",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/DataValidationStatus"
+        },
+        "invalidCells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DataValidationDiagnostic"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "invalidCells",
+        "truncated",
+        "diagnostics"
+      ],
+      "additionalProperties": true
+    },
+    "SearchCell": {
+      "type": "object",
+      "description": "Search cell result",
+      "properties": {
+        "type": {
+          "const": "cell"
+        },
+        "address": {
+          "type": "string"
+        },
+        "value": {
+          "description": "Cell value"
+        },
+        "text": {
+          "type": "string"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "row": {
+          "type": "integer"
+        },
+        "col": {
+          "type": "integer"
+        },
+        "colLetter": {
+          "type": "string"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "context": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "address",
+        "value",
+        "text",
+        "row",
+        "col",
+        "colLetter",
+        "sheet",
+        "visibility",
+        "role"
+      ],
+      "additionalProperties": true
+    },
+    "SearchRow": {
+      "type": "object",
+      "description": "Search row result",
+      "properties": {
+        "type": {
+          "const": "row"
+        },
+        "row": {
+          "type": "integer"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "matchedAt": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        },
+        "tsv": {
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "context": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "row",
+        "sheet",
+        "matchedAt",
+        "range",
+        "tsv",
+        "visibility"
+      ],
+      "additionalProperties": true
+    },
+    "TableLookupResult": {
+      "type": "object",
+      "description": "Table lookup result",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "value": {
+          "description": "Cell value"
+        },
+        "text": {
+          "type": "string"
+        },
+        "row": {
+          "type": "integer"
+        },
+        "col": {
+          "type": "integer"
+        },
+        "colLetter": {
+          "type": "string"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "rowLabelFoundAt": {
+          "type": "string"
+        },
+        "rowLabelFound": {
+          "type": "string"
+        },
+        "columnLabelFoundAt": {
+          "type": "string"
+        },
+        "columnLabelFound": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "value",
+        "text",
+        "row",
+        "col",
+        "colLetter",
+        "sheet",
+        "visibility",
+        "rowLabelFoundAt",
+        "rowLabelFound",
+        "columnLabelFoundAt",
+        "columnLabelFound"
+      ],
+      "additionalProperties": true
+    },
+    "DependencyCell": {
+      "type": "object",
+      "description": "Dependency cell",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "depth": {
+          "type": "integer"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "referenceType": {
+          "$ref": "#/$defs/ReferenceType"
+        }
+      },
+      "required": [
+        "address",
+        "depth"
+      ],
+      "additionalProperties": true
+    },
+    "DependencyResult": {
+      "type": "object",
+      "description": "Dependency result",
+      "properties": {
+        "cells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DependencyCell"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        }
+      },
+      "required": [
+        "cells"
+      ],
+      "additionalProperties": true
+    },
+    "TraceInput": {
+      "type": "object",
+      "description": "Trace input",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "referenceCount": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "nearbyLabel": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "referenceCount"
+      ],
+      "additionalProperties": true
+    },
+    "TraceOutput": {
+      "type": "object",
+      "description": "Trace output",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "nearbyLabel": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "visibility"
+      ],
+      "additionalProperties": true
+    },
+    "FormulaResult": {
+      "type": "object",
+      "description": "Formula result",
+      "properties": {
+        "formula": {
+          "type": "string"
+        },
+        "value": {
+          "description": "Formula value"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "formula",
+        "value"
+      ],
+      "additionalProperties": true
+    },
+    "SweepInput": {
+      "type": "object",
+      "description": "Sweep input",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "address",
+        "values"
+      ],
+      "additionalProperties": true
+    },
+    "SweepEntry": {
+      "type": "object",
+      "description": "Sweep entry",
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        }
+      },
+      "required": [
+        "inputs",
+        "outputs",
+        "errors"
+      ],
+      "additionalProperties": true
+    },
+    "OutputStats": {
+      "type": "object",
+      "description": "Output statistics",
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "mean": {
+          "type": "number"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max",
+        "mean",
+        "count"
+      ],
+      "additionalProperties": true
+    },
+    "SweepResult": {
+      "type": "object",
+      "description": "Sweep result",
+      "properties": {
+        "tsv": {
+          "type": "string"
+        },
+        "sweeps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SweepEntry"
+          }
+        },
+        "stats": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/OutputStats"
+          }
+        },
+        "sweepCount": {
+          "type": "integer"
+        },
+        "inputCount": {
+          "type": "integer"
+        },
+        "outputCount": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tsv",
+        "sweeps",
+        "sweepCount",
+        "inputCount",
+        "outputCount"
+      ],
+      "additionalProperties": true
+    },
+    "DefinedName": {
+      "type": "object",
+      "description": "Defined name",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "range",
+        "scope"
+      ],
+      "additionalProperties": true
+    },
+    "LintDiagnostic": {
+      "type": "object",
+      "description": "Lint diagnostic",
+      "properties": {
+        "severity": {
+          "$ref": "#/$defs/LintSeverity"
+        },
+        "ruleId": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visibility": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Visibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "severity",
+        "ruleId",
+        "message",
+        "location",
+        "visibility"
+      ],
+      "additionalProperties": true
+    },
+    "LintResult": {
+      "type": "object",
+      "description": "Lint result",
+      "properties": {
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LintDiagnostic"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "diagnostics",
+        "total"
+      ],
+      "additionalProperties": true
+    },
+    "DetectedTable": {
+      "type": "object",
+      "description": "Detected table",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "headerRows": {
+          "type": "string"
+        },
+        "headerCols": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tableName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "address",
+        "headerRows"
+      ],
+      "additionalProperties": true
+    },
+    "SheetDescription": {
+      "type": "object",
+      "description": "Sheet description",
+      "properties": {
+        "tables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/DetectedTable"
+          }
+        },
+        "structure": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tables",
+        "structure"
+      ],
+      "additionalProperties": true
+    },
+    "RPCRequest": {
+      "type": "object",
+      "description": "RPC request envelope",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "op",
+        "args"
+      ],
+      "additionalProperties": true
+    },
+    "RPCResponse": {
+      "type": "object",
+      "description": "RPC response envelope",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "result": {},
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "additionalProperties": true
+    },
+    "ScalarCellValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Scalar cell value"
+    }
+  }
+}

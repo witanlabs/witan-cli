@@ -14,7 +14,7 @@ from .exceptions import (
     is_google_auth_required,
 )
 from .google_sheet import AsyncGoogleSheet, GoogleSheet
-from .types import Regex
+from ._spreadsheet_base import Regex
 from .workbook import AsyncWorkbook, Workbook
 
 try:

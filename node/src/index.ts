@@ -54,4 +54,16 @@ export {
   type GoogleSheetCreateOptions,
 } from './google-sheet.js';
 
-export type * from './types.js';
+export type * from './generated-types.js';
+export type {
+  Matcher,
+  ReplaceMatcher,
+  FindCellsOptions,
+  FindRowsOptions,
+  FindAndReplaceOptions,
+  SweepOptions,
+  LintOptions,
+  AutoFitColumnsOptions,
+  AutoFitRowsOptions,
+  SortKey,
+} from './spreadsheet-base.js';

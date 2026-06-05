@@ -1,4 +1,4 @@
-import type { Matcher } from './types.js';
+import type { Matcher } from './spreadsheet-base.js';
 
 /**
  * Serialize a matcher for the RPC protocol.

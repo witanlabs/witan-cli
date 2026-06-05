@@ -7,7 +7,7 @@ import type {
   DataValidationInfo,
   DataValidationResult,
   DataValidationSpec,
-} from './types.js';
+} from './generated-types.js';
 
 /**
  * Options for opening a Workbook.

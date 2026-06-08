@@ -319,7 +319,7 @@ function previewStyles(wb,range:RangeRef):Promise<void>
 type TUnit="days"|"months"|"years"
 type Axis="left"|"right"|"top"|"bottom"
 type CDLPos="bestFit"|"center"|"insideBase"|"insideEnd"|"outsideEnd"|"left"|"right"|"top"|"bottom"
-type CType="column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"surface"|"stockHLC"|"stockOHLC"|"waterfall"|"histogram"|"pareto"|"funnel"
+type CType="column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"surface"|"stockHLC"|"stockOHLC"|"waterfall"|"histogram"|"pareto"|"funnel"|"boxWhisker"
 type CTxt={text?:string;ref?:string}
 type CAnchor={cell:string;xOffsetPts?:number;yOffsetPts?:number}
 type CPosIn={from:CAnchor;to:CAnchor}
@@ -332,7 +332,7 @@ type CPlot={format?:{fill?:CFill;border?:CLine}}
 type CLabels={showLegendKey?:boolean;showValue?:boolean;showCategory?:boolean;showSeriesName?:boolean;showPercent?:boolean;showBubbleSize?:boolean;showLeaderLines?:boolean;position?:CDLPos;numberFormat?:string;numberFormatLinked?:boolean;separator?:string;format?:CLabelFmt}
 type CAxis={title?:CTxt;visible?:boolean;categoryType?:"category"|"date";min?:number;max?:number;majorUnit?:number;minorUnit?:number;baseTimeUnit?:TUnit;majorTimeUnit?:TUnit;minorTimeUnit?:TUnit;numberFormat?:string;numberFormatLinked?:boolean;reversed?:boolean;majorGridlines?:boolean;minorGridlines?:boolean;position?:Axis}
 type CBins={type?:"auto"|"binCount"|"binWidth"|"category";count?:number;width?:number;allowOverflow?:boolean;overflowValue?:number;allowUnderflow?:boolean;underflowValue?:number}
-type CSeries={name?:CTxt;stockRole?:"volume"|"open"|"high"|"low"|"close";categories?:string;categoriesRefType?:"string"|"number"|"multiLevelString";values?:string;xValues?:string;yValues?:string;bubbleSizes?:string;fillColor?:string;lineColor?:string;lineWidth?:number;lineDashStyle?:string;smooth?:boolean;invertIfNegative?:boolean;totalIndexes?:number[];showConnectorLines?:boolean;binOptions?:CBins;marker?:{style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";size?:number;fillColor?:string;borderColor?:string};dataLabels?:CLabels}
+type CSeries={name?:CTxt;stockRole?:"volume"|"open"|"high"|"low"|"close";categories?:string;categoriesRefType?:"string"|"number"|"multiLevelString";values?:string;xValues?:string;yValues?:string;bubbleSizes?:string;fillColor?:string;lineColor?:string;lineWidth?:number;lineDashStyle?:string;smooth?:boolean;invertIfNegative?:boolean;totalIndexes?:number[];showConnectorLines?:boolean;binOptions?:CBins;quartileCalculation?:"exclusive"|"inclusive";showInnerPoints?:boolean;showMeanLine?:boolean;showMeanMarker?:boolean;showOutlierPoints?:boolean;marker?:{style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";size?:number;fillColor?:string;borderColor?:string};dataLabels?:CLabels}
 type CGroup={type:CType;scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker";radarStyle?:"standard"|"marker"|"filled";surfaceVariant?:"topView"|"topViewWireframe";grouping?:"standard"|"stacked"|"percentStacked";axis?:"primary"|"secondary";gapWidth?:number;overlap?:number;varyColors?:boolean;smooth?:boolean;firstSliceAngle?:number;holeSize?:number;bubbleScale?:number;showNegativeBubbles?:boolean;sizeRepresents?:"area"|"width";dataLabels?:CLabels;series:CSeries[]}
 type ChartSpec={
 	name:string;

@@ -3,13 +3,13 @@ name: xlsx-code-mode
 description: Use for any .xls/.xlsx/.xlsm workbook task: read, inspect, search, create, modify, repair, author, or verify spreadsheets. Trigger for workbook creation; edits to cells, formulas, sheets, styles, tables, charts, images, conditional formatting, data validation, names, metadata, or sheet properties; dependency tracing; what-if analysis; lint/calc/render verification; and any casual spreadsheet file reference. Runs sandboxed JavaScript via `witan xlsx exec`."
 ---
 
-> **Running in Claude Cowork?** The `witan` CLI isn't preinstalled in the sandbox. Read [references/cowork-setup.md](references/cowork-setup.md) first for install, PATH and network-allowlist steps.
+> **Claude Cowork?** `witan` is not preinstalled. Read [references/cowork-setup.md](references/cowork-setup.md).
 
 > **No `witan` on PATH?** Prefix commands with `npx witan` (e.g. `npx witan xlsx exec ...`).
 
 ## Setup
 
-The CLI supports `.xls`, `.xlsx`, and `.xlsm`; legacy `.xls` files are converted to `.xlsx` when needed. New workbook creation is `.xlsx` only.
+Supports `.xls`, `.xlsx`, `.xlsm`; legacy `.xls` is converted as needed. New workbooks are `.xlsx` only.
 
 ## Quick Reference
 
@@ -54,6 +54,15 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
+# Add an image from a local file
+witan xlsx exec model.xlsx --save --input-file logo=@./logo.png --stdin <<'WITAN'
+await xlsx.addImage(wb, "Sheet1", {
+	name: "Logo",
+	position: { from: { cell: "A1" }, to: { cell: "D6" } },
+	source: { base64: input.logo }
+})
+WITAN
+
 # Simple one-liner
 witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 ```
@@ -66,17 +75,7 @@ Use `--create` only with new `.xlsx` paths. Add `--save` to write bytes to disk;
 
 ### Invocation patterns
 
-Prefer `--stdin` with a single-quoted heredoc for multi-line scripts and any sheet name with spaces, apostrophes, parentheses, quotes, or glob characters:
-
-```bash
-witan xlsx exec report.xlsx --stdin <<'WITAN'
-const sheets = await xlsx.listSheets(wb)
-const cell = await xlsx.readCell(wb, "'My Sheet'!A1")
-return { sheets, cell }
-WITAN
-```
-
-Use exactly one code source: `--stdin`, `--expr`, `--code`, or `--script`. `--expr` is fine for simple one-liners; use `--script file.js --input-json ...` for reusable scripts.
+Prefer `--stdin <<'WITAN'` for multi-line scripts and awkward sheet names; the quoted delimiter prevents shell expansion. Use exactly one code source: `--stdin`, `--expr`, `--code`, or `--script`.
 
 ### Flags
 
@@ -97,7 +96,7 @@ All functions are async and take `wb` first.
 
 Use the full type block below for exact signatures. Non-obvious defaults: `scaleRange.skipFormulas` and `sortRange.hasHeader` default true; conditional formatting and data validation `opts.clear` replaces existing rules.
 
-For local images, prefer `--input-file logo=@./logo.png` then `source:{base64:input.logo}`. `source.base64` also accepts raw base64 or data URLs; image responses return metadata only.
+For images, `source.base64` accepts raw base64 or data URLs; responses return metadata only.
 
 ### Write and What-If Rules
 

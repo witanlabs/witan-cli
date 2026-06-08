@@ -3,7 +3,7 @@ name: xlsx-code-mode-2
 description: "Read, explore, understand, create, and modify Excel workbooks (.xls, .xlsx, .xlsm). You cannot read Excel files with cat, head, or normal file-reading tools — running JavaScript against the workbook via `witan xlsx exec` is the only way to open or inspect them. Trigger when you or the user need to open or look inside a workbook, find its sheets or where data lives, read cells/rows/columns/ranges, search for values or labels, trace how a figure is calculated, or run what-if scenarios; and equally when asked to create a new workbook or financial model from scratch, add or edit formulas, charts, formatting, tables, or data validation, or change an existing model without breaking its formulas or references. Trigger whenever a spreadsheet is referenced by name or path — even casually ('check report.xlsx', 'build me a model') — and when you need to inspect a workbook as part of a larger task."
 ---
 
-> **Running in Claude Cowork?** The `witan` CLI isn't preinstalled — see [references/cowork-setup.md](references/cowork-setup.md) for install, PATH, and network steps. **No `witan` on PATH?** Prefix commands with `npx witan`.
+> **Running in Claude Cowork?** The `witan` CLI isn't preinstalled — see [references/cowork-setup.md](references/cowork-setup.md) for install steps.
 
 ## Goal
 
@@ -18,7 +18,7 @@ Judged on correctness first, then readability and idiomatic style. **A workbook 
 
 All work runs as sandboxed JavaScript against the workbook server-side. The script gets two globals — `xlsx` (the API) and `wb` (the open workbook). Top-level `await` works; no `import`s.
 
-The one invocation that always works — `--stdin` with a single-quoted heredoc (safe for every sheet name, no shell escaping):
+The invocation shell — `--stdin` with a single-quoted heredoc (safe for every sheet name, no shell escaping):
 
 ```bash
 witan xlsx exec report.xlsx --stdin <<'WITAN'
@@ -32,11 +32,9 @@ WITAN
 - **Persist** changes: add `--save`. Without it every write is **ephemeral** — it applies in the server session, recalculates, then is discarded. So reads and what-ifs never risk the file, and each run starts clean from the original.
 - **Read answers from the result, never recompute them in JS.** After a write the recalculated value is in `result.touched["Sheet!A1"]`. Calculating it yourself defeats the engine.
 
-The three calls you reach for first: `listSheets` (inventory), `readRangeTsv` (prompt-friendly extraction), `setCells` (write values, formulas, number formats). Everything else — search, tracing, charts, conditional formatting, validation, styles, sweeps — is in **[references/api.md](references/api.md)**.
+After reading this file, you MUST read [references/api.md](references/api.md) before your first `witan xlsx exec` call — the function surface is large and not guessable.
 
-Styling splits across three calls: `setCells` (`format` field) sets number formats; `setStyle` sets font, fill, border, and alignment; `setColumnProperties` / `setRowProperties` set column widths and row heights.
-
-**Read [references/api.md](references/api.md) before authoring anything or doing any non-trivial read** — the function surface is large and not guessable.
+`api.md` is grouped by job — reading, searching, tracing, computing, charts, conditional formatting, validation, styles — with full signatures.
 
 ### Work efficiently (latency matters)
 
@@ -97,6 +95,6 @@ A workbook with formula errors is not delivered. Before finishing any authoring 
 - **Recalculate and check errors** — `witan xlsx calc model.xlsx` must report `0 errors`. It prints every error with address and formula, and exits non-zero. Fix and repeat until clean.
 - **Spot-check key ranges** — `readRangeTsv` (with formulas) on totals, a few sample references, and edge rows.
 - **Confirm layout** — `witan xlsx render` or `previewStyles` on the headline range; headers, merges, number formats, and charts look as intended.
-- **Optional** — `lint` for workbook-level issues; `validateCells` wherever you set data validation.
+- **Lint for logic errors** — `witan xlsx lint model.xlsx` flags what `calc` can't: double-counting, unsorted-range lookups, mixed currencies/units. Review and resolve or knowingly accept each finding; exits 2 on any.
 
 Then report what you built (sheets / ranges), and for what-ifs the baseline → new values.

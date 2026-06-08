@@ -1,6 +1,6 @@
 # Witan xlsx API reference
 
-The complete `xlsx.*` catalogue, CLI flags, result shapes, and full type definitions. **Read this before authoring anything or doing any non-trivial read** — the surface is large and not guessable from names alone.
+The complete `xlsx.*` catalogue, CLI flags, result shapes, and full type definitions. **Read this before running `witan xlsx exec`** — the surface is large and not guessable from names alone.
 
 This file is the *reference*. For the *playbook* — when to reach for what, the reading / what-if and authoring workflows, the quality bar, and the verification gate — see `SKILL.md`.
 
@@ -377,6 +377,18 @@ Changed (3):
 `witan xlsx calc --verify` also exits with code `2` if any computed values
 changed. That makes `--verify` useful as a final audit step after fixing a
 workbook.
+
+### lint — Semantic formula checks
+
+`witan xlsx lint` reports logic problems that compute without error — double-counting from overlapping ranges, approximate-match lookups on unsorted data, mixed currencies or percent/non-percent in one expression, empty-ref coercion, references to non-anchor cells in a merged range. Distinct from `calc`, which catches hard formula errors (`#REF!`, `#DIV/0!`).
+
+```bash
+witan xlsx lint model.xlsx                    # whole workbook
+witan xlsx lint model.xlsx -r "Sheet1!A1:Z50" # limit to a range
+witan xlsx lint model.xlsx --only-rule D001   # or --skip-rule D001
+```
+
+Exits with code `2` when any Error or Warning is reported; `--json` gives structured diagnostics. The same checks are available in-`exec` via `xlsx.lint(wb, ...)`.
 
 ### Response format
 

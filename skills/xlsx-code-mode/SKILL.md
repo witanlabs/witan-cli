@@ -5,8 +5,6 @@ description: Use this skill any time an Excel file (.xls, .xlsx, .xlsm) needs to
 
 > **Running in Claude Cowork?** The `witan` CLI isn't preinstalled in the sandbox. Read [references/cowork-setup.md](references/cowork-setup.md) first for install, PATH and network-allowlist steps.
 
-> **No `witan` on PATH?** Prefix commands with `npx witan` (e.g. `npx witan xlsx exec ...`).
-
 ## Setup
 
 The CLI supports `.xls`, `.xlsx`, and `.xlsm`; legacy `.xls` files are converted to `.xlsx` when needed. New workbook creation is `.xlsx` only.

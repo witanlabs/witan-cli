@@ -194,6 +194,63 @@ func TestParseExecInput(t *testing.T) {
 	}
 }
 
+func TestApplyExecInputFiles(t *testing.T) {
+	resetExecTestGlobals(t)
+
+	dir := t.TempDir()
+	pngPath := filepath.Join(dir, "logo.png")
+	pngBytes := []byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}
+	if err := os.WriteFile(pngPath, pngBytes, 0o644); err != nil {
+		t.Fatalf("writing png: %v", err)
+	}
+
+	input, err := applyExecInputFiles(map[string]any{"threshold": float64(10)}, []string{"logo=@" + pngPath})
+	if err != nil {
+		t.Fatalf("applyExecInputFiles failed: %v", err)
+	}
+	obj, ok := input.(map[string]any)
+	if !ok {
+		t.Fatalf("expected object input, got %#v", input)
+	}
+	wantLogo := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngBytes)
+	if obj["logo"] != wantLogo || obj["threshold"] != float64(10) {
+		t.Fatalf("unexpected input object: %#v", obj)
+	}
+
+	_, err = applyExecInputFiles([]any{}, []string{"logo=@" + pngPath})
+	if err == nil || !strings.Contains(err.Error(), "requires --input-json to be omitted or contain a JSON object") {
+		t.Fatalf("expected object input error, got: %v", err)
+	}
+
+	_, err = applyExecInputFiles(map[string]any{"logo": "existing"}, []string{"logo=@" + pngPath})
+	if err == nil || !strings.Contains(err.Error(), "conflicts with --input-json") {
+		t.Fatalf("expected conflict error, got: %v", err)
+	}
+
+	_, err = applyExecInputFiles(map[string]any{}, []string{"images.logo=@" + pngPath})
+	if err == nil || !strings.Contains(err.Error(), "must be a top-level input key") {
+		t.Fatalf("expected top-level key error, got: %v", err)
+	}
+
+	textPath := filepath.Join(dir, "notes.txt")
+	if err := os.WriteFile(textPath, []byte("hello"), 0o644); err != nil {
+		t.Fatalf("writing text: %v", err)
+	}
+	_, err = applyExecInputFiles(map[string]any{}, []string{"notes=@" + textPath})
+	if err == nil || !strings.Contains(err.Error(), "unsupported image type") {
+		t.Fatalf("expected unsupported image type error, got: %v", err)
+	}
+
+	fakePNGPath := filepath.Join(dir, "not-an-image.png")
+	if err := os.WriteFile(fakePNGPath, []byte("hello"), 0o644); err != nil {
+		t.Fatalf("writing fake png: %v", err)
+	}
+	_, err = applyExecInputFiles(map[string]any{}, []string{"fake=@" + fakePNGPath})
+	if err == nil || !strings.Contains(err.Error(), "unsupported image type") {
+		t.Fatalf("expected unsupported fake png error, got: %v", err)
+	}
+}
+
 func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 	required := []string{
 		"Contract:",
@@ -205,6 +262,7 @@ func TestXlsxExecHelp_ContractSectionsPresent(t *testing.T) {
 		`{"ok":true,"stdout":"...","result":<json>`,
 		`{"ok":false,"stdout":"...","error":{"type":"...","code":"...","message":"..."}}`,
 		"--input-json is omitted, input defaults to {}.",
+		"--input-file key=@path reads a PNG/JPEG file, converts it to a data URI, and sets input[key].",
 		"--locale sets the workbook execution locale explicitly.",
 		"If --locale is omitted, the CLI tries WITAN_LOCALE, then LC_ALL / LC_MESSAGES / LANG.",
 		"--timeout-ms=0 means no explicit timeout override.",
@@ -1143,6 +1201,7 @@ func resetExecTestGlobals(t *testing.T) {
 	origExecStdin := execStdin
 	origExecExpr := execExpr
 	origExecInputJSON := execInputJSON
+	origExecInputFiles := execInputFiles
 	origExecLocale := execLocale
 	origExecStdinTimeoutMS := execStdinTimeoutMS
 	origExecTimeoutMS := execTimeoutMS
@@ -1160,6 +1219,7 @@ func resetExecTestGlobals(t *testing.T) {
 		execStdin = origExecStdin
 		execExpr = origExecExpr
 		execInputJSON = origExecInputJSON
+		execInputFiles = origExecInputFiles
 		execLocale = origExecLocale
 		execStdinTimeoutMS = origExecStdinTimeoutMS
 		execTimeoutMS = origExecTimeoutMS
@@ -1178,6 +1238,7 @@ func resetExecTestGlobals(t *testing.T) {
 	execStdin = false
 	execExpr = ""
 	execInputJSON = ""
+	execInputFiles = nil
 	execLocale = ""
 	execStdinTimeoutMS = defaultExecStdinTimeoutMS
 	execTimeoutMS = 0
@@ -1193,6 +1254,7 @@ func newExecTestCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&execStdin, "stdin", false, "")
 	cmd.Flags().StringVar(&execExpr, "expr", "", "")
 	cmd.Flags().StringVar(&execInputJSON, "input-json", "", "")
+	cmd.Flags().StringArrayVar(&execInputFiles, "input-file", nil, "")
 	cmd.Flags().StringVar(&execLocale, "locale", "", "")
 	cmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "")
 	cmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "")

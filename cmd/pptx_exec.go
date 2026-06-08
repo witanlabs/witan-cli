@@ -19,6 +19,7 @@ var (
 	pptxExecStdin          bool
 	pptxExecExpr           string
 	pptxExecInputJSON      string
+	pptxExecInputFiles     []string
 	pptxExecLocale         string
 	pptxExecStdinTimeoutMS int
 	pptxExecTimeoutMS      int
@@ -38,6 +39,7 @@ Use --save to write changes back to the local file.
 
 Examples:
   witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
+  witan pptx exec deck.pptx --input-file logo=@./logo.png --code 'return input.logo'
   witan pptx exec deck.pptx --stdin --save < edit.js
   witan pptx exec new.pptx --create --save --code 'return await PowerPoint.run(async context => { const slides = context.presentation.slides; slides.add(); const count = slides.getCount(); await context.sync(); return count.value })'`,
 	Args: cobra.ExactArgs(1),
@@ -50,6 +52,7 @@ func init() {
 	pptxExecCmd.Flags().BoolVar(&pptxExecStdin, "stdin", false, "Read JavaScript source from stdin")
 	pptxExecCmd.Flags().StringVar(&pptxExecExpr, "expr", "", "Single-expression shorthand; wraps as return (<expr>);")
 	pptxExecCmd.Flags().StringVar(&pptxExecInputJSON, "input-json", "", "JSON value passed as input to the script")
+	pptxExecCmd.Flags().StringArrayVar(&pptxExecInputFiles, "input-file", nil, "Add a PNG/JPEG file to input as a data URI using key=@path (repeatable)")
 	pptxExecCmd.Flags().StringVar(&pptxExecLocale, "locale", "", "Execution locale (env: WITAN_LOCALE; otherwise LC_ALL / LC_MESSAGES / LANG)")
 	pptxExecCmd.Flags().IntVar(&pptxExecStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "Maximum time to wait for EOF when reading --stdin (0 disables)")
 	pptxExecCmd.Flags().IntVar(&pptxExecTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
@@ -85,6 +88,10 @@ func runPPTXExec(cmd *cobra.Command, args []string) error {
 	}
 
 	input, err := parseExecInput(pptxExecInputJSON, cmd.Flags().Changed("input-json"))
+	if err != nil {
+		return err
+	}
+	input, err = applyExecInputFiles(input, pptxExecInputFiles)
 	if err != nil {
 		return err
 	}

@@ -680,12 +680,17 @@ export type ChartType =
   | 'scatter'
   | 'bubble'
   | 'radar'
+  | 'surface'
   | 'stockHLC'
   | 'stockOHLC'
-  | 'waterfall';
+  | 'waterfall'
+  | 'histogram'
+  | 'pareto'
+  | 'funnel';
 export type ChartGrouping = 'standard' | 'stacked' | 'percentStacked';
 export type ChartAxisBinding = 'primary' | 'secondary';
 export type ChartStockRole = 'volume' | 'open' | 'high' | 'low' | 'close';
+export type ChartBinType = 'auto' | 'binCount' | 'binWidth' | 'category';
 export type ChartLegendPosition = 'left' | 'right' | 'top' | 'bottom' | 'topRight';
 export type ChartMarkerStyle =
   | 'auto'
@@ -714,6 +719,7 @@ export type ChartCategoryAxisType = 'category' | 'date';
 export type ChartTimeUnit = 'days' | 'months' | 'years';
 export type ChartScatterStyle = 'line' | 'lineMarker' | 'marker' | 'smooth' | 'smoothMarker';
 export type ChartRadarStyle = 'standard' | 'marker' | 'filled';
+export type ChartSurfaceVariant = 'topView' | 'topViewWireframe';
 
 export interface ChartTextSource {
   text?: string;
@@ -802,6 +808,16 @@ export interface ChartDataLabelsSpec {
   format?: ChartDataLabelFormatSpec;
 }
 
+export interface ChartBinOptionsSpec {
+  type?: ChartBinType;
+  count?: number;
+  width?: number;
+  allowOverflow?: boolean;
+  overflowValue?: number;
+  allowUnderflow?: boolean;
+  underflowValue?: number;
+}
+
 export interface ChartSeriesSpec {
   name?: ChartTextSource;
   stockRole?: ChartStockRole;
@@ -819,6 +835,7 @@ export interface ChartSeriesSpec {
   invertIfNegative?: boolean;
   totalIndexes?: number[];
   showConnectorLines?: boolean;
+  binOptions?: ChartBinOptionsSpec;
   marker?: ChartMarkerSpec;
   dataLabels?: ChartDataLabelsSpec;
 }
@@ -827,6 +844,7 @@ export interface ChartGroupSpec {
   type: ChartType;
   scatterStyle?: ChartScatterStyle;
   radarStyle?: ChartRadarStyle;
+  surfaceVariant?: ChartSurfaceVariant;
   grouping?: ChartGrouping;
   axis?: ChartAxisBinding;
   gapWidth?: number;
@@ -914,6 +932,70 @@ export interface ChartSummary {
   groupCount: number;
   seriesCount: number;
   position: ChartPosition;
+}
+
+// ============================================================================
+// Images
+// ============================================================================
+
+export type ImageFormat = 'png' | 'jpeg';
+
+export interface ImagePositionAnchor {
+  cell: string;
+  xOffsetPts?: number;
+  yOffsetPts?: number;
+}
+
+export interface ImagePositionInput {
+  from: ImagePositionAnchor;
+  to: ImagePositionAnchor;
+}
+
+export interface ImagePosition extends ImagePositionInput {
+  sheet?: string;
+}
+
+export interface ImageSource {
+  base64: string;
+}
+
+export interface ImageSpec {
+  name: string;
+  position: ImagePositionInput;
+  source: ImageSource;
+  format?: ImageFormat;
+  altText?: string | null;
+  altTextTitle?: string | null;
+  preserveAspectRatio?: boolean;
+}
+
+export interface ImageUpdate {
+  name?: string;
+  position?: ImagePositionInput;
+  source?: ImageSource;
+  format?: ImageFormat;
+  altText?: string | null;
+  altTextTitle?: string | null;
+  preserveAspectRatio?: boolean;
+}
+
+export interface ImageInfo {
+  id?: number;
+  sheet: string;
+  name: string;
+  position: ImagePosition;
+  format?: ImageFormat;
+  widthPts?: number;
+  heightPts?: number;
+  naturalWidthPx?: number;
+  naturalHeightPx?: number;
+  altText?: string | null;
+  altTextTitle?: string | null;
+}
+
+export interface ImageSelector {
+  name?: string;
+  id?: number;
 }
 
 // ============================================================================

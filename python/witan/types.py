@@ -752,13 +752,18 @@ ChartType: TypeAlias = Literal[
     "scatter",
     "bubble",
     "radar",
+    "surface",
     "stockHLC",
     "stockOHLC",
     "waterfall",
+    "histogram",
+    "pareto",
+    "funnel",
 ]
 ChartGrouping: TypeAlias = Literal["standard", "stacked", "percentStacked"]
 ChartAxisBinding: TypeAlias = Literal["primary", "secondary"]
 ChartStockRole: TypeAlias = Literal["volume", "open", "high", "low", "close"]
+ChartBinType: TypeAlias = Literal["auto", "binCount", "binWidth", "category"]
 ChartLegendPosition: TypeAlias = Literal["left", "right", "top", "bottom", "topRight"]
 ChartMarkerStyle: TypeAlias = Literal[
     "auto",
@@ -788,6 +793,7 @@ ChartDataLabelPosition: TypeAlias = Literal[
 ChartTimeUnit: TypeAlias = Literal["days", "months", "years"]
 ChartScatterStyle: TypeAlias = Literal["line", "lineMarker", "marker", "smooth", "smoothMarker"]
 ChartRadarStyle: TypeAlias = Literal["standard", "marker", "filled"]
+ChartSurfaceVariant: TypeAlias = Literal["topView", "topViewWireframe"]
 
 
 class ChartTextSource(TypedDict, total=False):
@@ -878,6 +884,16 @@ class ChartDataLabelsSpec(TypedDict, total=False):
     format: ChartDataLabelFormatSpec
 
 
+class ChartBinOptionsSpec(TypedDict, total=False):
+    type: ChartBinType
+    count: int
+    width: float
+    allowOverflow: bool
+    overflowValue: float
+    allowUnderflow: bool
+    underflowValue: float
+
+
 class ChartSeriesSpec(TypedDict, total=False):
     name: ChartTextSource
     stockRole: ChartStockRole
@@ -895,6 +911,7 @@ class ChartSeriesSpec(TypedDict, total=False):
     invertIfNegative: bool
     totalIndexes: list[int]
     showConnectorLines: bool
+    binOptions: ChartBinOptionsSpec
     marker: ChartMarkerSpec
     dataLabels: ChartDataLabelsSpec
 
@@ -904,6 +921,7 @@ class ChartGroupSpec(TypedDict):
     series: list[ChartSeriesSpec]
     scatterStyle: NotRequired[ChartScatterStyle]
     radarStyle: NotRequired[ChartRadarStyle]
+    surfaceVariant: NotRequired[ChartSurfaceVariant]
     grouping: NotRequired[ChartGrouping]
     axis: NotRequired[ChartAxisBinding]
     gapWidth: NotRequired[int]
@@ -1003,6 +1021,60 @@ class ChartSummary(TypedDict):
     seriesCount: int
     position: ChartPosition
     id: NotRequired[int]
+
+
+ImageFormat: TypeAlias = Literal["png", "jpeg"]
+
+
+class ImagePositionAnchor(TypedDict, total=False):
+    cell: str
+    xOffsetPts: float
+    yOffsetPts: float
+
+
+ImagePositionInput = TypedDict("ImagePositionInput", {"from": ImagePositionAnchor, "to": ImagePositionAnchor})
+
+
+class ImagePosition(ImagePositionInput, total=False):
+    sheet: str
+
+
+class ImageSource(TypedDict):
+    base64: str
+
+
+class ImageSpec(TypedDict):
+    name: str
+    position: ImagePositionInput
+    source: ImageSource
+    format: NotRequired[ImageFormat]
+    altText: NotRequired[str | None]
+    altTextTitle: NotRequired[str | None]
+    preserveAspectRatio: NotRequired[bool]
+
+
+class ImageUpdate(TypedDict, total=False):
+    name: str
+    position: ImagePositionInput
+    source: ImageSource
+    format: ImageFormat
+    altText: str | None
+    altTextTitle: str | None
+    preserveAspectRatio: bool
+
+
+class ImageInfo(TypedDict):
+    sheet: str
+    name: str
+    position: ImagePosition
+    id: NotRequired[int]
+    format: NotRequired[ImageFormat]
+    widthPts: NotRequired[float]
+    heightPts: NotRequired[float]
+    naturalWidthPx: NotRequired[int]
+    naturalHeightPx: NotRequired[int]
+    altText: NotRequired[str | None]
+    altTextTitle: NotRequired[str | None]
 
 
 CfThresholdType: TypeAlias = Literal["formula", "max", "min", "num", "percent", "percentile", "autoMin", "autoMax"]

@@ -29,12 +29,13 @@ const lintRulesHelp = `Available rules:
   D032 (Warning): Cell display text is clipped by column width or rendered as hashes
   D034 (Warning): Cell display text is clipped by row height
   D041 (Warning): Floating object overlaps visible cell content
-  D042 (Warning): Floating object overlaps another floating object`
+  D042 (Warning): Floating object overlaps another floating object
+  D043 (Error): Cell value violates its data validation rule`
 
 var lintCmd = &cobra.Command{
 	Use:   "lint <file>",
-	Short: "Run semantic formula checks",
-	Long: `Run semantic formula checks and report diagnostics by severity.
+	Short: "Run semantic workbook checks",
+	Long: `Run semantic workbook checks and report diagnostics by severity.
 
 Behavior:
   - Checks the entire workbook by default.

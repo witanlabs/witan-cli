@@ -12,7 +12,6 @@ import type {
   ConditionalFormattingRule,
   CopyRangeResult,
   DataValidationInfo,
-  DataValidationResult,
   DataValidationSpec,
   DataTable,
   DataTableMutationResult,
@@ -1217,33 +1216,6 @@ export class Workbook implements AsyncDisposable {
       dropUndefined({ sheet: options.sheet, address: options.address })
     )) as { rules?: DataValidationInfo[] };
     return result.rules ?? [];
-  }
-
-  /**
-   * Validate current cell values against their data validation rules.
-   *
-   * @param address - Range address to validate
-   * @param options - Evaluation limits and unsupported-rule handling
-   * @returns Validation status, invalid cell ranges, and diagnostics
-   */
-  async validateCells(
-    address: string,
-    options: {
-      maxCellsToScan?: number;
-      maxInvalidCells?: number;
-      treatUnsupportedAsInvalid?: boolean;
-    } = {}
-  ): Promise<DataValidationResult> {
-    return (await this.request(
-      'validateCells',
-      'validateCells',
-      dropUndefined({
-        address,
-        maxCellsToScan: options.maxCellsToScan,
-        maxInvalidCells: options.maxInvalidCells,
-        treatUnsupportedAsInvalid: options.treatUnsupportedAsInvalid,
-      })
-    )) as DataValidationResult;
   }
 
   /**

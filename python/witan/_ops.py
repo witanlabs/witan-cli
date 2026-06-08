@@ -70,7 +70,6 @@ OPERATIONS: tuple[OperationSpec, ...] = (
     OperationSpec("set_conditional_formatting", "setConditionalFormatting", ("sheet", "rules"), ("clear",)),
     OperationSpec("remove_conditional_formatting", "removeConditionalFormatting", ("sheet", "indices")),
     OperationSpec("get_data_validations", "getDataValidations", (), ("sheet", "address")),
-    OperationSpec("validate_cells", "validateCells", ("address",), ("maxCellsToScan", "maxInvalidCells", "treatUnsupportedAsInvalid")),
     OperationSpec("set_data_validations", "setDataValidations", ("sheet", "rules"), ("clear",)),
     OperationSpec("remove_data_validations", "removeDataValidations", ("sheet",), ("indices", "address")),
     OperationSpec("set_cells", "setCells", ("cells",), ("validationMode",)),

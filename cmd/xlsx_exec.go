@@ -37,8 +37,8 @@ const defaultExecStdinTimeoutMS = 2000
 
 var xlsxExecCmd = &cobra.Command{
 	Use:   "exec <file>",
-	Short: "Execute JavaScript against a workbook",
-	Long: `Execute JavaScript against a workbook.
+	Short: "Execute TypeScript or JavaScript against a workbook",
+	Long: `Execute TypeScript or JavaScript against a workbook.
 
 Contract:
   - Provide exactly one code source: --code, --script, --stdin, or --expr.
@@ -86,7 +86,7 @@ Exit codes:
 
 Examples:
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
-  witan xlsx exec report.xlsx --script ./exec.js --input-json '{"threshold":10}'
+  witan xlsx exec report.xlsx --script ./exec.ts --input-json '{"threshold":10}'
   witan xlsx exec report.xlsx --input-file logo=@./logo.png --code 'return input.logo'
   witan xlsx exec report.xlsx --code 'console.log("hi"); return {"ok":true}'
   witan xlsx exec model.xlsx --create --save --code 'await xlsx.addSheet(wb, "Inputs"); return true'
@@ -96,9 +96,9 @@ Examples:
 }
 
 func init() {
-	xlsxExecCmd.Flags().StringVar(&execCode, "code", "", "Inline JavaScript source")
-	xlsxExecCmd.Flags().StringVar(&execScript, "script", "", "Path to a JavaScript file")
-	xlsxExecCmd.Flags().BoolVar(&execStdin, "stdin", false, "Read JavaScript source from stdin")
+	xlsxExecCmd.Flags().StringVar(&execCode, "code", "", "Inline TypeScript or JavaScript source")
+	xlsxExecCmd.Flags().StringVar(&execScript, "script", "", "Path to a TypeScript or JavaScript file")
+	xlsxExecCmd.Flags().BoolVar(&execStdin, "stdin", false, "Read TypeScript or JavaScript source from stdin")
 	xlsxExecCmd.Flags().StringVar(&execExpr, "expr", "", `Single-expression shorthand; wraps as return (<expr>);`)
 	xlsxExecCmd.Flags().StringVar(&execInputJSON, "input-json", "", "JSON value passed as input to the script")
 	xlsxExecCmd.Flags().StringArrayVar(&execInputFiles, "input-file", nil, "Add a PNG/JPEG file to input as a data URI using key=@path (repeatable)")

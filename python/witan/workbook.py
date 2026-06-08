@@ -26,7 +26,6 @@ from .types import (
     DataTableMutationResult,
     DataTableSpec,
     DataValidationInfo,
-    DataValidationResult,
     DataValidationSpec,
     DefinedName,
     DependencyResult,
@@ -399,9 +398,6 @@ class Workbook(_WorkbookBase):
         result = cast(Mapping[str, Any], self._request("get_data_validations", "getDataValidations", _drop_none({"sheet": sheet, "address": address})))
         return cast(list[DataValidationInfo], result.get("rules", []))
 
-    def validate_cells(self, address: str, *, max_cells_to_scan: int | None = None, max_invalid_cells: int | None = None, treat_unsupported_as_invalid: bool | None = None) -> DataValidationResult:
-        return cast(DataValidationResult, self._request("validate_cells", "validateCells", _drop_none({"address": address, "maxCellsToScan": max_cells_to_scan, "maxInvalidCells": max_invalid_cells, "treatUnsupportedAsInvalid": treat_unsupported_as_invalid})))
-
     def set_data_validations(self, sheet_name: str, rules: Sequence[DataValidationSpec], *, clear: bool | None = None) -> None:
         self._request("set_data_validations", "setDataValidations", _drop_none({"sheet": sheet_name, "rules": list(rules), "clear": clear}))
 
@@ -732,9 +728,6 @@ class AsyncWorkbook(_WorkbookBase):
     async def get_data_validations(self, *, sheet: str | None = None, address: str | None = None) -> list[DataValidationInfo]:
         result = cast(Mapping[str, Any], await self._request("get_data_validations", "getDataValidations", _drop_none({"sheet": sheet, "address": address})))
         return cast(list[DataValidationInfo], result.get("rules", []))
-
-    async def validate_cells(self, address: str, *, max_cells_to_scan: int | None = None, max_invalid_cells: int | None = None, treat_unsupported_as_invalid: bool | None = None) -> DataValidationResult:
-        return cast(DataValidationResult, await self._request("validate_cells", "validateCells", _drop_none({"address": address, "maxCellsToScan": max_cells_to_scan, "maxInvalidCells": max_invalid_cells, "treatUnsupportedAsInvalid": treat_unsupported_as_invalid})))
 
     async def set_data_validations(self, sheet_name: str, rules: Sequence[DataValidationSpec], *, clear: bool | None = None) -> None:
         await self._request("set_data_validations", "setDataValidations", _drop_none({"sheet": sheet_name, "rules": list(rules), "clear": clear}))

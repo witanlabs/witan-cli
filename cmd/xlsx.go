@@ -12,7 +12,7 @@ var xlsxCmd = &cobra.Command{
 Commands:
   calc   Recalculate formulas, update cached values, or run non-mutating verification with --verify.
   exec   Execute JavaScript against existing workbooks or create new .xlsx files with --create.
-  lint   Run semantic formula checks and report diagnostics.
+  lint   Run semantic workbook checks and report diagnostics.
   render Render a sheet range as PNG or WebP.
   rpc    Run newline-delimited xlsx RPC over stdio.
 

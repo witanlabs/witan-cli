@@ -148,7 +148,6 @@ DataValidationOperator: TypeAlias = Literal[
     "LessThanOrEqualTo",
 ]
 DataValidationAlertStyle: TypeAlias = Literal["Stop", "Warning", "Information"]
-DataValidationStatus: TypeAlias = Literal["Valid", "Invalid", "NoValidation", "Mixed", "Unknown"]
 
 
 class BasicDataValidationRule(TypedDict):
@@ -206,19 +205,6 @@ class DataValidationInfo(TypedDict):
     ignoreBlanks: bool
     prompt: DataValidationPrompt
     errorAlert: DataValidationErrorAlert
-
-
-class DataValidationDiagnostic(TypedDict):
-    code: str
-    message: str
-    details: NotRequired[dict[str, str] | None]
-
-
-class DataValidationResult(TypedDict):
-    status: DataValidationStatus
-    invalidCells: list[str]
-    truncated: bool
-    diagnostics: list[DataValidationDiagnostic]
 
 
 class DefinedName(TypedDict):

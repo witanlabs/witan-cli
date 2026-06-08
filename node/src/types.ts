@@ -1198,19 +1198,6 @@ export interface DataValidationInfo {
   errorAlert: Required<DataValidationErrorAlert>;
 }
 
-export interface DataValidationDiagnostic {
-  code: string;
-  message: string;
-  details?: Record<string, string> | null;
-}
-
-export interface DataValidationResult {
-  status: 'Valid' | 'Invalid' | 'NoValidation' | 'Mixed' | 'Unknown';
-  invalidCells: string[];
-  truncated: boolean;
-  diagnostics: DataValidationDiagnostic[];
-}
-
 // ============================================================================
 // Formula & Dependency Interfaces
 // ============================================================================

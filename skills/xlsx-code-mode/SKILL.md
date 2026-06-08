@@ -280,12 +280,6 @@ type DvSpec={
 function getDataValidations(wb,opts?:{sheet?:string;address?:string}):Promise<Array<DvSpec&{
 	index:number;sheet:string;type:"None"|"WholeNumber"|"Decimal"|"List"|"Date"|"Time"|"TextLength"|"Custom";
 }>>
-function validateCells(wb,address:RangeRef,opts?:{maxCellsToScan?:number;maxInvalidCells?:number;treatUnsupportedAsInvalid?:boolean}):Promise<{
-	status:"Valid"|"Invalid"|"NoValidation"|"Mixed"|"Unknown";
-	invalidCells:string[];
-	truncated:boolean;
-	diagnostics:{code:string;message:string;details?:Record<string,string>|null}[];
-}>
 function setDataValidations(wb,sheetName:string,rules:DvSpec[],opts?:{clear?:boolean}):Promise<void>
 function removeDataValidations(wb,sheetName:string,target:{indices:number[]}|{address:string}):Promise<void>
 

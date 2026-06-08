@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,6 +24,7 @@ var (
 	execStdin          bool
 	execExpr           string
 	execInputJSON      string
+	execInputFiles     []string
 	execLocale         string
 	execStdinTimeoutMS int
 	execTimeoutMS      int
@@ -46,6 +49,7 @@ Contract:
 Inputs:
   - <file> is the workbook to execute against, or the new .xlsx target path when --create is set.
   - --input-json passes any JSON value to the script as input.
+  - --input-file key=@path reads a PNG/JPEG file, converts it to a data URI, and sets input[key].
   - --locale sets the workbook execution locale explicitly.
   - If --input-json is omitted, input defaults to {}.
 
@@ -83,6 +87,7 @@ Exit codes:
 Examples:
   witan xlsx exec report.xlsx --expr 'await xlsx.readCell(wb, "Summary!A1")'
   witan xlsx exec report.xlsx --script ./exec.js --input-json '{"threshold":10}'
+  witan xlsx exec report.xlsx --input-file logo=@./logo.png --code 'return input.logo'
   witan xlsx exec report.xlsx --code 'console.log("hi"); return {"ok":true}'
   witan xlsx exec model.xlsx --create --save --code 'await xlsx.addSheet(wb, "Inputs"); return true'
   cat script.js | witan xlsx exec report.xlsx --stdin`,
@@ -96,6 +101,7 @@ func init() {
 	xlsxExecCmd.Flags().BoolVar(&execStdin, "stdin", false, "Read JavaScript source from stdin")
 	xlsxExecCmd.Flags().StringVar(&execExpr, "expr", "", `Single-expression shorthand; wraps as return (<expr>);`)
 	xlsxExecCmd.Flags().StringVar(&execInputJSON, "input-json", "", "JSON value passed as input to the script")
+	xlsxExecCmd.Flags().StringArrayVar(&execInputFiles, "input-file", nil, "Add a PNG/JPEG file to input as a data URI using key=@path (repeatable)")
 	xlsxExecCmd.Flags().StringVar(&execLocale, "locale", "", "Execution locale (env: WITAN_LOCALE; otherwise LC_ALL / LC_MESSAGES / LANG)")
 	xlsxExecCmd.Flags().IntVar(&execStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "Maximum time to wait for EOF when reading --stdin (0 disables)")
 	xlsxExecCmd.Flags().IntVar(&execTimeoutMS, "timeout-ms", 0, "Execution timeout in milliseconds (> 0)")
@@ -132,6 +138,10 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	input, err := parseExecInput(execInputJSON, cmd.Flags().Changed("input-json"))
+	if err != nil {
+		return err
+	}
+	input, err = applyExecInputFiles(input, execInputFiles)
 	if err != nil {
 		return err
 	}
@@ -406,6 +416,82 @@ func parseExecInput(raw string, provided bool) (any, error) {
 		return nil, fmt.Errorf("invalid --input-json: %w", err)
 	}
 	return input, nil
+}
+
+func applyExecInputFiles(input any, specs []string) (any, error) {
+	if len(specs) == 0 {
+		return input, nil
+	}
+
+	obj, ok := input.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("--input-file requires --input-json to be omitted or contain a JSON object")
+	}
+
+	for _, spec := range specs {
+		key, path, err := parseExecInputFileSpec(spec)
+		if err != nil {
+			return nil, err
+		}
+		if _, exists := obj[key]; exists {
+			return nil, fmt.Errorf("--input-file key %q conflicts with --input-json", key)
+		}
+		dataURI, err := execFileDataURI(path)
+		if err != nil {
+			return nil, fmt.Errorf("--input-file %s: %w", key, err)
+		}
+		obj[key] = dataURI
+	}
+
+	return obj, nil
+}
+
+func parseExecInputFileSpec(spec string) (string, string, error) {
+	key, rawPath, ok := strings.Cut(spec, "=")
+	key = strings.TrimSpace(key)
+	if !ok || key == "" {
+		return "", "", fmt.Errorf("--input-file must use key=@path")
+	}
+	if strings.ContainsAny(key, ".[]") {
+		return "", "", fmt.Errorf("--input-file key %q must be a top-level input key", key)
+	}
+	if !strings.HasPrefix(rawPath, "@") || rawPath == "@" {
+		return "", "", fmt.Errorf("--input-file must use key=@path")
+	}
+	return key, rawPath[1:], nil
+}
+
+func execFileDataURI(path string) (string, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading file: %w", err)
+	}
+	contentType := execImageContentType(path, b)
+	if contentType != "image/png" && contentType != "image/jpeg" {
+		return "", fmt.Errorf("unsupported image type %q; expected PNG or JPEG", contentType)
+	}
+	return "data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(b), nil
+}
+
+func execImageContentType(path string, b []byte) string {
+	contentType := http.DetectContentType(b)
+	if contentType == "image/png" || contentType == "image/jpeg" {
+		return contentType
+	}
+	if contentType != "application/octet-stream" {
+		return contentType
+	}
+
+	if extType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path))); extType != "" {
+		if contentType, _, ok := strings.Cut(extType, ";"); ok {
+			extType = contentType
+		}
+		if extType == "image/png" || extType == "image/jpeg" {
+			return extType
+		}
+	}
+
+	return contentType
 }
 
 func resolveExecLocale(cmd *cobra.Command) (string, error) {

@@ -1,6 +1,6 @@
 ---
 name: xlsx-code-mode
-description: Use for any .xls/.xlsx/.xlsm workbook task: read, inspect, search, create, modify, repair, author, or verify spreadsheets. Trigger for workbook creation; edits to cells, formulas, sheets, styles, tables, charts, images, conditional formatting, data validation, names, metadata, or sheet properties; dependency tracing; what-if analysis; lint/calc/render verification; and any casual spreadsheet file reference. Runs sandboxed JavaScript via `witan xlsx exec`."
+description: "Use for any .xls/.xlsx/.xlsm workbook task: read, inspect, search, create, modify, repair, author, or verify spreadsheets. Trigger for workbook creation; edits to cells, formulas, sheets, styles, tables, charts, images, conditional formatting, data validation, names, metadata, or sheet properties; dependency tracing; what-if analysis; lint/calc/render verification; and any casual spreadsheet file reference. Runs sandboxed JavaScript via `witan xlsx exec`."
 ---
 
 > **Claude Cowork?** `witan` is not preinstalled. Read [references/cowork-setup.md](references/cowork-setup.md).

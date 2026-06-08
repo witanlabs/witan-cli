@@ -15,7 +15,7 @@ jobs:
 
       - name: Enforce 40k skill limit
         run: |
-          limit=40000
+          limit=30000
           failed=0
 
           while IFS= read -r -d '' skill; do

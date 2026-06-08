@@ -759,11 +759,13 @@ ChartType: TypeAlias = Literal[
     "histogram",
     "pareto",
     "funnel",
+    "boxWhisker",
 ]
 ChartGrouping: TypeAlias = Literal["standard", "stacked", "percentStacked"]
 ChartAxisBinding: TypeAlias = Literal["primary", "secondary"]
 ChartStockRole: TypeAlias = Literal["volume", "open", "high", "low", "close"]
 ChartBinType: TypeAlias = Literal["auto", "binCount", "binWidth", "category"]
+ChartBoxWhiskerQuartileCalculation: TypeAlias = Literal["exclusive", "inclusive"]
 ChartLegendPosition: TypeAlias = Literal["left", "right", "top", "bottom", "topRight"]
 ChartMarkerStyle: TypeAlias = Literal[
     "auto",
@@ -912,6 +914,11 @@ class ChartSeriesSpec(TypedDict, total=False):
     totalIndexes: list[int]
     showConnectorLines: bool
     binOptions: ChartBinOptionsSpec
+    quartileCalculation: ChartBoxWhiskerQuartileCalculation
+    showInnerPoints: bool
+    showMeanLine: bool
+    showMeanMarker: bool
+    showOutlierPoints: bool
     marker: ChartMarkerSpec
     dataLabels: ChartDataLabelsSpec
 

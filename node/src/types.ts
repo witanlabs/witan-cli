@@ -686,11 +686,13 @@ export type ChartType =
   | 'waterfall'
   | 'histogram'
   | 'pareto'
-  | 'funnel';
+  | 'funnel'
+  | 'boxWhisker';
 export type ChartGrouping = 'standard' | 'stacked' | 'percentStacked';
 export type ChartAxisBinding = 'primary' | 'secondary';
 export type ChartStockRole = 'volume' | 'open' | 'high' | 'low' | 'close';
 export type ChartBinType = 'auto' | 'binCount' | 'binWidth' | 'category';
+export type ChartBoxWhiskerQuartileCalculation = 'exclusive' | 'inclusive';
 export type ChartLegendPosition = 'left' | 'right' | 'top' | 'bottom' | 'topRight';
 export type ChartMarkerStyle =
   | 'auto'
@@ -836,6 +838,11 @@ export interface ChartSeriesSpec {
   totalIndexes?: number[];
   showConnectorLines?: boolean;
   binOptions?: ChartBinOptionsSpec;
+  quartileCalculation?: ChartBoxWhiskerQuartileCalculation;
+  showInnerPoints?: boolean;
+  showMeanLine?: boolean;
+  showMeanMarker?: boolean;
+  showOutlierPoints?: boolean;
   marker?: ChartMarkerSpec;
   dataLabels?: ChartDataLabelsSpec;
 }

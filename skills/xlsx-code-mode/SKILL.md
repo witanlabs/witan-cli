@@ -14,21 +14,21 @@ The CLI supports `.xls`, `.xlsx`, and `.xlsm`; legacy `.xls` files are converted
 ## Quick Reference
 
 ```bash
-# Create a new workbook from scratch (.xlsx only)
+# Create a workbook (.xlsx only)
 witan xlsx exec model.xlsx --create --save --stdin <<'WITAN'
 await xlsx.addSheet(wb, "Inputs")
 await xlsx.setCells(wb, [{ address: "Inputs!A1", value: "Revenue" }])
 return await xlsx.listSheets(wb)
 WITAN
 
-# Read from sheets with spaces, apostrophes, or parentheses — note inner apostrophes are doubled (Excel convention)
+# Read awkward sheet names; apostrophes inside sheet names are doubled
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const a = await xlsx.readCell(wb, "'Workers'' Compensation'!B50")
 const b = await xlsx.readRangeTsv(wb, { sheet: "Reserve Summary (Net)", from: {row:1,col:1}, to: {row:10,col:5} })
 return { a: a.value, b }
 WITAN
 
-# Multi-input sweep — compare several input values at once
+# Sensitivity sweep
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 const result = await xlsx.sweepInputs(wb, {
 	inputs: [
@@ -42,26 +42,7 @@ const result = await xlsx.sweepInputs(wb, {
 console.log(result.tsv)
 WITAN
 
-# Conditional formatting — add a highlight rule and a color scale
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-await xlsx.setConditionalFormatting(wb, "Sheet1", [
-	{
-		type: "cellValue",
-		address: "A1:A100",
-		operator: "greaterThan",
-		formula: "100",
-		style: { fill: { color: "#FF0000" } }
-	},
-	{
-		type: "twoColorScale",
-		address: "B1:B100",
-		lowValue: { type: "min", color: "#FFFFFF" },
-		highValue: { type: "max", color: "#FF0000" }
-	}
-])
-WITAN
-
-# Chart authoring — add an embedded chart and verify the rendered result
+# Author a chart and preview it
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addChart(wb, "Sheet1", {
 	name: "Revenue",
@@ -84,94 +65,19 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
-# Image authoring — add a local PNG/JPEG and verify placement
-witan xlsx exec model.xlsx --save --input-file logo=@./logo.png --stdin <<'WITAN'
-await xlsx.addImage(wb, "Sheet1", {
-	name: "Logo",
-	position: { from: { cell: "A1" }, to: { cell: "D6" } },
-	source: { base64: input.logo },
-	altText: "Company logo"
-})
-return await xlsx.listImages(wb, { sheet: "Sheet1" })
-WITAN
-
-# Waterfall chart authoring with totals and connector lines
-witan xlsx exec model.xlsx --save --stdin <<'WITAN'
-await xlsx.addChart(wb, "Sheet1", {
-	name: "Bridge",
-	position: { from: { cell: "F2" }, to: { cell: "N18" } },
-	groups: [
-		{
-			type: "waterfall",
-			series: [
-				{
-					name: { text: "Movement" },
-					categories: "Sheet1!A2:A8",
-					values: "Sheet1!B2:B8",
-					totalIndexes: [0, 6],
-					showConnectorLines: true,
-					dataLabels: { showValue: true, position: "outsideEnd" }
-				}
-			]
-		}
-	],
-	title: { text: "Revenue Bridge" },
-	plotVisibleOnly: true,
-	styleId: 395
-})
-await xlsx.previewStyles(wb, "Sheet1!F2:N18")
-WITAN
-
-# ListObject authoring — create an Excel table and read it back by table name
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-await xlsx.addListObject(wb, "Sheet1", {
-	name: "SalesTable",
-	ref: "A1:C4",
-	showTotalsRow: true,
-	columns: [
-		{ name: "Region", totalsRowLabel: "Total" },
-		{ name: "Sales", totalsRowFunction: "sum" },
-		{ name: "DoubleSales", calculatedColumnFormula: "=B2*2" }
-	],
-	rows: [
-		[{ value: "North" }, { value: 10 }, {}],
-		[{ value: "South" }, { value: 20 }, {}]
-	]
-})
-return {
-	meta: await xlsx.getListObject(wb, "SalesTable"),
-	data: await xlsx.readRange(wb, "SalesTable")
-}
-WITAN
-
-# What-If Data Table authoring — create a visible one-variable table block
-witan xlsx exec model.xlsx --stdin <<'WITAN'
-await xlsx.addDataTable(wb, "Sheet1", {
-	type: "oneVariableColumn",
-	ref: "E1:F4",
-	columnInputCell: "H1",
-	inputValues: [5, 10, 15],
-	formulas: ["=H1*2"]
-})
-return await xlsx.getDataTable(wb, "Sheet1!E1:F4")
-WITAN
-
-# Simple one-liner (--expr is fine when there are no special characters)
+# Simple one-liner
 witan xlsx exec model.xlsx --expr 'xlsx.listSheets(wb)'
 ```
 
 ## exec — Workbook Scripting
 
-Runs JavaScript against a workbook via the Witan API. The workbook is opened server-side; scripts interact through the `xlsx` and `wb` globals.
+Runs server-side JavaScript against a workbook through globals `xlsx`, `wb`, `input`, and `print`. Top-level `await` is supported; imports are not.
 
-If the target workbook does not exist yet, use `--create` with a new `.xlsx` path.
-
-- Use `--create --save` when you want to produce a real workbook file on disk.
-- Use `--create` without `--save` when you want to prototype workbook structure, test generation logic, inspect returned data, or validate formulas/layout without leaving a file behind.
+Use `--create` only with new `.xlsx` paths. Add `--save` to write bytes to disk; without `--save`, creation and edits are session-only.
 
 ### Invocation patterns
 
-**Recommended: `--stdin` with heredoc** — safe for all sheet names, supports multi-line scripts, and batches multiple operations into a single CLI invocation:
+Prefer `--stdin` with a single-quoted heredoc for multi-line scripts and any sheet name with spaces, apostrophes, parentheses, quotes, or glob characters:
 
 ```bash
 witan xlsx exec report.xlsx --stdin <<'WITAN'
@@ -181,292 +87,92 @@ return { sheets, cell }
 WITAN
 ```
 
-The single-quoted heredoc delimiter (`<<'WITAN'`) prevents all shell expansion. Apostrophes, parentheses, double quotes, and glob characters in sheet names pass through verbatim to JavaScript — no escaping needed.
-
-**Other invocation patterns** (use only when `--stdin` is impractical):
-
-```bash
-# Expression — simple one-liners with no special characters
-witan xlsx exec report.xlsx --expr 'xlsx.listSheets(wb)'
-
-# Script file — reusable scripts, e.g. parameterized scenarios
-witan xlsx exec report.xlsx --script scenario.js --input-json '{"rate": 1.05}'
-```
-
-Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. They are mutually exclusive.
+Use exactly one code source: `--stdin`, `--expr`, `--code`, or `--script`. `--expr` is fine for simple one-liners; use `--script file.js --input-json ...` for reusable scripts.
 
 ### Flags
 
-- Code source: exactly one of `--stdin`, `--expr`, `--code`, or `--script`.
-- Inputs/control: `--input-json`, `--input-file key=@path`, `--timeout-ms`, `--max-output-chars`, `--stdin-timeout-ms`, `--locale`.
-- Workbook lifecycle: `--create` creates a new `.xlsx` session; `--save` persists changes; `--json` prints the full response envelope.
+- Code source: exactly one of `--stdin`, `--expr`, `--code`, `--script`
+- Inputs/control: `--input-json`, `--input-file key=@path`, `--timeout-ms`, `--max-output-chars`, `--stdin-timeout-ms`, `--locale`
+- Lifecycle/output: `--create`, `--save`, `--json`
 
 ### Runtime globals
 
-- `xlsx` (`object`): curated API surface; all functions listed below
-- `wb` (`WorkbookContext`): opened workbook handle; pass as first arg to all `xlsx.*` calls
-- `input` (`any`): parsed value from `--input-json` (defaults to `{}`); `--input-file key=@path` adds a PNG/JPEG as a `data:image/...;base64,...` string on that top-level key.
-- `print` (`function`): output to stdout, like `console.log` but captured in the response
-
-Top-level `await` is supported. No imports allowed (static or dynamic).
+- `xlsx`: curated API; pass `wb` as first arg to all functions
+- `wb`: opened workbook handle
+- `input`: parsed `--input-json`; `--input-file logo=@./logo.png` adds `input.logo` as `data:image/...;base64,...`
+- `print`: stdout helper like `console.log`
 
 ### API reference
 
-Functions are grouped by purpose. All are async and take `wb` as the first argument.
+All functions are async and take `wb` first.
 
-**Reading**
+- Read: `listSheets`, `getWorkbookProperties`, `getSheetProperties`, `listDefinedNames`, `readCell`, `readRange`, `readRow`, `readColumn`, TSV variants, `getStyle`
+- Search: `findCells`, `findRows`, `describeSheet`, `tableLookup`, `getListObject`, `getDataTable`; `matcher` accepts string/string[]/number/boolean/RegExp/RegExp[]
+- Trace/compute/render: `getCellPrecedents`, `getCellDependents`, `traceToInputs`, `traceToOutputs`, `sweepInputs`, `evaluateFormula(s)`, `lint`, `previewStyles`
+- Write/structure: `setCells`, `findAndReplace`, `scaleRange`, `copyRange`, `sortRange`, row/column insert/delete, `autoFitColumns`, sheet/name/property/style setters
+- Objects: `add/set/deleteListObject`, `add/deleteDataTable`, conditional formatting and data validation APIs
+- Charts/images: `list/get/add/set/deleteChart`, `list/get/add/set/deleteImage`; charts support combo, secondary axes, stock, bubble, radar, top-view surface, waterfall, histogram/Pareto, funnel, formatting, labels, number formats, style IDs
 
-- `listSheets`: sheet inventory with used ranges, visibility, and cross-sheet dependencies
-- `getWorkbookProperties`, `getSheetProperties`: workbook/sheet metadata, formatting, view, outline, and merge info
-- `listDefinedNames`: workbook and sheet-scoped names
-- `readCell`, `readRange`, `readRow`, `readColumn`: structured cell reads
-- `readRangeTsv`, `readRowTsv`, `readColumnTsv`: TSV reads for prompt-friendly extraction
-- `getStyle`: resolved style properties for a cell
+Common options: searches use `opts.in`, `context`, `limit`, `offset`; TSV reads use `includeEmpty`/`includeFormulas`; `scaleRange.skipFormulas` defaults true; `sortRange.hasHeader` defaults true; `copyRange.pasteType` supports `all`, `values`, `formulas`, `formats`; `setConditionalFormatting` and `setDataValidations` use `opts.clear` to replace existing rules.
 
-**Searching**
+For local images, prefer `--input-file logo=@./logo.png` then `source:{base64:input.logo}`. `source.base64` also accepts raw base64 or data URLs; image responses return metadata only.
 
-- `findCells`, `findRows`: fuzzy search by value or pattern
-- `describeSheet`: sheet structure with detected tables
-- `tableLookup`: lookup by row and column labels inside a table
-- `getListObject`, `getDataTable`: metadata for existing Excel table / What-If Data Table objects
+### Write and What-If Rules
 
-`matcher` may be a string, string array, number, boolean, `RegExp`, or `RegExp[]`. Searches are fuzzy and case-insensitive by default.
-
-**Tracing**
-
-- `getCellPrecedents`, `getCellDependents`: local dependency traversal; `depth` defaults to `1`
-- `traceToInputs`, `traceToOutputs`: full graph tracing to leaf inputs or terminal outputs
-
-**Computing**
-
-- `sweepInputs`: batch what-if sweeps with TSV and structured outputs
-- `evaluateFormula`, `evaluateFormulas`: evaluate one or more formulas in sheet context
-
-**Validating**
-
-- `lint`: potential workbook issues and diagnostics
-- `getDataValidations`, `validateCells`: inspect data validation rules and find invalid cells
-
-**Rendering**
-
-- `previewStyles`: generate a PNG preview for a sheet range; image is auto-registered
-
-**Charts**
-
-- `listCharts`: chart summaries for the workbook or a single sheet
-- `getChart`: canonical spec for an existing chart
-- `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
-- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, 2-D top-view surface charts, waterfall charts, histogram/Pareto charts, funnel charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
-
-**Images**
-
-- `listImages`: image metadata for the workbook or a single sheet
-- `getImage`: metadata for one worksheet image by `{ name }` or `{ id }`
-- `addImage`, `setImage`, `deleteImage`: create, update, replace, or remove embedded PNG/JPEG images
-- For `addImage`/`setImage` from local files, prefer `witan xlsx exec ... --input-file logo=@./logo.png` and use `source: { base64: input.logo }`. `source.base64` also accepts raw base64 or `data:image/png;base64,...` / `data:image/jpeg;base64,...`; responses return metadata only, not image bytes. `preserveAspectRatio` defaults to `true` when adding or replacing image bytes.
-
-**Conditional Formatting**
-
-- `getConditionalFormatting`: read all sheet rules; `iconSet` is read-only
-- `setConditionalFormatting`: add writable rules; `opts.clear` replaces all rules
-- `removeConditionalFormatting`: remove rules by index
-
-**Writing (ephemeral)**
-
-- Cells/ranges: `setCells`, `findAndReplace`, `scaleRange`, `copyRange`, `sortRange`
-- Data validation: `setDataValidations`, `removeDataValidations`; `setCells` supports `opts.validationMode: "reject"` to reject invalid writes
-- Structure: `insertRowAfter`, `deleteRows`, `insertColumnAfter`, `deleteColumns`, `autoFitColumns`
-- Sheets/names: `addSheet`, `deleteSheet`, `renameSheet`, `addDefinedName`, `deleteDefinedName`
-- Properties/styles: `setWorkbookProperties`, `setSheetProperties`, `setRowProperties`, `setColumnProperties`, `setStyle`
-- Objects: `addListObject`, `setListObject`, `deleteListObject`, `addDataTable`, `deleteDataTable`
-
-Common option patterns:
-
-- Search: `opts.in`, `context`, `limit`, `offset`; `findCells` also supports `formulas`
-- Row/column reads: `startRow/endRow` or `startCol/endCol`
-- TSV reads: `includeEmpty`, `includeFormulas`
-- `scaleRange`: `opts.skipFormulas` defaults to `true`
-- `sortRange`: `opts.hasHeader` defaults to `true`
-- `copyRange`: `opts.pasteType` supports `all`, `values`, `formulas`, `formats`
-- `setConditionalFormatting`: `opts.clear` replaces all existing rules
-- `setDataValidations`: `opts.clear` replaces all existing rules on the sheet
-
-### The ephemeral write contract
-
-By default, `exec` **does not write workbook bytes back to disk**. All write operations (`setCells`, `scaleRange`, inserts, deletes) take effect in the server-side session only. The `result.touched` map contains the recalculated formatted text values — read answers from there.
-
-This means:
-
-- No risk of corrupting the original file
-- No `reset()` needed — each invocation starts clean
-- For independent what-if tests, each `exec` invocation starts from the original file
-
-To persist changes back to the workbook file, pass the `--save` flag.
-
-When `--create` is set, the same ephemeral rule applies to the new workbook session: no local file is created unless `--save` is also passed. New workbook creation is `.xlsx` only.
-
-### setCells result shape
+`exec` is ephemeral unless `--save` is passed. Each invocation starts from the original workbook; writes such as `setCells`, `scaleRange`, inserts, deletes, formatting, charts, and images affect only the server-side session unless saved. `setCells` creates a missing referenced sheet and returns:
 
 ```ts
-{
-  touched: Record<string, string>  // address → formatted text value
-  changed: string[]                // addresses whose values changed
-  errors: Diag[]                   // cells that errored after recalc
-}
+{ touched:Record<string,string>; changed:string[]; errors:Diag[] }
 ```
 
-Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript. `setCells` implicitly creates a sheet if `address` references one that does not yet exist.
+Read output values from `result.touched["Sheet!Address"]`; do not recompute answers in JavaScript.
 
-### What-if / sensitivity workflow
+For "what happens to Y if X changes?":
 
-For questions like "what happens to Y if X changes?", follow this sequence. **Steps 1 and 2 should be separate `exec` calls** — review the output of step 1 before proceeding.
+1. Separate exec: find the output cell first with `findCells(wb, matcher, { context: 2 })`, synonyms, or `readRangeTsv`; choose the formula/output cell, not the label.
+2. Separate exec: `traceToInputs(wb, outputAddr)`, confirm the user-named input drives it, `setCells`, then read `result.touched[outputAddr]`.
+3. Report baseline and changed values, and check `result.errors`.
 
-1. **Find the output cell (separate exec call)** — search for what the user is asking about (e.g., "net income", "reserve"). Use `xlsx.findCells` with `context: 2` and review the candidates. Labels and formula cells often share the same text — pick the formula cell, not the label. This step may take more than one attempt: try synonym arrays, read surrounding rows with `xlsx.readRangeTsv`, or check multiple sheets.
-2. **Trace + run the what-if (second exec call)** — once you have the output address, call `xlsx.traceToInputs(wb, outputAddr)` to confirm the user's input actually drives it. Trace results can contain hundreds of cells — filter by `nearbyLabel` matching the user's term instead of printing them all. Then `xlsx.setCells` to make the change and read the answer from `result.touched[outputAddr]`. If the output address is missing from `touched`, the cell didn't recalculate — you likely have the wrong address.
-3. **Report before and after** — always include the baseline value (read before the edit) and the new value from `touched`.
-
-For sweeping multiple values (sensitivity tables), use `sweepInputs` instead — it runs all combinations in one call and returns structured before/after data.
-
-Practical tips:
-
-- Don't search for the output _after_ `setCells` — find it first so you know the exact address to check in `touched`.
-- If `findCells` returns several hits for the same label, use context or `readRangeTsv` to disambiguate (e.g., "Net Income" may appear as both a label and a formula cell on different rows).
-- After `setCells`, verify `result.errors` is empty. New errors mean the edit introduced or surfaced a calculation problem downstream.
-- If the question names a specific metric (e.g., "loss ratio"), don't just search for that term — also check the sheet/row the question references, since models often have multiple versions of the same metric across sheets.
-
-### Iterative / circular models
-
-When a workbook has **iterative calculation** enabled, `setCells` recalculates
-the edited cells and downstream dependents using the workbook's iterative
-settings. If the model does not converge within `maxIterations`, the result
-includes convergence errors.
-
-Use `witan xlsx calc` when you want a standalone seeded or full-workbook
-verification pass, or when you want CLI reporting of all calculation errors or
-changed cells. `--show-touched` only changes output verbosity.
+Use `sweepInputs` for multi-value sensitivities. If tracing returns hundreds of cells, filter by `nearbyLabel` or context before printing. For iterative/circular models, `setCells` uses workbook iterative settings and reports convergence errors.
 
 ### calc — Full-workbook verification
 
-`setCells` already recalculates the edited cells and all downstream dependents,
-so you do **not** need `witan xlsx calc` after every normal edit. Use `calc`
-mainly as a standalone verification/reporting command:
-
-- See every formula error in one CLI call
-- In `--verify` mode, see which cell values changed without modifying the file
-- Run a workbook-wide verification pass outside your `exec` script
+`setCells` already recalculates edited cells and downstream dependents. Use `calc` for standalone workbook-wide checks or final audits:
 
 ```bash
-# Recalculate the workbook and print all formula errors, if any
 witan xlsx calc model.xlsx
-
-# Verification pass only — no file write, but prints changed addresses
 witan xlsx calc model.xlsx --verify
-
-# Verbose output — every touched cell with formula/value or error code
 witan xlsx calc model.xlsx --show-touched
 ```
 
-Default output is concise:
-
-- If there are no formula errors, it prints a one-line summary like `428 cells recalculated, 0 errors, 3 changed`
-- If there are formula errors, it prints **all** of them, not just a count
-- Without `--verify`, it still exits with code `2` if any formula errors are found
-- With `--verify`, it also prints a sorted `Changed (N):` list of addresses
-- `--show-touched` is the verbose mode when you need every recalculated cell
-
-Example error output:
-
-```text
-2 errors:
-  Summary!C18          =A18/B18                      #DIV/0!
-  Revenue!F42          =VLOOKUP(A42,$A$2:$C$10,3,0) #N/A
-```
-
-Example verify output:
-
-```text
-428 cells recalculated, 0 errors, 3 changed
-
-Changed (3):
-  Inputs!B5
-  Revenue!F42
-  Summary!C18
-```
-
-`witan xlsx calc` exits with code `2` if any formula errors are found.
-`witan xlsx calc --verify` also exits with code `2` if any computed values
-changed. That makes `--verify` useful as a final audit step after fixing a
-workbook.
+It prints all formula errors, not just a count. Exit code `2` means formula errors; with `--verify`, exit code `2` can also mean computed values changed. `--show-touched` prints every recalculated cell.
 
 ### Response format
 
-When `--json` is used, the full response envelope is returned:
-
-**Success:**
-
-```json
-{
-  "ok": true,
-  "stdout": "...",
-  "result": "<json>",
-  "writes_detected": false,
-  "accesses": [...]
-}
-```
-
-**Failure:**
-
-```json
-{
-  "ok": false,
-  "stdout": "...",
-  "error": { "type": "...", "code": "...", "message": "..." }
-}
-```
-
-The `accesses` array documents all cell reads and writes with operation type and address.
+With `--json`, success includes `ok`, `stdout`, `result`, `writes_detected`, and `accesses`; failure includes `ok:false`, `stdout`, and `error:{type,code,message}`. `accesses` records cell reads/writes.
 
 ## render — Visual Screenshot
 
-Renders a sheet range as a PNG image, useful for inspecting layout, merged cells, formatting, charts, and labels.
+Renders a sheet range as PNG/WebP for layout, merged cells, formatting, charts, and labels.
 
 ```bash
-# Render a range to a temporary file (path printed to stdout)
 witan xlsx render report.xlsx -r "Sheet1!A1:Z50"
-
-# Render to a specific output path
 witan xlsx render report.xlsx -r "'My Sheet'!B5:H20" -o snapshot.png
-
-# Higher resolution (DPR 1-3; auto picks 1 or 2)
-witan xlsx render report.xlsx -r "Sheet1!A1:F10" --dpr 2
-
-# Diff against a baseline — highlights changes in a new PNG
-witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png
+witan xlsx render report.xlsx -r "Sheet1!A1:F10" --dpr 2 --diff before.png
 ```
 
-- `--range`, `-r`: sheet-qualified range to render; required
-- `--output`, `-o`: output path; defaults to a temporary file
-- `--dpr` (default `auto`): device pixel ratio `1`-`3`
-- `--format` (default `png`): `png` or `webp`
-- `--diff`: compare against a baseline PNG and write a diff image
-
-The `previewStyles` exec function (see Rendering in the API reference) provides the same capability from within a script.
+Flags: `--range/-r` required, `--output/-o` optional, `--dpr` 1-3 or `auto`, `--format png|webp`, `--diff baseline.png`. Inside `exec`, use `previewStyles`.
 
 ## Error Guide
 
-- `exactly one of --code, --script, --stdin, or --expr is required`: provide exactly one code source flag
-- `--code, --script, --stdin, and --expr are mutually exclusive`: use only one code source flag per invocation
-- `exec code must not be empty`: provide non-empty code
-- `Import statements are not allowed`: no `import` in exec scripts; use the `xlsx` global
-- `EXEC_SYNTAX_ERROR`: fix JavaScript syntax in your script
-- `EXEC_RUNTIME_ERROR`: fix the runtime error; check the message for details
-- `EXEC_RESULT_TOO_LARGE`: return less data; use `console.log()` for large output instead of return values
-- `--timeout-ms must be > 0`: omit the flag or provide a positive value
-- `invalid --input-json`: provide valid JSON
-- `Sheet 'X' not found`: check the sheet name; use `listSheets` to enumerate
-- `Shell quoting errors with sheet names`: use `--stdin <<'WITAN'`; it avoids shell quoting issues
-- `findCells` returns empty: try synonym arrays, broader search, or check spelling
-- `setCells` result missing expected output: the output cell may not be a dependent; trace the formula chain
+- Code source errors: provide exactly one non-empty `--stdin`, `--expr`, `--code`, or `--script`.
+- `Import statements are not allowed`: use the `xlsx` global, no static/dynamic imports.
+- `EXEC_SYNTAX_ERROR` / `EXEC_RUNTIME_ERROR`: fix script syntax/runtime issue.
+- `EXEC_RESULT_TOO_LARGE`: return less data; print/log large output.
+- `invalid --input-json`, `--timeout-ms must be > 0`: fix flag value.
+- `Sheet 'X' not found`: run `listSheets`; for shell quoting issues use `--stdin <<'WITAN'`.
+- `findCells` empty: broaden search, use synonyms, or inspect nearby ranges.
+- `setCells` missing expected output in `touched`: wrong output cell or not a dependent; trace the chain.
 
 ### Full Type Definitions
 

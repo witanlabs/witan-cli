@@ -13,6 +13,20 @@ interface ChartLineFormat {noLine?:boolean;color?:string;weight?:number;lineStyl
 interface ChartFontFormat {bold?:boolean;color?:string;italic?:boolean;name?:string;size?:number;underline?:string}
 interface ChartDataLabelFormat {fill?:ChartFillFormat;border?:ChartLineFormat;font?:ChartFontFormat}
 interface ChartPlotAreaSpec {format?:{fill?:ChartFillFormat;border?:ChartLineFormat}}
+interface ChartDataLabels {
+	showLegendKey?:boolean;
+	showValue?:boolean;
+	showCategory?:boolean;
+	showSeriesName?:boolean;
+	showPercent?:boolean;
+	showBubbleSize?:boolean;
+	showLeaderLines?:boolean;
+	position?:ChartDataLabelPosition;
+	numberFormat?:string;
+	numberFormatLinked?:boolean;
+	separator?:string;
+	format?:ChartDataLabelFormat;
+}
 interface ChartAxisSpec {
 	title?:ChartTextSource;
 	visible?:boolean;
@@ -50,20 +64,7 @@ interface ChartSpec {
 		bubbleScale?:number; /** bubble only, 0-300 */
 		showNegativeBubbles?:boolean; /** bubble only */
 		sizeRepresents?:"area"|"width"; /** bubble only */
-		dataLabels?:{
-			showLegendKey?:boolean;
-			showValue?:boolean;
-			showCategory?:boolean;
-			showSeriesName?:boolean;
-			showPercent?:boolean;
-			showBubbleSize?:boolean;
-			showLeaderLines?:boolean;
-			position?:ChartDataLabelPosition;
-			numberFormat?:string;
-			numberFormatLinked?:boolean;
-			separator?:string;
-			format?:ChartDataLabelFormat;
-		};
+		dataLabels?:ChartDataLabels;
 		series:{
 			name?:ChartTextSource;
 			stockRole?:"volume"|"open"|"high"|"low"|"close"; /** stock charts only */
@@ -96,20 +97,7 @@ interface ChartSpec {
 				fillColor?:string;
 				borderColor?:string;
 			};
-			dataLabels?:{
-				showLegendKey?:boolean;
-				showValue?:boolean;
-				showCategory?:boolean;
-				showSeriesName?:boolean;
-				showPercent?:boolean;
-				showBubbleSize?:boolean;
-				showLeaderLines?:boolean;
-				position?:ChartDataLabelPosition; /** for bubble charts only center/left/right/top/bottom */
-				numberFormat?:string;
-				numberFormatLinked?:boolean;
-				separator?:string;
-				format?:ChartDataLabelFormat;
-			};
+			dataLabels?:ChartDataLabels; /** bubble position only supports center/left/right/top/bottom */
 		}[];
 	}[];
 	title?:ChartTextSource&{overlay?:boolean};

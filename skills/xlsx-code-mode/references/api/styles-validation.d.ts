@@ -4,6 +4,18 @@
 type CellRef=string|{sheet:string;row:number;col:number|string}
 type RangeRef=string|{sheet:string}|{sheet:string;from:{row?:number;col?:number|string};to:{row?:number;col?:number|string}}
 
+type FontStyle={
+	name?:string;
+	size?:number;
+	color?:string;
+	bold?:boolean;
+	italic?:boolean;
+	strike?:boolean;
+	underline?:string;
+	verticalAlign?:string;
+}
+type BorderSide={style:string;color:string}
+type DiagonalBorder={style:string;color?:string;up?:boolean;down?:boolean}
 type StyleObj={
 	fill?:{
 		color?:string;
@@ -20,16 +32,7 @@ type StyleObj={
 			right?:number;
 		};
 	};
-	font?:{
-		name?:string;
-		size?:number;
-		color?:string;
-		bold?:boolean;
-		italic?:boolean;
-		strike?:boolean;
-		underline?:string;
-		verticalAlign?:string;
-	};
+	font?:FontStyle;
 	alignment?:{
 		horizontal?:string;
 		vertical?:string;
@@ -39,43 +42,17 @@ type StyleObj={
 		indent?:number;
 	};
 	border?:{
-		top?:{
-			style:string;
-			color:string;
-		};
-		bottom?:{
-			style:string;
-			color:string;
-		};
-		left?:{
-			style:string;
-			color:string;
-		};
-		right?:{
-			style:string;
-			color:string;
-		};
-		diagonal?:{
-			style:string;
-			color?:string;
-			up?:boolean;
-			down?:boolean;
-		};
+		top?:BorderSide;
+		bottom?:BorderSide;
+		left?:BorderSide;
+		right?:BorderSide;
+		diagonal?:DiagonalBorder;
 	};
 	numberFormat?:string;
 	centerContinuousSpan?:number;
 	richText?:{
 		text:string;
-		style?:{
-			name?:string;
-			size?:number;
-			color?:string;
-			bold?:boolean;
-			italic?:boolean;
-			strike?:boolean;
-			underline?:string;
-			verticalAlign?:string;
-		};
+		style?:FontStyle;
 	}[];
 };
 declare function getStyle(wb,cell:CellRef):Promise<StyleObj>;

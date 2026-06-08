@@ -1,7 +1,8 @@
 // Workbook, sheet, and defined-name APIs
 // Witan xlsx-code-mode exec API reference. All functions are async and take `wb` first.
 
-declare function getWorkbookProperties(wb):Promise<{
+type PartialDeep<T>={[K in keyof T]?:NonNullable<T[K]> extends object?PartialDeep<NonNullable<T[K]>>:T[K]}
+interface WorkbookProperties {
 	activeSheetIndex:number;
 	defaultFont:{
 		name:string;
@@ -36,41 +37,9 @@ declare function getWorkbookProperties(wb):Promise<{
 		majorFont?:string;
 		minorFont?:string;
 	};
-}>;
-declare function setWorkbookProperties(wb,properties:{
-	activeSheetIndex?:number;
-	defaultFont?:{
-		name?:string;
-		size?:number;
-	};
-	iterativeCalculation?:{
-		enabled?:boolean;
-		maxIterations?:number;
-		maxChange?:number;
-	};
-	metadata?:{
-		author?:string;
-		title?:string;
-		subject?:string;
-		company?:string;
-	};
-	themeColors?:{
-		dark1?:string;
-		light1?:string;
-		dark2?:string;
-		light2?:string;
-		accent1?:string;
-		accent2?:string;
-		accent3?:string;
-		accent4?:string;
-		accent5?:string;
-		accent6?:string;
-		hyperlink?:string;
-		followedHyperlink?:string;
-		majorFont?:string;
-		minorFont?:string;
-	};
-}):Promise<void>;
+}
+declare function getWorkbookProperties(wb):Promise<WorkbookProperties>;
+declare function setWorkbookProperties(wb,properties:PartialDeep<WorkbookProperties>):Promise<void>;
 declare function listSheets(wb):Promise<Array<{
 	address:string;
 	rows:number;
@@ -92,80 +61,35 @@ declare function addSheet(wb,name:string):Promise<string>;
 declare function deleteSheet(wb,name:string):Promise<void>;
 declare function renameSheet(wb,oldName:string,newName:string):Promise<void>;
 
-declare function setSheetProperties(wb,sheetName:string,properties:{
-	visibility?:"visible"|"hidden"|"veryHidden";
-	view?:{
-		showGridLines?:boolean;
-		zoomScale?:number;
-	};
-	outline?:{
-		summaryRowsBelow?:boolean;
-		summaryColumnsRight?:boolean;
-		showSymbols?:boolean;
-	};
-	format?:{
-		defaultRowHeight?:number;
-		defaultColWidth?:number;
-		font?:{
-			name?:string;
-			size?:number;
-		};
-	};
-	merges?:string[];
-}):Promise<void>;
-declare function setRowProperties(wb,sheetName:string,fromRow:number,toRow:number,properties:{
+type SheetVisibility="visible"|"hidden"|"veryHidden";
+interface SheetView {showGridLines:boolean;zoomScale:number}
+interface SheetOutline {summaryRowsBelow:boolean;summaryColumnsRight:boolean;showSymbols:boolean}
+interface SheetFormat {defaultRowHeight:number;defaultColWidth:number;font?:{name?:string;size?:number}|null}
+interface RowProps {
 	height?:number;
 	hidden?:boolean;
 	outlineLevel?:number;
 	collapsed?:boolean;
-}):Promise<void>;
-declare function setColumnProperties(wb,sheetName:string,fromCol:number|string,toCol:number|string,properties:{
+}
+interface ColProps {
 	width?:number;
 	hidden?:boolean;
 	outlineLevel?:number;
 	collapsed?:boolean;
-}):Promise<void>;
+}
+interface SheetProperties {
+	visibility:SheetVisibility;
+	view:SheetView;
+	outline:SheetOutline;
+	format:SheetFormat;
+	columns:Record<string,ColProps&{col:string;width:number}>;
+	rows:Record<number,RowProps&{row:number;height:number}>;
+	merges?:string[]|null;
+}
+declare function setSheetProperties(wb,sheetName:string,properties:PartialDeep<Pick<SheetProperties,"visibility"|"view"|"outline"|"format">>&{merges?:string[]}):Promise<void>;
+declare function setRowProperties(wb,sheetName:string,fromRow:number,toRow:number,properties:RowProps):Promise<void>;
+declare function setColumnProperties(wb,sheetName:string,fromCol:number|string,toCol:number|string,properties:ColProps):Promise<void>;
 declare function getSheetProperties(wb,sheetName:string,filter?:{
 	columns?:(number|string)[];
 	rows?:number[];
-}):Promise<{
-	visibility:"visible"|"hidden"|"veryHidden";
-	view:{
-		showGridLines:boolean;
-		zoomScale:number;
-	};
-	outline:{
-		summaryRowsBelow:boolean;
-		summaryColumnsRight:boolean;
-		showSymbols:boolean;
-	};
-	format:{
-		defaultRowHeight:number;
-		defaultColWidth:number;
-		font?:{
-			name?:string;
-			size?:number;
-		}|null;
-	};
-	columns:Record<
-		string,
-		{
-			col:string;
-			width:number;
-			hidden?:boolean;
-			outlineLevel?:number;
-			collapsed?:boolean;
-		}
-	>;
-	rows:Record<
-		number,
-		{
-			row:number;
-			height:number;
-			hidden?:boolean;
-			outlineLevel?:number;
-			collapsed?:boolean;
-		}
-	>;
-	merges?:string[]|null;
-}>;
+}):Promise<SheetProperties>;

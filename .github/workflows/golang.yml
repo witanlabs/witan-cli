@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Enforce 40k skill limit
+      - name: Enforce 25k skill limit
         run: |
-          limit=30000
+          limit=25000
           failed=0
 
           while IFS= read -r -d '' skill; do

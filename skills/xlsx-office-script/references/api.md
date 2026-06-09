@@ -139,6 +139,7 @@ function main(workbook){ workbook.addWorksheet("S"); return workbook.getWorkshee
 - **Waterfall total/subtotal columns** — `setShowConnectorLines` works, but there is **no member to mark a point as a total** (no `setAsTotal`/`isTotal` on `ChartSeries`/`ChartPoint`). Start/End columns float instead of anchoring to the baseline.
 - **Table rename & totals row** — `Table.setName` and `Table.setShowTotals` are **unimplemented** (`NotImplementedError`, see Error Guide). Tables keep their auto name (`Table1`, …); write a totals row as ordinary formulas in a cell *below* the table (plain `=SUM(B2:B3)`, never `=SUBTOTAL(109,Table1[Sales])` — structured refs break).
 - **Structured table references** — `=[@Col]` / `Table1[Col]` evaluate to `#REF!` in the calc engine. Use plain A1 references everywhere.
+- **Column widths** — `RangeFormat.setColumnWidth` is **unimplemented** (`NotImplementedError`). Substitute: `range.getFormat().autofitColumns()` (sizes to content). Row heights are fine — `setRowHeight` works.
 
 ## exec — Workbook Scripting
 

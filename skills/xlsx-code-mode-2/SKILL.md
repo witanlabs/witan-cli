@@ -9,16 +9,14 @@ description: "Read, explore, understand, create, and modify Excel workbooks (.xl
 
 Two jobs, one tool:
 
-- **Comprehend** an existing workbook — find data, trace how figures are calculated, answer what-if questions — without guessing or corrupting it.
-- **Produce** workbooks that are correct, polished, and *idiomatic*: formula-driven, sensibly formatted, and matching the conventions of their domain.
+- **Read & Analyze** an existing workbook — find data, trace how figures are calculated, answer what-if questions — without guessing or corrupting it.
+- **Produce & Edit** workbooks that are correct, polished, and idiomatic: formula-driven, sensibly formatted, and matched to the workbook's domain.
 
-Judged on correctness first, then readability and idiomatic style. **A workbook with formula errors is not finished.**
+You are judged on correctness, layout, readability, and idiomatic style. **A workbook with formula errors is not finished.**
 
 ## The tool
 
-All work runs as sandboxed JavaScript against the workbook server-side. The script gets two globals — `xlsx` (the API) and `wb` (the open workbook). Top-level `await` works; no `import`s.
-
-The invocation shell — `--stdin` with a single-quoted heredoc (safe for every sheet name, no shell escaping):
+`witan` is a command-line tool driving a server-side spreadsheet engine. Its workhorse, **`witan xlsx exec`**, runs sandboxed JavaScript against a workbook opened server-side; siblings `calc`, `lint`, and `render` handle verification and previews (below). Invoke with `--stdin` and a single-quoted heredoc (safe for every sheet name, no shell escaping):
 
 ```bash
 witan xlsx exec report.xlsx --stdin <<'WITAN'
@@ -28,13 +26,14 @@ return { sheets, tsv }
 WITAN
 ```
 
-- **Create** a new workbook: add `--create` (path need not exist; `.xlsx` only).
-- **Persist** changes: add `--save`. Without it every write is **ephemeral** — it applies in the server session, recalculates, then is discarded. So reads and what-ifs never risk the file, and each run starts clean from the original.
-- **Read answers from the result, never recompute them in JS.** After a write the recalculated value is in `result.touched["Sheet!A1"]`. Calculating it yourself defeats the engine.
+- **Globals** — `xlsx` (the API) and `wb` (the open workbook, passed first to every call). Top-level `await` works; no `import`s.
+- **`--create`** makes a new workbook (path need not exist; `.xlsx` only).
+- **`--save`** persists changes. Without it every write is **ephemeral** — it applies in the server session, recalculates, then is discarded; so reads and what-ifs never risk the file, and each run starts clean from the original.
+- **Read answers from `result.touched["Sheet!A1"]`, never recompute them in JS** — after a write the recalculated value is there. Calculating it yourself defeats the engine.
 
-After reading this file, you MUST read [references/api.md](references/api.md) before your first `witan xlsx exec` call — the function surface is large and not guessable.
+After reading this file, you MUST read **[references/api.md](references/api.md)** before your first `witan xlsx exec` call — the function surface is large and not guessable.
 
-`api.md` is grouped by job — reading, searching, tracing, computing, charts, conditional formatting, validation, styles — with full signatures.
+`api.md` groups functions under headings you can grep for — Reading, Searching, Tracing, Computing, Validating, Rendering, Charts, Conditional Formatting, Writing — each with full signatures.
 
 ### Work efficiently (latency matters)
 
@@ -55,7 +54,7 @@ Applies to every workbook you create or change. **When editing an existing workb
 - **Right references** — absolute (`$B$6`) vs relative so fills and copies behave.
 - **Format to the data type** — real dates with a date format (`yyyy-mm-dd`), not date-looking text; thousands separators for money/counts; sensible decimals on percentages; state units in the header when ambiguous (`Revenue ($000s)`).
 - **Lay it out for a human** — styled header row; numbers right-aligned, labels left; sane column widths (cap autofit so nothing runs off-screen); modest row heights; whitespace between sections.
-- **Stay valid** — unique, explicit table names; prefix literal text starting with `=` using `'` so it isn't read as a formula.
+- **Stay valid** — give every Excel Table a unique, explicit name; prefix literal text starting with `=` using `'` so it isn't read as a formula.
 
 Domain conventions go beyond this floor. For financial models, valuations, projections, or IB work, read **[references/domains/financial-modelling.md](references/domains/financial-modelling.md)**.
 
@@ -95,6 +94,6 @@ A workbook with formula errors is not delivered. Before finishing any authoring 
 - **Recalculate and check errors** — `witan xlsx calc model.xlsx` must report `0 errors`. It prints every error with address and formula, and exits non-zero. Fix and repeat until clean.
 - **Spot-check key ranges** — `readRangeTsv` (with formulas) on totals, a few sample references, and edge rows.
 - **Confirm layout** — `witan xlsx render` or `previewStyles` on the headline range; headers, merges, number formats, and charts look as intended.
-- **Lint for logic errors** — `witan xlsx lint model.xlsx` flags what `calc` can't: double-counting, unsorted-range lookups, mixed currencies/units. Review and resolve or knowingly accept each finding; exits 2 on any.
+- **Lint for logic errors** — `witan xlsx lint model.xlsx` flags what `calc` can't: double-counting, approximate-match lookups on unsorted data, mixed currencies/units. Review and resolve or knowingly accept each finding; exits 2 on any.
 
 Then report what you built (sheets / ranges), and for what-ifs the baseline → new values.

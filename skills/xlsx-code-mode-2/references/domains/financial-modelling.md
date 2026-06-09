@@ -27,8 +27,8 @@ The single most recognisable convention — get it right and the model reads as 
 
 - **Totals sum the range directly above them**, with a thin top border spanning the label and data columns.
 - **Hide gridlines** — `setSheetProperties(wb, sheet, { view: { showGridLines: false } })`.
-- **Section headers** spanning columns: merged cell, dark-blue/black fill, white bold text, left-justified.
-- **Column labels** (dates, periods) and the numbers beneath them are **right-aligned**. **Row labels** are left-justified; sub-metrics (e.g. `% growth`) are left-aligned and indented.
+- **Section headers** spanning columns: merged cell, dark-blue/black fill, white bold text, left-aligned.
+- **Column labels** (dates, periods) and the numbers beneath them are **right-aligned**. **Row labels** are left-aligned; sub-metrics (e.g. `% growth`) are left-aligned and indented.
 
 ## Sourcing
 
@@ -46,7 +46,7 @@ await xlsx.setSheetProperties(wb, "Model", { view: { showGridLines: false }, mer
 
 const num = "#,##0;(#,##0);-"
 
-// Section header — merged, dark fill, white bold, left-justified
+// Section header — merged, dark fill, white bold, left-aligned
 await xlsx.setCells(wb, [{ address: "Model!A1", value: "Revenue Build ($000s)" }])
 await xlsx.setStyle(wb, "Model!A1:D1", {
   fill: { color: "#1F3864" },

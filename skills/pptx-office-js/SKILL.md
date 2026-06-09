@@ -1,6 +1,6 @@
 ---
 name: pptx-office-js
-description: Use this skill when a PPTX file needs to be rendered, inspected, created, or modified through Witan PPTX's sandboxed, headless PowerPoint runtime. It runs Office.js-compatible JavaScript plus Witan PPTX chart extensions against PPTX files via `witan pptx exec`; Microsoft Office does not need to be installed. It accepts any valid PPTX file and produces PPTX files that are 100% compatible with PowerPoint.
+description: Use this skill when a PPTX file needs to be rendered, inspected, created, or modified through Witan PPTX's sandboxed, headless PowerPoint runtime. It runs Office.js-compatible TypeScript or JavaScript plus Witan PPTX chart extensions against PPTX files via `witan pptx exec`; Microsoft Office does not need to be installed. It accepts any valid PPTX file and produces PPTX files that are 100% compatible with PowerPoint.
 ---
 
 ## Quick Reference
@@ -11,7 +11,7 @@ Render a slide:
 witan pptx render deck.pptx --slide 1 -o slide-1.png
 ```
 
-Run Office.js-compatible JavaScript:
+Run Office.js-compatible TypeScript or JavaScript:
 
 ```bash
 witan pptx exec deck.pptx --stdin <<'JS'
@@ -108,4 +108,4 @@ Office.js declarations are available in `references/office-js.d.ts`. Witan PPTX 
 - Prefer targeted lookup with `rg`, for example `rg -n "SlideCollection|addTextBox|ClientResult|addChart|ChartSeries" references`.
 - `PowerPoint.createPresentation(...)` is intentionally not implemented; use `witan pptx exec <file> --create --save` to create a PPTX file through the CLI.
 
-Witan PPTX follows the Office.js PowerPoint API surface where implemented and extends it with chart APIs. `OfficeExtension.ClientResult` values must be read after `await context.sync()`, and APIs returning `void` should not be treated as object factories.
+Witan PPTX implements an Office.js-compatible PowerPoint superset for headless PPTX automation and extends the standard API with chart members. `OfficeExtension.ClientResult` values must be read after `await context.sync()`. In Witan's headless runtime, `load(...)` and `sync()` are compatibility calls rather than network round trips; APIs returning `void` should not be treated as object factories.

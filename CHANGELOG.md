@@ -1,5 +1,7 @@
 # Changelog
 
+For spreadsheet product and runtime changes, see the [spreadsheet changelog](https://docs.witanlabs.com/products/spreadsheet/changelog).
+
 ## Unreleased
 
 ## 0.12.0

@@ -170,7 +170,6 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         wb.set_conditional_formatting("Sheet1", [{"type": "expression", "address": "A1", "formula": "TRUE"}], clear=True)
         wb.remove_conditional_formatting("Sheet1", [0])
         wb.get_data_validations(sheet="Sheet1")
-        wb.validate_cells("Sheet1!A1:A3", max_cells_to_scan=10, max_invalid_cells=2, treat_unsupported_as_invalid=True)
         wb.set_data_validations("Sheet1", [{"address": "A1", "rule": {"wholeNumber": {"formula1": 0, "operator": "GreaterThan"}}}], clear=True)
         wb.remove_data_validations("Sheet1", address="A1")
         wb.set_cells([{"address": "Sheet1!A1", "value": 1}], validation_mode="reject")
@@ -242,7 +241,6 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         "setConditionalFormatting",
         "removeConditionalFormatting",
         "getDataValidations",
-        "validateCells",
         "setDataValidations",
         "removeDataValidations",
         "setCells",
@@ -264,12 +262,6 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
 
     logged_requests = json_lines(requests_file)
     args_by_op = {request["op"]: request["args"] for request in logged_requests}
-    assert args_by_op["validateCells"] == {
-        "address": "Sheet1!A1:A3",
-        "maxCellsToScan": 10,
-        "maxInvalidCells": 2,
-        "treatUnsupportedAsInvalid": True,
-    }
     assert args_by_op["removeDataValidations"] == {"sheet": "Sheet1", "address": "A1"}
     assert next(request["args"] for request in logged_requests if request["op"] == "setCells" and request["args"].get("validationMode") == "reject") == {
         "cells": [{"address": "Sheet1!A1", "value": 1}],

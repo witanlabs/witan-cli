@@ -1,96 +1,93 @@
 # Changelog
 
+For spreadsheet product and runtime changes, see the [spreadsheet changelog](https://docs.witanlabs.com/products/spreadsheet/changelog).
+
 ## Unreleased
+
+## 0.12.0
+
+- Updated: [CLI] `witan xlsx exec` now accepts TypeScript as well as JavaScript for `--code`, `--script`, and `--stdin` sources.
+- New: [CLI] `witan xlsx exec` and `witan pptx exec` now accept repeatable `--input-file key=@path` flags for passing local PNG/JPEG files to scripts as data URI input values.
+- Updated: [CLI] `witan xlsx lint` now describes itself as semantic workbook checking and lists rule `D043` for data validation violations.
+- Breaking: [CLI] [JS SDK] [Python SDK] [Skill] `validateCells` was removed from the xlsx method surface; data validation failures are now reported through lint rule `D043`.
+- Updated: [JS SDK] [Python SDK] xlsx types now cover richer workbook, sheet, style, chart, image, data validation, ListObject, and What-If Data Table payloads.
+- Updated: [Skill] `xlsx-code-mode` now documents `--input-file`, data validation linting, and expanded chart/image authoring surfaces including radar, surface, histogram, Pareto, funnel, and box-whisker charts.
+
+## 0.11.0
+
+- New: [CLI] `witan pptx exec` runs Office.js-compatible scripts against PPTX files, with `--create`, `--save`, `--json`, `--input-json`, `--locale`, timeout, and output-size controls.
+- New: [CLI] `witan pptx render` renders a slide to PNG and can produce visual diffs against a baseline PNG.
+- New: [Skill] `pptx-code-mode` provides the workflow and Office.js reference guidance for inspecting, creating, editing, rendering, and visually checking PPTX files.
+
+## 0.10.1
+
+- New: [JS SDK] Introduced the Node.js SDK, with `Workbook.open`, async disposal, binary discovery, typed errors, request timeouts, and xlsx workbook methods backed by `witan xlsx rpc`.
+- Fixed: [CLI] Expired saved auth sessions are cleared automatically after `401` or `403` token exchange failures, allowing unauthenticated stateless usage to resume.
+- Updated: [Skill] `xlsx-code-mode` and `read-source` now document the `npx witan` fallback when `witan` is not already on `PATH`.
 
 ## 0.10.0
 
-
-- New: The `witan` PyPI package now ships a Python SDK alongside the bundled CLI binary, exposing `witan.Workbook` and `witan.AsyncWorkbook` for synchronous and asyncio access to xlsx workbook sessions over `witan xlsx rpc`.
-- New: `witan xlsx rpc <file>` opens a persistent xlsx session and relays newline-delimited JSON requests over stdio, enabling low-latency multi-op workflows without re-uploading the workbook per call.
-- Updated: Cached `witan xlsx exec` sessions now pin to a backend instance via affinity cookies, improving warm-cache hit rates across sequential calls against the same workbook.
-- Updated: `witan xlsx exec` cache keys now include the local file path, preventing collisions between distinct workbooks that share identical content but live at different paths.
+- New: [Python SDK] The `witan` PyPI package now ships a Python SDK alongside the bundled CLI binary, exposing `witan.Workbook` and `witan.AsyncWorkbook` for synchronous and asyncio access to xlsx workbook sessions over `witan xlsx rpc`.
+- New: [CLI] `witan xlsx rpc <file>` opens a persistent xlsx session and relays newline-delimited JSON requests over stdio, enabling low-latency multi-op workflows without re-uploading the workbook per call.
+- Updated: [CLI] Cached `witan xlsx exec` sessions now pin to a backend instance via affinity cookies, improving warm-cache hit rates across sequential calls against the same workbook.
+- Updated: [CLI] `witan xlsx exec` cache keys now include the local file path, preventing collisions between distinct workbooks that share identical content but live at different paths.
 
 ## 0.9.0
 
-
-- New: `listCharts`, `getChart`, `addChart`, `setChart`, and `deleteChart` are now available in `witan xlsx exec` / `xlsx-code-mode` for embedded chart authoring and inspection.
-- New: `getListObject`, `addListObject`, `setListObject`, and `deleteListObject` are now available in `witan xlsx exec` / `xlsx-code-mode` for Excel ListObject table authoring and inspection.
-- New: `getDataTable`, `addDataTable`, and `deleteDataTable` are now available in `witan xlsx exec` / `xlsx-code-mode` for authoring and removing What-If Data Tables by visible footprint.
-- New: `deleteDefinedName` is now available in `witan xlsx exec` / `xlsx-code-mode` for removing workbook-scoped or sheet-scoped defined names.
-- New: `setRowProperties` / `setColumnProperties` expose row/column size/visibility and outline status, and `setSheetProperties` now exposes sheet-wide outline settings.
+- New: [CLI] `witan auth status` reports the active credential source, validation state, selected organization, ignored lower-priority credentials, and supports `--json` output.
+- Updated: [CLI] `witan xlsx lint` help no longer lists removed rule `D031`; examples now use active rule IDs such as `D001` and `D030`.
 
 ## 0.8.0
 
-- New: `previewStyles` now renders bar, line, area, pie and combo charts, including Excel-styled axes, titles, legends, data labels, trendlines, gridlines, error bars, and chart styles/colors.
-- Updated: The calculation engine now performs array-aware lazy evaluation for IF/IFERROR/IFNA/IFS/SWITCH/CHOOSE, fixing Excel-style aggregate formulas such as `SUM(IF(range,...))` while still avoiding evaluation of untaken branches.
+No CLI, JS SDK, Python SDK, or skill surface changes.
+
+## 0.7.1
+
+- Fixed: [CLI] `witan xlsx exec --locale` now sends the locale in the request query as well as the request payload/header, so locale-sensitive execution is honored across stateless and files-backed modes.
 
 ## 0.7.0
 
-- New: --create flag in `witan xlsx exec` enables creating and populating a workbook in a single command
-- New: --locale flag in `witan xlsx exec` enables controlling which locale is used for formula calculation, number formatting, string comparison, etc. It accepts values such as en-US, which can also be passed as WITAN_LOCALE env var
-- New: --version flag prints the API version in addition to CLI version
-- Updated: set/getSheetProperties gained a visibility field to control sheet visibility
-- New: CELL function is now implemented in calculation engine
-- Updated: Add 3 unit aliases missing in CONVERT function: d, s, L
-- Updated: Rounding functions now coerce empty reference args as 0, matching Excel
-- Updated: COUNTIF/etc criteria functions now reject criteria strings over 255 characters, matching Excel
-- Updated: COUNTIF and D\* database functions now handle external workbook ranges as expected
-- New: 3D references are now supported in calculation engine
-- Updated: COUNTIF/SUMIF/AVERAGEIF tilde escaping updated to match Excel behavior
-- Updated: LINEST/LOGEST/TREND/GROWTH regression statistics now match Excel more closely, including exact-fit and near-exact-fit cases
-- Updated: LINEST(..., FALSE, TRUE) now returns Excel-style #N/A in the second-row/second-column stats slot
-- Updated: LOGEST(..., FALSE, TRUE) standard-error output now matches Excel instead of incorrectly exponentiating the slope standard error
-- Updated: MAP/SCAN/BYROW/BYCOL/MAKEARRAY/REDUCE now treat 1x1 lambda results as scalars in array-evaluation contexts, matching Excel
-- Updated: MAKEARRAY now accepts single-cell references for rows/cols arguments, matching Excel
-- Updated: REGEXREPLACE negative occurrence handling now matches Excel, including counting from the end and returning the original text when out of range
-- Updated: BESSELI/BESSELJ/BESSELK/BESSELY calculations now match Excel more closely
-- Updated: IMCSC and IMCSCH now match Excel more closely for edge-case complex-number text outputs
-- Updated: ASC now respects locale-specific Excel behavior, leaving text unchanged outside Japanese locales
-- Updated: Standard normal / error-function based statistical functions now match Excel more closely through a more accurate inverse-normal and error-function implementation
-- Updated: VLOOKUP/HLOOKUP now support wildcard search, matching Excel
+- New: [CLI] `witan xlsx exec --create` creates and populates a workbook in a single command.
+- New: [CLI] `witan xlsx exec --locale` controls the locale used for formula calculation, number formatting, and string comparison; the same value can be supplied through `WITAN_LOCALE`.
+
+## 0.6.2
+
+- New: [CLI] `--version` now prints the API version in addition to the CLI version.
+- Fixed: [CLI] `witan xlsx exec --json --save` writes returned workbook bytes locally but omits the transport-only base64 file payload from JSON output.
+- Fixed: [CLI] Temporary image files emitted by `witan xlsx exec` now use owner-only file permissions.
+
+## 0.6.1
+
+- Fixed: [CLI] File uploads now use stable built-in MIME type detection for spreadsheet and document extensions, avoiding host-dependent MIME sniffing issues.
 
 ## 0.6.0
 
-- New: All API calls are now org-scoped (`/v0/orgs/:org_id/...`) when authenticated, enabling multi-org support
-- New: Login flow prompts for org selection when the user belongs to multiple organizations
-- Updated: File and revision cache keys now include org ID to prevent cross-org collisions
+- New: [CLI] Authenticated API calls are now org-scoped (`/v0/orgs/:org_id/...`), enabling multi-org support.
+- New: [CLI] `witan auth login` prompts for org selection when the user belongs to multiple organizations.
+- Updated: [CLI] File and revision cache keys now include org ID to prevent cross-org collisions.
 
 ## 0.5.0
 
-- New: Array formulas are now supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
-- New: LAMBDA/LET/REDUCE/MAP/SCAN/MAKEARRAY/BYROW/BYCOL functions are now fully supported for authoring, calculation, dependency tracking, with full open-save roundtrip fidelity
-- New: Calculation of What-If Data Tables is now fully supported, automatically recalculating as needed when upstream cells are modified through `setCells`
-- Updated: External workbook references in formulas are now resolved against the workbook cache when recalculating
-- Updated: All methods that output formulas now do in display-format style, ie. without `_xlfn`-like prefixes used in stored formulas
-- Updated: All methods that accept formulas as input now consistently accept them both with and without leading `=`, with and without stored formula prefixes like `_xlfn`
-- Updated: Iterative calculation worbook settings can now be read and modified from `get/setWorkbookProperties`, and they are persisted accordingly on save
-- Updated: `readRange`, `readRangeTsv`, `previewStyles` and all other methods that accept range addresses now also resolve table names, defined names, structured references
-- Updated: `listSheets` now omits null fields in the response, to save tokens on commonly missing/empty fields
-- Updated: `listSheets` now returns list of what-if data table addresses for each sheet, which can be passed directly to `readRangeTsv` etc to inspect
-- Updated: `listSheets` now returns list of ListObject table names for each sheet, which can be passed directly to `readRangeTsv` etc to inspect
+No CLI, JS SDK, Python SDK, or skill surface changes.
 
 ## 0.4.0
 
-- New: `sortRange` operation to sort rows by column keys.
-- New: `autoFitColumns` operation to auto-fit column widths to cell content.
-- New: `findAndReplace` for bulk text substitution with regex and formula support.
-- New: `copyRange` operation to copy ranges with formula reference adjustment.
-- New: `sweepInputs` operation for batch what-if analysis with compact TSV output.
-- New: `getConditionalFormatting`, `setConditionalFormatting`, `removeConditionalFormatting` for reading, adding, and removing conditional formatting rules (`iconSet` currently read-only in write payloads).
-- Breaking: `detectTables` replaced by `describeSheet` / `describeSheets` — returns detected tables plus compact ASCII structure maps showing cell types, row collapsing, and inline label annotations.
-- Updated: `readRange`, `readRow`, `readColumn`, `readCell`: now include `note`, `link`, `thread` fields when cells have comments, hyperlinks, or threaded comments.
-- Updated: `setCells`: now supports `note`, `link`, and `thread` fields for setting/clearing comments, hyperlinks, and threaded comments (with inline person upsert).
-- Updated: `listSheets`: now returns list of dependent and precedent sheets for each sheet
+- Fixed: [CLI] README and command help examples now use the documented `xlsx.readCell(wb, "Summary!A1")` exec API instead of the obsolete `wb.sheet(...).cell(...)` style.
+- Updated: [Skill] `xlsx-code-mode` now documents `includeFormulas` for TSV reads and expands its workbook scripting reference for the method surface available through `witan xlsx exec`.
+
+## 0.3.1
+
+- New: [CLI] `witan read` extracts text and structure from supported source documents for downstream workbook and document workflows.
+- Updated: [CLI] `witan xlsx exec` now writes image outputs to temporary files and prints their paths.
+- New: [CLI] `witan xlsx exec --stdin-timeout-ms` prevents stalled stdin reads when an input stream never reaches EOF.
+- Updated: [CLI] API requests now include the CLI version in the `User-Agent` header.
+- Fixed: [CLI] XLSX calculation and execution cache updates now preserve the resolved local workbook path.
 
 ## 0.3.0
 
-### Commands
+- [CLI] `witan xlsx calc`: Recalculates workbook formulas, surfaces formula errors, and can run in `--verify` mode to detect value drift without mutating the file.
+- [CLI] `witan xlsx exec`: Runs sandboxed JavaScript against a workbook to read, search, trace, and (optionally) persist edits.
+- [CLI] `witan xlsx lint`: Performs semantic formula analysis to catch spreadsheet risks like double counting, lookup issues, and coercion surprises.
+- [CLI] `witan xlsx render`: Renders a sheet range to an image for visual layout, formatting, and diff-based change checks.
 
-- `witan xlsx calc`: Recalculates workbook formulas, surfaces formula errors, and can run in `--verify` mode to detect value drift without mutating the file.
-- `witan xlsx exec`: Runs sandboxed JavaScript against a workbook to read, search, trace, and (optionally) persist edits.
-- `witan xlsx lint`: Performs semantic formula analysis to catch spreadsheet risks like double counting, lookup issues, and coercion surprises.
-- `witan xlsx render`: Renders a sheet range to an image for visual layout, formatting, and diff-based change checks.
-
-### Skills
-
-- `xlsx-code-mode`: Workbook exploration/editing workflow centered on `witan xlsx exec` for reading data, tracing logic, and running what-if updates.
+- [Skill] `xlsx-code-mode`: Workbook exploration/editing workflow centered on `witan xlsx exec` for reading data, tracing logic, and running what-if updates.

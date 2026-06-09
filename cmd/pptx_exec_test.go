@@ -81,6 +81,57 @@ func TestRunPPTXExec_StatelessSuccessHumanOutputAndNoOverwrite(t *testing.T) {
 	}
 }
 
+func TestRunPPTXExec_InputFileSentAsDataURI(t *testing.T) {
+	resetPPTXExecTestGlobals(t)
+	filePath, _ := writePresentationForExecTest(t)
+	imgBytes := []byte{0xff, 0xd8, 0xff, 0xdb}
+	imgPath := filepath.Join(t.TempDir(), "logo.jpg")
+	if err := os.WriteFile(imgPath, imgBytes, 0o644); err != nil {
+		t.Fatalf("writing image: %v", err)
+	}
+
+	wantLogo := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(imgBytes)
+	var gotInput map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v0/orgs/org_test/pptx/exec" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("parsing multipart form: %v", err)
+		}
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(r.FormValue("exec")), &payload); err != nil {
+			t.Fatalf("parsing exec payload: %v", err)
+		}
+		gotInput, _ = payload["input"].(map[string]any)
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"ok":true,"stdout":"","result":{"ok":true}}`)
+	}))
+	defer server.Close()
+
+	stateless = true
+	apiURL = server.URL
+	apiKey = "test-key"
+
+	cmd := newPPTXExecTestCommand()
+	if err := cmd.Flags().Set("code", "return input.logo;"); err != nil {
+		t.Fatalf("setting --code: %v", err)
+	}
+	if err := cmd.Flags().Set("input-file", "logo=@"+imgPath); err != nil {
+		t.Fatalf("setting --input-file: %v", err)
+	}
+
+	if _, err := captureExecStdout(t, func() error {
+		return runPPTXExec(cmd, []string{filePath})
+	}); err != nil {
+		t.Fatalf("runPPTXExec failed: %v", err)
+	}
+	if gotInput["logo"] != wantLogo {
+		t.Fatalf("unexpected input payload: %#v", gotInput)
+	}
+}
+
 func TestRunPPTXExec_CreateSaveWritesPresentation(t *testing.T) {
 	resetPPTXExecTestGlobals(t)
 	targetPath := filepath.Join(t.TempDir(), "created.pptx")
@@ -245,6 +296,7 @@ func resetPPTXExecTestGlobals(t *testing.T) {
 	origExecStdin := pptxExecStdin
 	origExecExpr := pptxExecExpr
 	origExecInputJSON := pptxExecInputJSON
+	origExecInputFiles := pptxExecInputFiles
 	origExecLocale := pptxExecLocale
 	origExecStdinTimeoutMS := pptxExecStdinTimeoutMS
 	origExecTimeoutMS := pptxExecTimeoutMS
@@ -262,6 +314,7 @@ func resetPPTXExecTestGlobals(t *testing.T) {
 		pptxExecStdin = origExecStdin
 		pptxExecExpr = origExecExpr
 		pptxExecInputJSON = origExecInputJSON
+		pptxExecInputFiles = origExecInputFiles
 		pptxExecLocale = origExecLocale
 		pptxExecStdinTimeoutMS = origExecStdinTimeoutMS
 		pptxExecTimeoutMS = origExecTimeoutMS
@@ -280,6 +333,7 @@ func resetPPTXExecTestGlobals(t *testing.T) {
 	pptxExecStdin = false
 	pptxExecExpr = ""
 	pptxExecInputJSON = ""
+	pptxExecInputFiles = nil
 	pptxExecLocale = ""
 	pptxExecStdinTimeoutMS = defaultExecStdinTimeoutMS
 	pptxExecTimeoutMS = 0
@@ -295,6 +349,7 @@ func newPPTXExecTestCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&pptxExecStdin, "stdin", false, "")
 	cmd.Flags().StringVar(&pptxExecExpr, "expr", "", "")
 	cmd.Flags().StringVar(&pptxExecInputJSON, "input-json", "", "")
+	cmd.Flags().StringArrayVar(&pptxExecInputFiles, "input-file", nil, "")
 	cmd.Flags().StringVar(&pptxExecLocale, "locale", "", "")
 	cmd.Flags().IntVar(&pptxExecStdinTimeoutMS, "stdin-timeout-ms", defaultExecStdinTimeoutMS, "")
 	cmd.Flags().IntVar(&pptxExecTimeoutMS, "timeout-ms", 0, "")

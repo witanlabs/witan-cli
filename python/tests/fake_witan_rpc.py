@@ -116,8 +116,6 @@ def result_for(op: str, args: dict[str, Any]) -> Any:
         return {"rules": []}
     if op == "getDataValidations":
         return {"rules": []}
-    if op == "validateCells":
-        return {"status": "Valid", "invalidCells": [], "truncated": False, "diagnostics": []}
     if op == "autoFitColumns":
         return {"columns": {"A": {"width": 12, "previousWidth": 8}}}
     if op == "autoFitRows":

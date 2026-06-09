@@ -12,7 +12,6 @@ import type {
   ConditionalFormattingRule,
   CopyRangeResult,
   DataValidationInfo,
-  DataValidationResult,
   DataValidationSpec,
   DataTable,
   DataTableMutationResult,
@@ -21,6 +20,10 @@ import type {
   DependencyResult,
   FindAndReplaceResult,
   FormulaResult,
+  ImageInfo,
+  ImageSelector,
+  ImageSpec,
+  ImageUpdate,
   LintResult,
   ListObject,
   ListObjectMutationResult,
@@ -1068,6 +1071,86 @@ export class Workbook implements AsyncDisposable {
   }
 
   // ============================================================================
+  // Images
+  // ============================================================================
+
+  /**
+   * List worksheet images in the workbook.
+   *
+   * @param options - Options to filter by sheet
+   * @returns Array of image metadata
+   */
+  async listImages(options: { sheet?: string } = {}): Promise<ImageInfo[]> {
+    const result = (await this.request(
+      'listImages',
+      'listImages',
+      dropUndefined({ sheet: options.sheet })
+    )) as { images?: ImageInfo[] };
+    return result.images ?? [];
+  }
+
+  /**
+   * Get worksheet image metadata by name or id.
+   *
+   * @param sheet - Sheet containing the image
+   * @param selector - Image name or sheet-local id
+   * @returns The image metadata
+   */
+  async getImage(sheet: string, selector: ImageSelector): Promise<ImageInfo> {
+    const result = (await this.request(
+      'getImage',
+      'getImage',
+      dropUndefined({ sheet, name: selector.name, id: selector.id })
+    )) as { image?: ImageInfo };
+    return result.image ?? ({} as ImageInfo);
+  }
+
+  /**
+   * Add a PNG or JPEG image to a sheet.
+   *
+   * @param sheet - Sheet name
+   * @param image - Image specification
+   * @returns The created image metadata
+   */
+  async addImage(sheet: string, image: ImageSpec): Promise<ImageInfo> {
+    const result = (await this.request('addImage', 'addImage', { sheet, image })) as {
+      image?: ImageInfo;
+    };
+    return result.image ?? ({} as ImageInfo);
+  }
+
+  /**
+   * Update worksheet image metadata, placement, or source bytes.
+   *
+   * @param sheet - Sheet containing the image
+   * @param selector - Image name or sheet-local id
+   * @param image - Image updates
+   * @returns The updated image metadata
+   */
+  async setImage(sheet: string, selector: ImageSelector, image: ImageUpdate): Promise<ImageInfo> {
+    const result = (await this.request(
+      'setImage',
+      'setImage',
+      dropUndefined({ sheet, name: selector.name, id: selector.id, image })
+    )) as { image?: ImageInfo };
+    return result.image ?? ({} as ImageInfo);
+  }
+
+  /**
+   * Delete a worksheet image by name or id.
+   *
+   * @param sheet - Sheet containing the image
+   * @param selector - Image name or sheet-local id
+   */
+  async deleteImage(sheet: string, selector: ImageSelector): Promise<void> {
+    await this.request(
+      'deleteImage',
+      'deleteImage',
+      dropUndefined({ sheet, name: selector.name, id: selector.id })
+    );
+  }
+
+  // ============================================================================
   // Conditional Formatting
   // ============================================================================
 
@@ -1133,33 +1216,6 @@ export class Workbook implements AsyncDisposable {
       dropUndefined({ sheet: options.sheet, address: options.address })
     )) as { rules?: DataValidationInfo[] };
     return result.rules ?? [];
-  }
-
-  /**
-   * Validate current cell values against their data validation rules.
-   *
-   * @param address - Range address to validate
-   * @param options - Evaluation limits and unsupported-rule handling
-   * @returns Validation status, invalid cell ranges, and diagnostics
-   */
-  async validateCells(
-    address: string,
-    options: {
-      maxCellsToScan?: number;
-      maxInvalidCells?: number;
-      treatUnsupportedAsInvalid?: boolean;
-    } = {}
-  ): Promise<DataValidationResult> {
-    return (await this.request(
-      'validateCells',
-      'validateCells',
-      dropUndefined({
-        address,
-        maxCellsToScan: options.maxCellsToScan,
-        maxInvalidCells: options.maxInvalidCells,
-        treatUnsupportedAsInvalid: options.treatUnsupportedAsInvalid,
-      })
-    )) as DataValidationResult;
   }
 
   /**

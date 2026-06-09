@@ -17,7 +17,7 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 - New: [CLI] `witan pptx exec` runs Office.js-compatible scripts against PPTX files, with `--create`, `--save`, `--json`, `--input-json`, `--locale`, timeout, and output-size controls.
 - New: [CLI] `witan pptx render` renders a slide to PNG and can produce visual diffs against a baseline PNG.
-- New: [Skill] `pptx-code-mode` provides the workflow and Office.js reference guidance for inspecting, creating, editing, rendering, and visually checking PPTX files.
+- New: [Skill] `pptx-office-js` provides the workflow and Office.js reference guidance for inspecting, creating, editing, rendering, and visually checking PPTX files.
 
 ## 0.10.1
 

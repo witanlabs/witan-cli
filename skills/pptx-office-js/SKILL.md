@@ -1,6 +1,6 @@
 ---
-name: pptx-code-mode
-description: Use this skill when a PPTX file needs to be rendered, inspected, created, or modified through Witan PPTX. The tool runs sandboxed Office.js-compatible JavaScript plus Witan PPTX chart extensions against PPTX files via `witan pptx exec`.
+name: pptx-office-js
+description: Use this skill when a PPTX file needs to be rendered, inspected, created, or modified through Witan PPTX's sandboxed, headless PowerPoint runtime. It runs Office.js-compatible JavaScript plus Witan PPTX chart extensions against PPTX files via `witan pptx exec`; Microsoft Office does not need to be installed. It accepts any valid PPTX file and produces PPTX files that are 100% compatible with PowerPoint.
 ---
 
 ## Quick Reference

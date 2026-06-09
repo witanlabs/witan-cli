@@ -45,6 +45,12 @@ declare namespace PowerPoint {
   /** Time unit used by date category axes. */
   type ChartAxisTimeUnitValue = "Days" | "Months" | "Years";
 
+  /** Histogram/Pareto binning mode. */
+  type ChartBinTypeValue = "Auto" | "BinCount" | "BinWidth" | "Category";
+
+  /** Box and whisker quartile calculation mode. */
+  type ChartQuartileCalculation = "Inclusive" | "Exclusive";
+
   /** Chart line and border style. */
   type ChartLineStyleValue =
     | "Automatic"
@@ -96,17 +102,31 @@ declare namespace PowerPoint {
     | "BarStacked"
     | "BarStacked100"
     | "Bubble"
+    | "Boxwhisker"
     | "ColumnClustered"
     | "ColumnStacked"
     | "ColumnStacked100"
     | "Doughnut"
+    | "Funnel"
+    | "Histogram"
     | "Line"
     | "LineMarkers"
     | "LineMarkersStacked"
     | "LineMarkersStacked100"
     | "LineStacked"
     | "LineStacked100"
+    | "Pareto"
     | "Pie"
+    | "Radar"
+    | "RadarFilled"
+    | "RadarMarkers"
+    | "StockHLC"
+    | "StockOHLC"
+    | "StockVHLC"
+    | "StockVOHLC"
+    | "SurfaceTopView"
+    | "SurfaceTopViewWireframe"
+    | "Waterfall"
     | "XYScatter"
     | "XYScatterLines"
     | "XYScatterLinesNoMarkers"
@@ -122,17 +142,31 @@ declare namespace PowerPoint {
     barStacked: "BarStacked";
     barStacked100: "BarStacked100";
     bubble: "Bubble";
+    boxwhisker: "Boxwhisker";
     columnClustered: "ColumnClustered";
     columnStacked: "ColumnStacked";
     columnStacked100: "ColumnStacked100";
     doughnut: "Doughnut";
+    funnel: "Funnel";
+    histogram: "Histogram";
     line: "Line";
     lineMarkers: "LineMarkers";
     lineMarkersStacked: "LineMarkersStacked";
     lineMarkersStacked100: "LineMarkersStacked100";
     lineStacked: "LineStacked";
     lineStacked100: "LineStacked100";
+    pareto: "Pareto";
     pie: "Pie";
+    radar: "Radar";
+    radarFilled: "RadarFilled";
+    radarMarkers: "RadarMarkers";
+    stockHLC: "StockHLC";
+    stockOHLC: "StockOHLC";
+    stockVHLC: "StockVHLC";
+    stockVOHLC: "StockVOHLC";
+    surfaceTopView: "SurfaceTopView";
+    surfaceTopViewWireframe: "SurfaceTopViewWireframe";
+    waterfall: "Waterfall";
     xyScatter: "XYScatter";
     xyScatterLines: "XYScatterLines";
     xyScatterLinesNoMarkers: "XYScatterLinesNoMarkers";
@@ -158,6 +192,14 @@ declare namespace PowerPoint {
     days: "Days";
     months: "Months";
     years: "Years";
+  };
+
+  /** Witan PPTX histogram/Pareto bin type enum object. */
+  const ChartBinType: {
+    auto: "Auto";
+    binCount: "BinCount";
+    binWidth: "BinWidth";
+    category: "Category";
   };
 
   /** Witan PPTX chart line style enum object. */
@@ -273,7 +315,7 @@ declare namespace PowerPoint {
     readonly dataLabels: ChartDataLabels;
     /** Data source kind. Witan-authored charts currently report `EmbeddedWorkbook`. */
     readonly dataSourceKind: string;
-    /** Blank-cell display behavior. */
+    /** Blank-cell display behavior. ChartEx charts reject writes to this property. */
     displayBlanksAs: ChartDisplayBlanksAs;
     /** Chart area format. */
     readonly format: ChartAreaFormat;
@@ -289,11 +331,11 @@ declare namespace PowerPoint {
     name: string;
     /** Plot area formatting. */
     readonly plotArea: ChartPlotArea;
-    /** Whether hidden source rows/columns are excluded. */
+    /** Whether hidden source rows/columns are excluded. ChartEx charts reject writes to this property. */
     plotVisibleOnly: boolean;
     /** Series collection. */
     readonly series: ChartSeriesCollection;
-    /** Whether data labels may be shown over the maximum value. */
+    /** Whether data labels may be shown over the maximum value. ChartEx charts reject writes to this property. */
     showDataLabelsOverMaximum: boolean;
     /** Chart style id. */
     style: number;
@@ -429,7 +471,7 @@ declare namespace PowerPoint {
     firstSliceAngle: number;
     /** Series format. */
     readonly format: ChartSeriesFormat;
-    /** Bar/column gap width, 0-500. Only valid on bar and column charts. */
+    /** Gap width, 0-500. Only valid on bar, column, waterfall, and box-and-whisker charts. */
     gapWidth: number;
     /** Per-series chart type. Changing this can create combo chart groups. */
     chartType: ChartTypeValue;
@@ -449,6 +491,8 @@ declare namespace PowerPoint {
     name: string;
     /** Bar/column overlap, -100 to 100. Only valid on bar and column charts. */
     overlap: number;
+    /** Whether connector lines are visible. Only valid on waterfall charts. */
+    showConnectorLines: boolean;
     /** Whether line/scatter curves are smoothed. */
     smooth: boolean;
     /** Whether categories vary by color. */
@@ -456,6 +500,10 @@ declare namespace PowerPoint {
 
     /** Deletes the series from the chart. */
     delete(): void;
+    /** Gets histogram/Pareto binning options. Only valid on histogram and Pareto charts. */
+    getBinOptions(): ChartBinOptions;
+    /** Gets box-and-whisker options. Only valid on box-and-whisker charts. */
+    getBoxwhiskerOptions(): ChartBoxwhiskerOptions;
     /** Returns the local embedded-workbook source range for a dimension. */
     getDimensionDataSourceString(dimension: "categories" | "category" | "values" | "value" | "xValues" | "xValue" | "xAxisValues" | "yValues" | "yValue" | "yAxisValues" | "bubbleSizes" | "bubbleSize"): string;
     /** Returns `"LocalRange"` when the dimension has a local embedded-workbook source. */
@@ -466,6 +514,62 @@ declare namespace PowerPoint {
     setValues(sourceData: ChartLocalRange): void;
     /** Sets category/X source range. For scatter and bubble charts this sets X values. */
     setXAxisValues(sourceData: ChartLocalRange): void;
+  }
+
+  /** Histogram and Pareto binning options. */
+  interface ChartBinOptions extends OfficeExtension.ClientObject {
+    /** Returns whether an overflow bin is enabled. */
+    getAllowOverflow(): boolean;
+    /** Enables or disables an overflow bin. Enabling creates a default overflow value when absent. */
+    setAllowOverflow(value: boolean): void;
+    /** Returns whether an underflow bin is enabled. */
+    getAllowUnderflow(): boolean;
+    /** Enables or disables an underflow bin. Enabling creates a default underflow value when absent. */
+    setAllowUnderflow(value: boolean): void;
+    /** Returns the number of bins, or 0 when not set. */
+    getCount(): number;
+    /** Sets the number of bins and changes the bin type to `"BinCount"`. */
+    setCount(value: number): void;
+    /** Returns the overflow value, or 0 when not set. */
+    getOverflowValue(): number;
+    /** Sets the overflow value and enables overflow bins. */
+    setOverflowValue(value: number): void;
+    /** Returns the binning mode. */
+    getType(): ChartBinTypeValue;
+    /** Sets the binning mode. `"Category"` is only valid when the series has categories. */
+    setType(value: ChartBinTypeValue): void;
+    /** Returns the underflow value, or 0 when not set. */
+    getUnderflowValue(): number;
+    /** Sets the underflow value and enables underflow bins. */
+    setUnderflowValue(value: number): void;
+    /** Returns the bin width, or 0 when not set. */
+    getWidth(): number;
+    /** Sets the bin width and changes the bin type to `"BinWidth"`. */
+    setWidth(value: number): void;
+  }
+
+  /** Box-and-whisker chart display options. */
+  interface ChartBoxwhiskerOptions extends OfficeExtension.ClientObject {
+    /** Returns the quartile calculation mode. */
+    getQuartileCalculation(): ChartQuartileCalculation;
+    /** Sets the quartile calculation mode. */
+    setQuartileCalculation(quartileCalculation: ChartQuartileCalculation): void;
+    /** Returns whether inner/non-outlier points are shown. */
+    getShowInnerPoints(): boolean;
+    /** Sets whether inner/non-outlier points are shown. */
+    setShowInnerPoints(value: boolean): void;
+    /** Returns whether the mean line is shown. */
+    getShowMeanLine(): boolean;
+    /** Sets whether the mean line is shown. */
+    setShowMeanLine(value: boolean): void;
+    /** Returns whether the mean marker is shown. */
+    getShowMeanMarker(): boolean;
+    /** Sets whether the mean marker is shown. */
+    setShowMeanMarker(value: boolean): void;
+    /** Returns whether outlier points are shown. */
+    getShowOutlierPoints(): boolean;
+    /** Sets whether outlier points are shown. */
+    setShowOutlierPoints(value: boolean): void;
   }
 
   /** Chart-wide or series-level data labels. */

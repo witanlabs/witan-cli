@@ -4,6 +4,8 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 ## Unreleased
 
+- Updated: [Skill] `pptx-code-mode` now documents Witan install steps for the Claude Cowork sandbox.
+
 ## 0.12.0
 
 - Updated: [CLI] `witan xlsx exec` now accepts TypeScript as well as JavaScript for `--code`, `--script`, and `--stdin` sources.

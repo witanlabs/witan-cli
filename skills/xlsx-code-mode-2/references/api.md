@@ -109,6 +109,15 @@ await xlsx.addChart(wb, "Sheet1", {
 await xlsx.previewStyles(wb, "Sheet1!F2:N18")
 WITAN
 
+# Add an image from a local file (--input-file loads it as base64)
+witan xlsx exec model.xlsx --save --input-file logo=@./logo.png --stdin <<'WITAN'
+await xlsx.addImage(wb, "Sheet1", {
+	name: "Logo",
+	position: { from: { cell: "A1" }, to: { cell: "D6" } },
+	source: { base64: input.logo }
+})
+WITAN
+
 # ListObject authoring — create an Excel table and read it back by table name
 witan xlsx exec model.xlsx --stdin <<'WITAN'
 await xlsx.addListObject(wb, "Sheet1", {
@@ -185,14 +194,14 @@ Provide exactly one code source: `--expr`, `--code`, `--script`, or `--stdin`. T
 ### Flags
 
 - Code source: exactly one of `--stdin`, `--expr`, `--code`, or `--script`.
-- Inputs/control: `--input-json`, `--timeout-ms`, `--max-output-chars`, `--stdin-timeout-ms`, `--locale`.
+- Inputs/control: `--input-json`, `--input-file key=@path`, `--timeout-ms`, `--max-output-chars`, `--stdin-timeout-ms`, `--locale`.
 - Workbook lifecycle: `--create` creates a new `.xlsx` session; `--save` persists changes; `--json` prints the full response envelope.
 
 ### Runtime globals
 
 - `xlsx` (`object`): curated API surface; all functions listed below
 - `wb` (`WorkbookContext`): opened workbook handle; pass as first arg to all `xlsx.*` calls
-- `input` (`any`): parsed value from `--input-json` (defaults to `{}`)
+- `input` (`any`): parsed value from `--input-json` (defaults to `{}`); `--input-file logo=@./logo.png` loads that file's bytes as `input.logo`, a `data:<mime>;base64,...` URL you can pass straight to an image's `source.base64`
 - `print` (`function`): output to stdout, like `console.log` but captured in the response
 
 Top-level `await` is supported. No imports allowed (static or dynamic).
@@ -232,7 +241,7 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 **Validating**
 
 - `lint`: potential workbook issues and diagnostics
-- `getDataValidations`, `validateCells`: inspect data validation rules and find invalid cells
+- `getDataValidations`: inspect data validation rules (finding cells that violate them is now a `lint` rule)
 
 **Rendering**
 
@@ -243,13 +252,18 @@ Functions are grouped by purpose. All are async and take `wb` as the first argum
 - `listCharts`: chart summaries for the workbook or a single sheet
 - `getChart`: canonical spec for an existing chart
 - `addChart`, `setChart`, `deleteChart`: create, replace, or remove embedded charts
-- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, waterfall charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
+- Supported specs include combo charts, secondary axes, stock charts, bubble charts, radar charts, waterfall charts, surface charts, histogram/pareto charts, funnel charts, box & whisker charts, chart/plot-area formatting, group/series data labels, linked number formats, and style IDs. Use `previewStyles` after authoring to inspect rendered placement and labels.
 
 **Conditional Formatting**
 
 - `getConditionalFormatting`: read all sheet rules; `iconSet` is read-only
 - `setConditionalFormatting`: add writable rules; `opts.clear` replaces all rules
 - `removeConditionalFormatting`: remove rules by index
+
+**Images**
+
+- `listImages`, `getImage`: inspect embedded images (metadata only, no pixel data)
+- `addImage`, `setImage`, `deleteImage`: place, replace, or remove embedded images; `source.base64` takes raw base64 or a `data:` URL (see `--input-file`)
 
 **Writing (ephemeral)**
 
@@ -582,9 +596,10 @@ interface ChartSpec {
 	name:string;
 	position:ChartPosIn;
 	groups:{
-		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"stockHLC"|"stockOHLC"|"waterfall";
+		type:"column"|"bar"|"line"|"area"|"pie"|"doughnut"|"scatter"|"bubble"|"radar"|"surface"|"stockHLC"|"stockOHLC"|"waterfall"|"histogram"|"pareto"|"funnel"|"boxWhisker";
 		scatterStyle?:"line"|"lineMarker"|"marker"|"smooth"|"smoothMarker"; /** scatter only */
 		radarStyle?:"standard"|"marker"|"filled"; /** radar only */
+		surfaceVariant?:"topView"|"topViewWireframe"; /** surface only */
 		grouping?:"standard"|"stacked"|"percentStacked";
 		axis?:"primary"|"secondary";
 		gapWidth?:number;
@@ -627,6 +642,12 @@ interface ChartSpec {
 			invertIfNegative?:boolean;
 			totalIndexes?:number[]; /** waterfall only: zero-based subtotal/total point indexes */
 			showConnectorLines?:boolean; /** waterfall only */
+			binOptions?:{type?:"auto"|"binCount"|"binWidth"|"category";count?:number;width?:number;allowOverflow?:boolean;overflowValue?:number;allowUnderflow?:boolean;underflowValue?:number}; /** histogram/pareto only */
+			quartileCalculation?:"exclusive"|"inclusive"; /** boxWhisker only */
+			showInnerPoints?:boolean; /** boxWhisker only */
+			showMeanLine?:boolean; /** boxWhisker only */
+			showMeanMarker?:boolean; /** boxWhisker only */
+			showOutlierPoints?:boolean; /** boxWhisker only */
 			marker?:{
 				style?:"auto"|"none"|"circle"|"dash"|"diamond"|"dot"|"picture"|"plus"|"square"|"star"|"triangle"|"x";
 				size?:number;
@@ -1000,16 +1021,6 @@ function getDataValidations(wb,opts?:{sheet?:string;address?:string}):Promise<Ar
 	sheet:string;
 	type:"None"|"WholeNumber"|"Decimal"|"List"|"Date"|"Time"|"TextLength"|"Custom";
 }>>;
-function validateCells(wb,address:RangeRef,opts?:{
-	maxCellsToScan?:number;
-	maxInvalidCells?:number;
-	treatUnsupportedAsInvalid?:boolean;
-}):Promise<{
-	status:"Valid"|"Invalid"|"NoValidation"|"Mixed"|"Unknown";
-	invalidCells:string[];
-	truncated:boolean;
-	diagnostics:{code:string;message:string;details?:Record<string,string>|null}[];
-}>;
 function setDataValidations(wb,sheetName:string,rules:DvSpec[],opts?:{clear?:boolean}):Promise<void>;
 function removeDataValidations(wb,sheetName:string,target:{indices:number[]}|{address:string}):Promise<void>;
 function setSheetProperties(wb,sheetName:string,properties:{
@@ -1126,4 +1137,21 @@ function lint(wb,options?:{
 }>;
 /** Generates a PNG and prints its path to stdout. */
 function previewStyles(wb,range:RangeRef):Promise<void>;
+type ImageFormat="png"|"jpeg"
+type ImagePositionAnchor={cell:string;xOffsetPts?:number;yOffsetPts?:number}
+type ImagePositionInput={from:ImagePositionAnchor;to:ImagePositionAnchor}
+type ImagePosition=ImagePositionInput&{sheet?:string}
+type ImageSource={base64:string}
+type ImageAlt={altText?:string|null;altTextTitle?:string|null}
+type ImagePayload=ImageAlt&{format?:ImageFormat;preserveAspectRatio?:boolean}
+type ImageSelector={name?:string;id?:number}
+type ImageSpec=ImagePayload&{name:string;position:ImagePositionInput;source:ImageSource}
+type ImageUpdate=ImagePayload&{name?:string;position?:ImagePositionInput;source?:ImageSource}
+type ImageInfo=ImageAlt&{id?:number;sheet:string;name:string;position:ImagePosition;format?:ImageFormat;widthPts?:number;heightPts?:number;naturalWidthPx?:number;naturalHeightPx?:number}
+/** Image reads/lists return metadata only — never pixel data. */
+function listImages(wb,options?:{sheet?:string}):Promise<ImageInfo[]>;
+function getImage(wb,sheet:string,selector:ImageSelector):Promise<ImageInfo>;
+function addImage(wb,sheet:string,image:ImageSpec):Promise<ImageInfo>;
+function setImage(wb,sheet:string,selector:ImageSelector,image:ImageUpdate):Promise<ImageInfo>;
+function deleteImage(wb,sheet:string,selector:ImageSelector):Promise<void>;
 ````

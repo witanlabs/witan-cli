@@ -33,7 +33,7 @@ WITAN
 
 After reading this file, you MUST read **[references/api.md](references/api.md)** before your first `witan xlsx exec` call — the function surface is large and not guessable.
 
-`api.md` groups functions under headings you can grep for — Reading, Searching, Tracing, Computing, Validating, Rendering, Charts, Conditional Formatting, Writing — each with full signatures.
+`api.md` groups functions under headings you can grep for — Reading, Searching, Tracing, Computing, Validating, Rendering, Charts, Conditional Formatting, Images, Writing — each with full signatures.
 
 ### Work efficiently (latency matters)
 

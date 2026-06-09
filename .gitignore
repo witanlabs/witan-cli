@@ -21,3 +21,5 @@ examples/node_modules/
 examples/.env
 examples/output/
 .DS_Store
+# Packaged skill artifacts (generated, not tracked)
+skills/*.zip

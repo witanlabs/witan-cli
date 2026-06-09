@@ -1,6 +1,6 @@
 # Witan xlsx API reference
 
-The complete `xlsx.*` catalogue, CLI flags, result shapes, and full type definitions. **Read this before running `witan xlsx exec`** — the surface is large and not guessable from names alone.
+The complete `witan xlsx` reference — the `exec` scripting API (`xlsx.*`) plus the `calc`, `lint`, and `render` commands, with CLI flags, result shapes, and full type definitions. **Read this before running `witan xlsx exec`** — the API surface is large and not guessable from names alone.
 
 This file is the *reference*. For the *playbook* — when to reach for what, the reading / what-if and authoring workflows, the quality bar, and the verification gate — see `SKILL.md`.
 
@@ -311,6 +311,34 @@ When `--create` is set, the same ephemeral rule applies to the new workbook sess
 
 Read the output value from `result.touched["Sheet!Address"]`. Never compute the answer in JavaScript. `setCells` implicitly creates a sheet if `address` references one that does not yet exist.
 
+### Response format
+
+When `--json` is used, the full response envelope is returned:
+
+**Success:**
+
+```json
+{
+  "ok": true,
+  "stdout": "...",
+  "result": "<json>",
+  "writes_detected": false,
+  "accesses": [...]
+}
+```
+
+**Failure:**
+
+```json
+{
+  "ok": false,
+  "stdout": "...",
+  "error": { "type": "...", "code": "...", "message": "..." }
+}
+```
+
+The `accesses` array documents all cell reads and writes with operation type and address.
+
 ### What-if / sensitivity workflow
 
 For questions like "what happens to Y if X changes?", follow this sequence. **Steps 1 and 2 should be separate `exec` calls** — review the output of step 1 before proceeding.
@@ -339,7 +367,7 @@ Use `witan xlsx calc` when you want a standalone seeded or full-workbook
 verification pass, or when you want CLI reporting of all calculation errors or
 changed cells. `--show-touched` only changes output verbosity.
 
-### calc — Full-workbook verification
+## calc — Full-workbook verification
 
 `setCells` already recalculates the edited cells and all downstream dependents,
 so you do **not** need `witan xlsx calc` after every normal edit. Use `calc`
@@ -392,7 +420,7 @@ Changed (3):
 changed. That makes `--verify` useful as a final audit step after fixing a
 workbook.
 
-### lint — Semantic formula checks
+## lint — Semantic formula checks
 
 `witan xlsx lint` reports logic problems that compute without error — double-counting from overlapping ranges, approximate-match lookups on unsorted data, mixed currencies or percent/non-percent in one expression, empty-ref coercion, references to non-anchor cells in a merged range. Distinct from `calc`, which catches hard formula errors (`#REF!`, `#DIV/0!`).
 
@@ -403,34 +431,6 @@ witan xlsx lint model.xlsx --only-rule D001   # or --skip-rule D001
 ```
 
 Exits with code `2` when any Error or Warning is reported; `--json` gives structured diagnostics. The same checks are available in-`exec` via `xlsx.lint(wb, ...)`.
-
-### Response format
-
-When `--json` is used, the full response envelope is returned:
-
-**Success:**
-
-```json
-{
-  "ok": true,
-  "stdout": "...",
-  "result": "<json>",
-  "writes_detected": false,
-  "accesses": [...]
-}
-```
-
-**Failure:**
-
-```json
-{
-  "ok": false,
-  "stdout": "...",
-  "error": { "type": "...", "code": "...", "message": "..." }
-}
-```
-
-The `accesses` array documents all cell reads and writes with operation type and address.
 
 ## render — Visual Screenshot
 

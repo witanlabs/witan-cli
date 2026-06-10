@@ -1,5 +1,5 @@
 ---
-name: xlsx-office-script
+name: xlsx-excelscript
 description: "Read, explore, understand, create, and modify Excel workbooks (.xls, .xlsx, .xlsm) by running Office Scripts (ExcelScript) JavaScript against the workbook via `witan xlsx exec`. You cannot read Excel files with cat, head, or normal file-reading tools — exec is the only way to open or inspect them. Trigger when you or the user need to open or look inside a workbook, find its sheets or where data lives, read cells/rows/columns/ranges, search for values or labels, trace how a figure is calculated, or run what-if scenarios; and equally when asked to create a new workbook or financial model from scratch, add or edit formulas, charts, formatting, tables, or data validation, or change an existing model without breaking its formulas or references. Trigger whenever a spreadsheet is referenced by name or path — even casually ('check report.xlsx', 'build me a model') — and when you need to inspect a workbook as part of a larger task."
 ---
 

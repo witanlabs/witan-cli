@@ -12,20 +12,15 @@ if (!sourcePath || !outputPath) {
   process.exit(1);
 }
 
-const allowedOutputSuffixes = [
-  `${sep}skills${sep}pptx-code-mode${sep}references${sep}office-js.d.ts`,
-  `${sep}skills${sep}xlsx-office-script${sep}references${sep}excelscript.d.ts`,
-];
-
 const resolvedOutputPath = resolve(outputPath);
 if (
   resolvedOutputPath === sep ||
-  !allowedOutputSuffixes.some((suffix) => resolvedOutputPath.endsWith(suffix))
+  !resolvedOutputPath.endsWith(
+    `${sep}skills${sep}pptx-code-mode${sep}references${sep}office-js.d.ts`,
+  )
 ) {
   console.error(
-    `refusing to replace an unexpected output file; expected one of:\n${allowedOutputSuffixes
-      .map((suffix) => `  ${suffix.replace(new RegExp(`^\\${sep}`), "")}`)
-      .join("\n")}`,
+    "refusing to replace an unexpected output file; expected skills/pptx-code-mode/references/office-js.d.ts",
   );
   process.exit(1);
 }

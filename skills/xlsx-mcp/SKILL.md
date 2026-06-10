@@ -26,8 +26,8 @@ return { sheets, tsv }
 ```
 
 - **Globals** — `xlsx` (the API) and `wb` (the open workbook, passed first to every call), plus `input` (the call's `input` argument, default `{}`) and `print` (like `console.log`, captured into the response's `stdout`). Top-level `await` works; no `import`s. `return` sets the response's `result`.
-- **`create: true`** starts from a brand-new empty workbook instead of a `file_id` — pass exactly one of the two (`.xlsx` only).
-- **`save: true`** persists. Without it every write is **ephemeral** — it applies in the server session, recalculates, then is discarded; so reads and what-ifs never risk the file, and each run starts clean. Saving an existing file adds a revision; with `create` it also requires `filename` and mints the new `file_id`.
+- **`filename`** instead of `file_id` starts from a brand-new empty workbook — pass exactly one of the two (`.xlsx` only). It always mints a fresh workbook (never looks one up by name) and names the file if you save.
+- **`save: true`** persists. Without it every write is **ephemeral** — it applies in the server session, recalculates, then is discarded; so reads and what-ifs never risk the file, and each run starts clean. Saving a `file_id` run adds a revision (only if the script wrote cells); saving a `filename` run mints the new file.
 - **Read answers from `result.touched["Sheet!A1"]`, never recompute them in JS** — after a write the recalculated value is there. Calculating it yourself defeats the engine.
 
 After reading this file, you MUST read **[references/api.md](references/api.md)** before your first `xlsx_exec` call — the function surface is large and not guessable. It replaces the server's manual: do not call `read_witan_manual`.
@@ -94,7 +94,7 @@ Build in this order — it minimises rework and round-trips:
 4. **Add interactivity as needed** — data validation for categorical inputs, conditional formatting, then charts/tables.
 5. **Verify** (below) before calling it done.
 
-Prototype ephemerally (`create: true` without `save`) while iterating — nothing is persisted, not even a file; add `save: true` + `filename` only once the structure is right.
+Prototype ephemerally (`filename` without `save`) while iterating — nothing is persisted, not even a file; flip `save: true` only once the structure is right.
 
 ## Verify before done — mandatory
 

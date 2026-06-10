@@ -12,7 +12,7 @@ Each example is the `code` string of one `xlsx_exec` call; the leading comment s
 
 ```js
 // Create a new workbook from scratch (.xlsx only)
-// xlsx_exec { create: true, save: true, filename: "model.xlsx" }
+// xlsx_exec { filename: "model.xlsx", save: true }
 await xlsx.addSheet(wb, "Inputs")
 await xlsx.setCells(wb, [{ address: "Inputs!A1", value: "Revenue" }])
 return await xlsx.listSheets(wb)
@@ -165,11 +165,11 @@ Runs JavaScript against a workbook opened server-side; scripts interact through 
 
 ### Arguments
 
-- `file_id` *or* `create: true` — exactly one. `file_id` opens an uploaded working copy; `create` starts from a brand-new empty workbook (`.xlsx` only — add a sheet before writing).
+- `file_id` *or* `filename` — exactly one. `file_id` opens an uploaded working copy; `filename` starts from a brand-new empty workbook (`.xlsx` only — add a sheet before writing) and names the file if saved. It always mints a new workbook; it never looks up an existing file by name.
 - `revision_id` — optional, with `file_id` only; defaults to the current revision.
 - `code` — the script (required). JSON-encoded, so sheet names need no shell-style escaping.
 - `input` — JSON value bound to the `input` global; defaults to `{}`. Use it for parameters and base64 `data:` URLs (images).
-- `save` — persist the script's writes; defaults to `false`. With `create`, also pass `filename` (must end `.xlsx`).
+- `save` — persist; defaults to `false`. Editing a `file_id` saves a new revision (only if the script wrote cells); a `filename` run saves a new file (always, even if empty).
 - `org_id` — usually omit; auto-resolves for single-org users (see Errors).
 - `locale` — e.g. `'en-GB'`; server default when omitted.
 - `timeout_ms`, `max_output_chars` — sandbox limits, capped server-side.
@@ -273,10 +273,10 @@ By default (`save: false`), `xlsx_exec` **does not persist anything**. All write
 This means:
 
 - No risk of corrupting the working copy — each invocation starts clean from the current revision
-- With `create: true`, no file is minted at all — prototype freely, nothing accumulates
+- In create mode (`filename`), no file is minted at all — prototype freely, nothing accumulates
 - For independent what-if tests, each call starts from the original state
 
-To persist, pass `save: true`: an existing file gains a new `revision_id`; a `create` run (plus `filename`) mints a new `file_id`. Either way the response's `output` bundle has the ids and a presigned `download_url` — GET it to write the result back over the user's local file.
+To persist, pass `save: true`: a `file_id` run gains a new `revision_id` (only if the script wrote cells); a `filename` run mints a new `file_id` (always — an empty workbook is still a successful create). Either way the response's `output` bundle has the ids and a presigned `download_url` — GET it to write the result back over the user's local file.
 
 ### setCells result shape
 
@@ -306,7 +306,7 @@ Read the output value from `result.touched["Sheet!Address"]`. Never compute the 
 }
 ```
 
-`output` appears only when `save: true` persisted something. `truncated: true` flags stdout cut at `max_output_chars`.
+`output` appears only when `save: true` persisted something. Top-level `file_id`/`revision_id` are present on every `file_id` run, but on `filename` runs only once saved. `truncated: true` flags stdout cut at `max_output_chars`.
 
 **Failure:**
 

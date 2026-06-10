@@ -40,7 +40,7 @@ The single most recognisable convention — get it right and the model reads as 
 A revenue build that follows every rule above — blue sourced inputs, black formulas referencing a separated growth assumption, finance number formats, a bordered total, merged dark header, gridlines off:
 
 ```js
-// xlsx_exec { create: true, save: true, filename: "model.xlsx" }
+// xlsx_exec { filename: "model.xlsx", save: true }
 await xlsx.addSheet(wb, "Model")
 await xlsx.setSheetProperties(wb, "Model", { view: { showGridLines: false }, merges: ["A1:D1"] })
 

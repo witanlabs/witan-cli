@@ -58,7 +58,7 @@ Applies to every workbook you create or change. **When editing an existing workb
 - **Right references** — absolute (`$B$6`) vs relative so fills and copies behave.
 - **Format to the data type** — real dates with a date format (`yyyy-mm-dd`), not date-looking text; thousands separators for money/counts; sensible decimals on percentages; state units in the header when ambiguous (`Revenue ($000s)`).
 - **Lay it out for a human** — styled header row; numbers right-aligned, labels left; sane column widths (cap autofit so nothing runs off-screen); modest row heights; whitespace between sections.
-- **Stay valid** — give every Excel Table a unique, explicit name; prefix literal text starting with `=` using `'` so it isn't read as a formula.
+- **Stay valid** — prefix literal text starting with `=` using `'` so it isn't read as a formula.
 
 Domain conventions go beyond this floor. For financial models, valuations, projections, or IB work, read **[references/domains/financial-modelling.md](references/domains/financial-modelling.md)**.
 

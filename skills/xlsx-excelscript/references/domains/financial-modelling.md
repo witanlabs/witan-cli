@@ -55,13 +55,13 @@ function main(workbook) {
   header.getFormat().getFill().setColor("#1F3864");
   header.getFormat().getFont().setColor("#FFFFFF");
   header.getFormat().getFont().setBold(true);
-  header.getFormat().setHorizontalAlignment("Left");
+  header.getFormat().setHorizontalAlignment(ExcelScript.HorizontalAlignment.left);
 
   // Period labels — text years ('-prefix), right-aligned, bold
   const periods = sheet.getRange("B2:D2");
   periods.setValues([["'2024", "'2025", "'2026"]]);
   periods.getFormat().getFont().setBold(true);
-  periods.getFormat().setHorizontalAlignment("Right");
+  periods.getFormat().setHorizontalAlignment(ExcelScript.HorizontalAlignment.right);
 
   // Revenue lines — base year is a BLUE sourced input; later years are BLACK formulas
   sheet.getRange("A3").setValue("Product");

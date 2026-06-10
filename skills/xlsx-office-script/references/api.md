@@ -87,7 +87,7 @@ function main(workbook) {
 }
 JS
 
-# Waterfall chart with connector lines  (totals: NOT supported — see Not supported below)
+# Waterfall chart with connector lines  (totals: NOT supported — see What's not supported below)
 witan xlsx exec model.xlsx --save --stdin <<'JS'
 // @office-script
 function main(workbook) {
@@ -111,7 +111,7 @@ function main(workbook, input) {
 }
 JS
 
-# ListObject (Excel table) — create and read back by column name  (rename/totals: NOT supported — see below)
+# ListObject (Excel table) — create and read back by column name  (rename unsupported; totals row conditional — see What's not supported below)
 witan xlsx exec model.xlsx --stdin <<'JS'
 // @office-script
 function main(workbook) {
@@ -133,13 +133,36 @@ witan xlsx exec model.xlsx --create --code '// @office-script
 function main(workbook){ workbook.addWorksheet("S"); return workbook.getWorksheets().map(s=>s.getName()); }'
 ```
 
-### Not supported in Office Script (and the substitute)
+### What's not supported (and what to do instead)
 
-- **What-If Data Tables** — no ExcelScript creation API exists. Writing `=TABLE(,H1)` does **not** throw but yields `#NAME?` (silent wrong result). Substitute: precompute with the sweep loop above and write a static labelled block of ordinary formulas — it won't live-recalc as a `TABLE()` object would.
-- **Waterfall total/subtotal columns** — `setShowConnectorLines` works, but there is **no member to mark a point as a total** (no `setAsTotal`/`isTotal` on `ChartSeries`/`ChartPoint`). Start/End columns float instead of anchoring to the baseline.
-- **Table rename & totals row** — `Table.setName` and `Table.setShowTotals` are **unimplemented** (`NotImplementedError`, see Error Guide). Tables keep their auto name (`Table1`, …); write a totals row as ordinary formulas in a cell *below* the table (plain `=SUM(B2:B3)`, never `=SUBTOTAL(109,Table1[Sales])` — structured refs break).
-- **Structured table references** — `=[@Col]` / `Table1[Col]` evaluate to `#REF!` in the calc engine. Use plain A1 references everywhere.
-- **Column widths** — `RangeFormat.setColumnWidth` is **unimplemented** (`NotImplementedError`). Substitute: `range.getFormat().autofitColumns()` (sizes to content). Row heights are fine — `setRowHeight` works.
+You already know ExcelScript, so this is the **delta**: xlsx-serve implements most of the surface but not all of it. A missing member throws `NotImplementedError: ExcelScript: <Type>.<member> is not implemented by xlsx-serve` — **uncatchable** (it aborts the whole run), so steer around it. The gaps fall into clear groups.
+
+**Whole types that throw — don't author these:** shapes & text boxes (`GeometricShape`, `Line`, `Shape*`, `TextFrame`/`TextRange`, `Worksheet.addTextBox`/`addGeometricShape`/`addLine`/`addGroup`); slicers & timelines (`Slicer*`, `TimelineStyle`, `addSlicer`); named sheet views (`NamedSheetView`, `enterTemporaryNamedSheetView`); bindings / queries / linked workbooks / custom XML (`Binding`, `Query`, `LinkedWorkbook`, `CustomXmlPart`, `addBinding*`, `getQueries`); plus `Image`, `AllowEditRange`, `WorksheetCustomProperty`.
+
+**Cross-cutting gaps (any type):**
+- **`*Local` (locale) accessors** — `getFormulaLocal`, `setNumberFormatLocal`, `getAddressLocal`, … → use the non-`Local` versions.
+- **Pixel geometry / position** — `getLeft`/`getWidth` on `Range`; `get/setLeft/Top/Width/Height` on chart axis/legend/title/data-label → don't read or set layout coordinates.
+- **Selection / UI / interactive ops** — `Range.select`/`moveTo`/`autoFill`/`flashFill`, `Chart.activate`, `Workbook.getActiveCell`/`getSelectedRange`/`getActiveChart` → there is no live UI or selection.
+- **Linked data types** — `convertDataTypeToText`, `get/setControl`, `showCard`, `getLinkedDataTypeState`.
+- **Tint-and-shade** — `get/setTintAndShade` on borders/fills/fonts → set explicit colors.
+
+**Specific high-traffic gaps + the fix:**
+- `RangeFormat.setColumnWidth` → `range.getFormat().autofitColumns()` (sizes to content). *(`setRowHeight` works — except on whole-column ranges; see conditional below.)*
+- `Table.setName` / `TableColumn.setName` / `TableStyle.setName` → tables keep their auto name (`Table1`, …); reference them by that.
+- `ChartSeries.setChartType` (combo charts), the gradient-fill series setters, `Chart.setPlotBy`, `Chart.addChartSeries` → build the chart with the final type/series up front.
+- **Waterfall total columns** — no member marks a point as a total (connector lines do work), so Start/End float instead of anchoring to the baseline.
+
+**Conditional — works normally, throws only for a specific input/state:**
+- **Whole-column / whole-row / full-sheet ranges** — `setRowHeight`, `setRowHidden`, `adjustIndent`, `removeDuplicates`, `setPredefinedCellStyle`, and the uniform-format getters (`getHorizontalAlignment`/`getWrapText`/`getTextOrientation`/…) throw for `A:A` / `1:1`-style ranges → **operate on bounded ranges**.
+- **Table structural edits** — `setShowTotals`, `setShowHeaders`, `delete`, `resize`, `addRow(s)`, `addColumn`, `TableColumn.delete` throw when a formula or structured reference points at the table; otherwise fine. (Write a totals row as plain formulas in a cell *below* the table instead.)
+- **Comment @mentions** — `addComment`/`setContent`/`addCommentReply` throw for `CommentRichContent` with mentions; plain-string content works (`getMentions`/`updateMentions` never do).
+- **Filters & sorts** — `Filter.apply`/`AutoFilter.apply`/`RangeSort.apply`/`TableSort.apply` throw for cell-color / font-color / icon / wildcard-custom / sub-field criteria; value / top-bottom / dynamic work.
+- **Pivot mutations** — almost any `PivotTable`/`PivotField`/`PivotItem`/`PivotLayout` change throws unless the pivot can be materialised.
+- **`addTable(range, false)`** throws → pass `true` (has headers).
+
+**Not method gaps — calc-engine limits:**
+- **Structured table refs** (`=[@Col]`, `Table1[Col]`) evaluate to `#REF!` → use A1 references.
+- **What-If Data Tables** — no creation API; a `=TABLE(...)` formula yields `#NAME?` (silent). Precompute with the sweep loop above instead.
 
 ## exec — Workbook Scripting
 
@@ -273,7 +296,7 @@ witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png
 ## Error Guide
 
 - **Script returns `null` unexpectedly** — the `// @office-script` pragma is missing or not the first line; the script ran in the other dialect and never called `main`. Put the pragma on line 1.
-- `EXEC_RUNTIME_ERROR: NotImplementedError: ExcelScript: <Member> is not implemented by xlsx-serve` — that member isn't wired up in the engine (e.g. `Table.setName`, `Table.setShowTotals`). **It aborts the run and is NOT catchable by `try/catch`** — pick a supported path. Cross-check `witan-alfred-2/XlsxServeCli/Exec/OfficeScript/` for what's implemented.
+- `EXEC_RUNTIME_ERROR: NotImplementedError: ExcelScript: <Member> is not implemented by xlsx-serve` — that member isn't wired up (e.g. `RangeFormat.setColumnWidth`, `Table.setName`). **It aborts the run and is NOT catchable by `try/catch`** — pick a supported path; see [What's not supported](#whats-not-supported-and-what-to-do-instead) above for the groups and substitutes.
 - `EXEC_RUNTIME_ERROR: Workbook has no worksheets` — a `--create` workbook starts empty; `addWorksheet(name)` before `getActiveWorksheet()`.
 - `--expr is for single expressions; use --code` — Office Script needs `function main`; use `--code` or `--stdin`.
 - `#REF!` in a calculated table column — structured refs (`=[@Col]`) aren't supported; use A1 references.

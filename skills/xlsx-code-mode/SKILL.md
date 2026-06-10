@@ -85,7 +85,7 @@ Build in this order — it minimises rework and round-trips:
 4. **Add interactivity as needed** — data validation for categorical inputs, conditional formatting, then charts/tables.
 5. **Verify** (below) before calling it done.
 
-Prototype ephemerally (`--create` without `--save`) while iterating; add `--save` only once the structure is right.
+Prototype ephemerally (omit `--save`) while iterating; add `--save` only once the structure is right.
 
 ## Verify before done — mandatory
 

@@ -20,7 +20,7 @@ The single most recognisable convention — get it right and the model reads as 
 - **Negatives in red parentheses**, never a minus sign — e.g. `$#,##0_);[Red]($#,##0)`
 - **Multiples** as `0.0x` (e.g. `5.2x`) — format `0.0"x"`
 - **Percentages** default to one decimal — `0.0%`
-- **Years** are text labels, not numbers — `2024`, never `2,024` (format `@`)
+- **Years** are text labels, not numbers — `2024`, never `2,024` — write `'2024` (a plain `"2024"` coerces to a number, even with format `@`)
 - **Currency** uses `$#,##0`; always state units in the header — `Revenue ($mm)`
 
 ## Layout
@@ -54,11 +54,11 @@ await xlsx.setStyle(wb, "Model!A1:D1", {
   alignment: { horizontal: "left" },
 })
 
-// Period labels — text years, right-aligned, bold
+// Period labels — text years ('-prefix), right-aligned, bold
 await xlsx.setCells(wb, [
-  { address: "Model!B2", value: "2024", format: "@" },
-  { address: "Model!C2", value: "2025", format: "@" },
-  { address: "Model!D2", value: "2026", format: "@" },
+  { address: "Model!B2", value: "'2024" },
+  { address: "Model!C2", value: "'2025" },
+  { address: "Model!D2", value: "'2026" },
 ])
 await xlsx.setStyle(wb, "Model!B2:D2", { font: { bold: true }, alignment: { horizontal: "right" } })
 
@@ -91,8 +91,11 @@ await xlsx.setCells(wb, [
 ])
 await xlsx.setStyle(wb, "Model!B8", { font: { color: "#0000FF" } })
 
+// Widen the label column so nothing clips
+await xlsx.autoFitColumns(wb, "Model", ["A"])
+
 return await xlsx.readRangeTsv(wb, { sheet: "Model", from: {row:1,col:1}, to: {row:8,col:4} }, { includeFormulas: true })
 WITAN
 ```
 
-Then verify, as always: `witan xlsx calc model.xlsx` (must be `0 errors`) and `witan xlsx render model.xlsx -r "Model!A1:D8"` to confirm the look.
+Then verify, as always: `witan xlsx calc model.xlsx` (must be `0 errors`), `witan xlsx lint model.xlsx` (must exit clean), and `witan xlsx render model.xlsx -r "Model!A1:D8"` to confirm the look.

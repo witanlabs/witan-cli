@@ -31,7 +31,7 @@ JS
 
 - **`// @office-script` MUST be the first line** — it selects the ExcelScript dialect. Omit it and the script doesn't error: it silently runs in the other dialect, never calls `main`, and returns `null`. Always lead with it.
 - **`function main(workbook)` is the entry point** — required. The engine calls it with the workbook and returns whatever you return (must be JSON-serializable). With `--input-json`, the parsed value arrives as a second arg: `function main(workbook, input)`.
-- **ExcelScript is synchronous** — no `await`, no `context.sync()`. After `setFormula`, `getValue()` returns the **recalculated** value in the same script (this is how you read results — don't recompute in JS).
+- **ExcelScript is synchronous** — `getValue()` after `setFormula` returns the **recalculated** value directly (no `await` needed); read results this way, don't recompute in JS. No `import`s.
 - **`--create`** makes a new workbook (path need not exist; `.xlsx` only). It **starts empty** — call `workbook.addWorksheet(name)` before `getActiveWorksheet()`.
 - **`--save`** persists changes. Without it every write is **ephemeral** — it applies in the server session, recalculates, then is discarded; so reads and what-ifs never risk the file, and each run starts clean from the original.
 

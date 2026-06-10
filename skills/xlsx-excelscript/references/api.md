@@ -4,7 +4,7 @@ The complete `witan xlsx` reference for the **Office Scripts (ExcelScript)** dia
 
 This file is the *reference*. For the *playbook* — when to reach for what, the reading / what-if / authoring workflows, the quality bar, and the verification gate — see `SKILL.md`. The full ExcelScript type surface is `references/excelscript.d.ts` (grep it).
 
-`witan xlsx exec` runs a sandboxed Office Script server-side. Your script is **`function main(workbook)`** behind a **`// @office-script`** first-line pragma. ExcelScript is **synchronous** — no `await`, no `context.sync()`. No `import`.
+`witan xlsx exec` runs your script in a server-side sandbox. Your script is **`function main(workbook)`** behind a **`// @office-script`** first-line pragma. ExcelScript is **synchronous** — no `await` needed, no `import`.
 
 ## Setup
 
@@ -135,7 +135,7 @@ function main(workbook){ workbook.addWorksheet("S"); return workbook.getWorkshee
 
 ## exec — Workbook Scripting
 
-Runs an Office Script against a workbook opened server-side. If the workbook doesn't exist yet, use `--create` with a new `.xlsx` path.
+Runs your script against a workbook opened server-side. If the workbook doesn't exist yet, use `--create` with a new `.xlsx` path.
 
 - `--create --save` — produce a real workbook file on disk.
 - `--create` without `--save` — prototype structure, test generation logic, inspect returned data, or validate formulas/layout without leaving a file behind.
@@ -172,7 +172,7 @@ Provide exactly one code source: `--stdin`, `--code`, or `--script`.
 - **`// @office-script` MUST be the first line.** It selects the ExcelScript dialect. Omit it and the script does **not** error — it runs in the other dialect, never calls `main`, and returns `null`. Silent wrong result. This is the #1 trap.
 - **`function main(workbook)` is the entry point** — required. Return a JSON-serializable value; that becomes the CLI result.
 - **`--input-json` / `--input-file` arrive as a second argument:** `function main(workbook, input)`. `--input-file logo=@./logo.png` sets `input.logo` to a `data:<mime>;base64,...` URL — strip the `data:` prefix before `addImage` (raw base64 only).
-- **Synchronous** — no top-level `await`, no `context.sync()`. There are no `xlsx`/`wb` globals.
+- **Synchronous** — methods return values directly; no `await` needed.
 
 ### The API surface
 
@@ -298,7 +298,7 @@ witan xlsx render report.xlsx -r "Sheet1!A1:F10" --diff before.png
 - **Script returns `null` unexpectedly** — the `// @office-script` pragma is missing or not the first line; the script ran in the other dialect and never called `main`. Put the pragma on line 1.
 - `EXEC_RUNTIME_ERROR: NotImplementedError: ExcelScript: <Member> is not implemented` — that member isn't supported (e.g. `RangeFormat.setColumnWidth`, `Table.setName`). **Uncatchable by `try/catch`** (it aborts the run) — pick a supported path; see [What's not supported](#whats-not-supported-and-what-to-do-instead) for the groups and substitutes.
 - `EXEC_RUNTIME_ERROR: Workbook has no worksheets` — a `--create` workbook starts empty; `addWorksheet(name)` before `getActiveWorksheet()`.
-- `--expr is for single expressions; use --code` — Office Script needs `function main`; use `--code` or `--stdin`.
+- `--expr is for single expressions; use --code` — ExcelScript needs `function main`; use `--code` or `--stdin`.
 - `#REF!` in a calculated table column — structured refs (`=[@Col]`) aren't supported; use A1 references.
 - `#NAME?` from a `=TABLE(...)` formula — What-If Data Tables have no ExcelScript path; precompute instead.
 - `INVALID_ARG: image source.base64 is not a valid png image` — pass a real PNG (and strip the `data:` URL prefix to raw base64).

@@ -20,7 +20,7 @@ The single most recognisable convention — get it right and the model reads as 
 - **Negatives in red parentheses**, never a minus sign — e.g. `$#,##0_);[Red]($#,##0)`
 - **Multiples** as `0.0x` (e.g. `5.2x`) — format `0.0"x"`
 - **Percentages** default to one decimal — `0.0%`
-- **Years** are text labels, not numbers — `2024`, never `2,024` (format `@`)
+- **Years** are text labels, not numbers — `2024`, never `2,024` — write `'2024` (a plain `"2024"` coerces to a number, even with format `@`)
 - **Currency** uses `$#,##0`; always state units in the header — `Revenue ($mm)`
 
 ## Layout
@@ -57,10 +57,9 @@ function main(workbook) {
   header.getFormat().getFont().setBold(true);
   header.getFormat().setHorizontalAlignment("Left");
 
-  // Period labels — text years, right-aligned, bold
+  // Period labels — text years ('-prefix), right-aligned, bold
   const periods = sheet.getRange("B2:D2");
-  periods.setValues([["2024", "2025", "2026"]]);
-  periods.setNumberFormat("@");
+  periods.setValues([["'2024", "'2025", "'2026"]]);
   periods.getFormat().getFont().setBold(true);
   periods.getFormat().setHorizontalAlignment("Right");
 
@@ -95,6 +94,8 @@ function main(workbook) {
   sheet.getRange("B8").setNumberFormat("0.0%");
   sheet.getRange("B8").getFormat().getFont().setColor("#0000FF");
 
+  sheet.getRange("A3:A8").getFormat().autofitColumns();
+
   // Read the recalculated values + formulas back to confirm
   return {
     values: sheet.getRange("A1:D8").getValues(),
@@ -104,4 +105,4 @@ function main(workbook) {
 JS
 ```
 
-Then verify, as always: `witan xlsx calc model.xlsx` (must be `0 errors`) and `witan xlsx render model.xlsx -r "Model!A1:D8"` to confirm the look.
+Then verify, as always: `witan xlsx calc model.xlsx` (must be `0 errors`), `witan xlsx lint model.xlsx` (must exit clean), and `witan xlsx render model.xlsx -r "Model!A1:D8"` to confirm the look.

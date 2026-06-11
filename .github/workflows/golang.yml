@@ -31,6 +31,20 @@ jobs:
             exit 1
           fi
 
+  skill-version:
+    name: Skill Version
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Enforce version bump on skill changes
+        run: scripts/check-skill-versions.sh "origin/${GITHUB_BASE_REF}"
+
   build:
     name: Build & Test
     runs-on: ubuntu-latest

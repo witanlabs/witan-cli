@@ -16,7 +16,11 @@ When a PR changes any file under a skill's folder (SKILL.md or `references/`), i
 1. Bump `metadata.version` — patch: typo/correction; minor: content change; major: restructure or workflow change.
 2. Add a `CHANGELOG.md` entry under `## Unreleased`: `- Updated: [Skill] \`<name>\` <version> — <what changed>`.
 
-The `skill-version` CI job fails the PR if a skill changed without a version increase. Skills version independently — bump only what changed.
+The `skill-version` CI job fails the PR if a skill changed without a version increase. Skills version independently — bump only what changed. Run the check locally:
+
+```sh
+node scripts/check-skill-versions.mjs origin/main
+```
 
 ## Support
 

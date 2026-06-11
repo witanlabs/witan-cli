@@ -42,58 +42,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
+      - name: Unit test the checker
+        run: node --test scripts/check-skill-versions.test.mjs
+
       - name: Enforce version bump on skill changes
-        run: |
-          # Only metadata.version counts — the agentskills validator rejects a top-level version key.
-          version_of() {
-            git show "$1:$2/SKILL.md" 2>/dev/null \
-              | awk '
-                  /^---$/ { fence++; next }
-                  fence != 1 { next }
-                  /^metadata:/ { inmeta = 1; next }
-                  /^[^[:space:]]/ { inmeta = 0 }
-                  inmeta && $1 == "version:" { gsub(/"/, "", $2); print $2; exit }
-                '
-          }
-
-          has_top_level_version() {
-            git show "$1:$2/SKILL.md" 2>/dev/null \
-              | awk '/^---$/ { fence++; next } fence != 1 { next } /^version:/ { found = 1; exit } END { exit !found }'
-          }
-
-          base="$(git merge-base "origin/${GITHUB_BASE_REF}" HEAD)"
-          failed=0
-
-          for dir in $(git diff --name-only "$base" HEAD -- skills/ | cut -d/ -f1-2 | sort -u); do
-            [ -f "$dir/SKILL.md" ] || continue
-
-            new="$(version_of HEAD "$dir")"
-            old="$(version_of "$base" "$dir")"
-
-            if has_top_level_version HEAD "$dir"; then
-              echo "error: $dir SKILL.md has a top-level version key — the skills spec rejects it; use metadata.version" >&2
-              failed=1
-            fi
-
-            if [ -z "$new" ]; then
-              echo "error: $dir changed but SKILL.md has no metadata.version" >&2
-              failed=1
-            elif [ -z "$old" ]; then
-              echo "$dir: new at $new"
-            elif [ "$new" = "$old" ]; then
-              echo "error: $dir changed but metadata.version is still $old — bump it" >&2
-              failed=1
-            elif [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n 1)" != "$new" ]; then
-              echo "error: $dir metadata.version went backwards ($old -> $new)" >&2
-              failed=1
-            else
-              echo "$dir: $old -> $new"
-            fi
-          done
-
-          if [ "$failed" -ne 0 ]; then
-            exit 1
-          fi
+        run: node scripts/check-skill-versions.mjs "origin/${GITHUB_BASE_REF}"
 
   build:
     name: Build & Test

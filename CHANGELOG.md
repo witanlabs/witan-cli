@@ -5,6 +5,7 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 ## Unreleased
 
 - New: [Skill] `xlsx-mcp` brings the `xlsx-code-mode` read/author/what-if/verify workflow to agents using the Witan MCP server instead of the CLI — `xlsx_exec` scripting plus the presigned `prepare_*` file round-trip. Requires the server's merged `xlsx_exec` (create-by-`filename`) to be deployed.
+- New: [Skill] `xlsx-excelscript` drives `witan xlsx exec` with the Office Scripts (ExcelScript) dialect — the same read/author/what-if/verify workflow as `xlsx-code-mode`, written in `function main(workbook)` style behind the `// @office-script` pragma. Sibling to `xlsx-code-mode` for comparing the two dialects.
 - Updated: [Skill] `pptx-code-mode` now documents Witan install steps for the Claude Cowork sandbox.
 
 ## 0.12.0

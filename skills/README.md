@@ -25,3 +25,12 @@ scripts/check-skill-versions.sh origin/main # needs yq: brew install yq
 ## Support
 
 To find out which version a user has installed, have them ask their agent to read the skill's frontmatter. To upgrade: `npx skills update`, or re-run the install command.
+
+## Upgrading from the pre-rebrand names
+
+The skills were renamed under the `witan-` prefix (`xlsx-code-mode` → `witan-xlsx`, `xlsx-excelscript` → `witan-xlsx-excelscript`, `xlsx-mcp` → `witan-xlsx-mcp`, `pptx-code-mode` → `witan-pptx-officejs`, `read-source` → `witan-read-source`). Installs under the old names won't update and will compete with the new ones to trigger. Remove them, then re-install:
+
+```sh
+npx skills remove xlsx-code-mode xlsx-excelscript xlsx-mcp pptx-code-mode read-source
+npx skills add witanlabs/witan-cli
+```

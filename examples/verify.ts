@@ -38,8 +38,8 @@ const verbose = values.verbose!;
 const defaultModel = runner === 'deep-agents' ? 'gpt-5.2' : 'claude-opus-4-6';
 const isDemo = positionals.length === 0;
 
-// Load the xlsx-code-mode skill (includes lint, calc, render for verification)
-const verifyPath = path.resolve(import.meta.dirname, '../skills/xlsx-code-mode/SKILL.md');
+// Load the witan-xlsx skill (includes lint, calc, render for verification)
+const verifyPath = path.resolve(import.meta.dirname, '../skills/witan-xlsx/SKILL.md');
 const skill = fs.readFileSync(verifyPath, 'utf-8');
 
 let filename: string;

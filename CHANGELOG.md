@@ -4,6 +4,12 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 ## Unreleased
 
+- Renamed: [Skill] `xlsx-code-mode` → `witan-xlsx` 1.0.0 — all skills are rebranded under the `witan-` prefix. Existing installs: `npx skills remove` the old names, then re-run `npx skills add witanlabs/witan-cli`.
+- Renamed: [Skill] `xlsx-excelscript` → `witan-xlsx-excelscript` 1.0.0.
+- Renamed: [Skill] `xlsx-mcp` → `witan-xlsx-mcp` 1.0.0.
+- Renamed: [Skill] `pptx-code-mode` → `witan-pptx-officejs` 1.0.0.
+- Renamed: [Skill] `read-source` → `witan-read-source` 1.0.0.
+- Updated: [Skill] All skills now declare `license`, `metadata.author`, and `metadata.source` in SKILL.md frontmatter (plus `metadata.mcp-server` on `witan-xlsx-mcp`).
 - New: [Skill] `xlsx-mcp` 1.0.0 — brings the `xlsx-code-mode` read/author/what-if/verify workflow to agents using the Witan MCP server instead of the CLI — `xlsx_exec` scripting plus the presigned `prepare_*` file round-trip. Requires the server's merged `xlsx_exec` (create-by-`filename`) to be deployed.
 - New: [Skill] All skills now declare a per-skill semver in SKILL.md frontmatter (`metadata.version`, starting at 1.0.0). CI fails a PR that changes a skill's files without bumping its version; skill changelog entries now include the version. See `skills/README.md`.
 - New: [Skill] `xlsx-excelscript` drives `witan xlsx exec` with the Office Scripts (ExcelScript) dialect — the same read/author/what-if/verify workflow as `xlsx-code-mode`, written in `function main(workbook)` style behind the `// @office-script` pragma. Sibling to `xlsx-code-mode` for comparing the two dialects.

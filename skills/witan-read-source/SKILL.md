@@ -1,8 +1,11 @@
 ---
-name: read-source
+name: witan-read-source
 description: Extract text from source documents (PDF, DOCX, PPTX, HTML, Markdown) for spreadsheet workflows. Use to understand source material before populating workbooks.
+license: Apache-2.0
 metadata:
   version: "1.0.0"
+  author: witanlabs
+  source: https://github.com/witanlabs/witan-cli
 ---
 
 ## When to Use

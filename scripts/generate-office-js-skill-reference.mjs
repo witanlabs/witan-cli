@@ -16,11 +16,11 @@ const resolvedOutputPath = resolve(outputPath);
 if (
   resolvedOutputPath === sep ||
   !resolvedOutputPath.endsWith(
-    `${sep}skills${sep}pptx-code-mode${sep}references${sep}office-js.d.ts`,
+    `${sep}skills${sep}witan-pptx-officejs${sep}references${sep}office-js.d.ts`,
   )
 ) {
   console.error(
-    "refusing to replace an unexpected output file; expected skills/pptx-code-mode/references/office-js.d.ts",
+    "refusing to replace an unexpected output file; expected skills/witan-pptx-officejs/references/office-js.d.ts",
   );
   process.exit(1);
 }

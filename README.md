@@ -336,6 +336,8 @@ Cutting a release (UI-driven):
 
 Manual `git tag ... && git push ...` is equivalent to UI tag creation and triggers the same workflow.
 
+Skills under `skills/` are published independently of CLI releases — merging to `main` makes them live for `npx skills add witanlabs/witan-cli`. Each skill carries its own version; see [skills/README.md](skills/README.md).
+
 ## CI
 
-Go and Python CI runs in `.github/workflows/golang.yml` on pushes to `main` and pull requests. The workflow runs `go test`, `go vet`, `pytest`, `mypy`, and `python -m compileall python/witan`.
+Go and Python CI runs in `.github/workflows/golang.yml` on pushes to `main` and pull requests. The workflow runs `go test`, `go vet`, `pytest`, `mypy`, and `python -m compileall python/witan`, plus skill checks (SKILL.md size limit, per-skill version bump on change).

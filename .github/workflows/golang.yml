@@ -31,6 +31,54 @@ jobs:
             exit 1
           fi
 
+  skill-version:
+    name: Skill Version
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Enforce version bump on skill changes
+        run: |
+          version_of() {
+            git show "$1:$2/SKILL.md" 2>/dev/null \
+              | awk '/^---$/ { fence++; next } fence == 1' \
+              | awk '$1 == "version:" { gsub(/"/, "", $2); print $2; exit }'
+          }
+
+          base="$(git merge-base "origin/${GITHUB_BASE_REF}" HEAD)"
+          failed=0
+
+          for dir in $(git diff --name-only "$base" HEAD -- skills/ | cut -d/ -f1-2 | sort -u); do
+            [ -f "$dir/SKILL.md" ] || continue
+
+            new="$(version_of HEAD "$dir")"
+            old="$(version_of "$base" "$dir")"
+
+            if [ -z "$new" ]; then
+              echo "error: $dir changed but SKILL.md has no metadata.version" >&2
+              failed=1
+            elif [ -z "$old" ]; then
+              echo "$dir: new at $new"
+            elif [ "$new" = "$old" ]; then
+              echo "error: $dir changed but metadata.version is still $old — bump it" >&2
+              failed=1
+            elif [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n 1)" != "$new" ]; then
+              echo "error: $dir metadata.version went backwards ($old -> $new)" >&2
+              failed=1
+            else
+              echo "$dir: $old -> $new"
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+
   build:
     name: Build & Test
     runs-on: ubuntu-latest

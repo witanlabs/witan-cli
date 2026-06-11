@@ -19,7 +19,7 @@ When a PR changes any file under a skill's folder (SKILL.md or `references/`), i
 The `skill-version` CI job fails the PR if a skill changed without a version increase. Skills version independently — bump only what changed. Run the check locally:
 
 ```sh
-node scripts/check-skill-versions.mjs origin/main
+scripts/check-skill-versions.sh origin/main # needs yq: brew install yq
 ```
 
 ## Support

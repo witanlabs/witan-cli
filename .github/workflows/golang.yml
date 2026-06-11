@@ -42,11 +42,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Unit test the checker
-        run: node --test scripts/check-skill-versions.test.mjs
-
       - name: Enforce version bump on skill changes
-        run: node scripts/check-skill-versions.mjs "origin/${GITHUB_BASE_REF}"
+        run: scripts/check-skill-versions.sh "origin/${GITHUB_BASE_REF}"
 
   build:
     name: Build & Test

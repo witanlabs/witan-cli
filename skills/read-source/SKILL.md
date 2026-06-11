@@ -1,6 +1,8 @@
 ---
 name: read-source
 description: Extract text from source documents (PDF, DOCX, PPTX, HTML, Markdown) for spreadsheet workflows. Use to understand source material before populating workbooks.
+metadata:
+  version: "1.0.0"
 ---
 
 ## When to Use

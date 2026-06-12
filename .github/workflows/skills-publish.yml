@@ -3,8 +3,8 @@ name: Skills Publish
 # Maintains the rolling "skills" release: one zip per skills/<name>/ folder,
 # rebuilt from main HEAD so the download URLs
 # (https://github.com/witanlabs/witan-cli/releases/download/skills/<name>.zip)
-# never change and always serve the newest version. witan-alfred's MCP setup
-# page links these zips for claude.ai skill upload.
+# never change and always serve the newest version. The Witan MCP server's
+# setup page links these zips for claude.ai skill upload.
 
 on:
   push:

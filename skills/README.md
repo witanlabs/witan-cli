@@ -2,6 +2,16 @@
 
 Agent skills, installed by end users with `npx skills add witanlabs/witan-cli` (and by other clients copying these folders). Installs pull from `main` HEAD — **merging to `main` publishes**, independently of tagged CLI releases.
 
+## Zip downloads
+
+Each skill is also downloadable as a zip, for clients that install by upload (claude.ai: Settings → Capabilities → Skills):
+
+```
+https://github.com/witanlabs/witan-cli/releases/download/skills/<name>.zip
+```
+
+URLs are stable and always serve `main` HEAD: every merge touching `skills/**` rebuilds all zips onto the rolling [`skills` release](https://github.com/witanlabs/witan-cli/releases/tag/skills) via `.github/workflows/skills-publish.yml`. The release is machine-owned — don't edit it or upload assets by hand. Build the zips locally with `scripts/build-skill-zips.sh <outdir>`.
+
 ## Versioning
 
 Each skill declares its own semver in SKILL.md frontmatter:

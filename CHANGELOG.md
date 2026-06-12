@@ -4,6 +4,7 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 ## Unreleased
 
+- New: [Skill] Per-skill zips are published to the rolling [`skills` GitHub release](https://github.com/witanlabs/witan-cli/releases/tag/skills) on every merge to `main` that touches `skills/**` — stable download URLs (`releases/download/skills/<name>.zip`) for clients that install by zip upload, e.g. claude.ai (Settings → Capabilities → Skills). See `skills/README.md`.
 - Renamed: [Skill] `xlsx-code-mode` → `witan-xlsx` 1.0.0 — all skills are rebranded under the `witan-` prefix. Existing installs: `npx skills remove` the old names, then re-run `npx skills add witanlabs/witan-cli`.
 - Renamed: [Skill] `xlsx-excelscript` → `witan-xlsx-excelscript` 1.0.0.
 - Renamed: [Skill] `xlsx-mcp` → `witan-xlsx-mcp` 1.0.0.

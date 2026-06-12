@@ -12,6 +12,7 @@ on:
     paths:
       - "skills/**"
       - ".github/workflows/skills-publish.yml"
+      - "scripts/build-skill-zips.sh"
   workflow_dispatch:
 
 permissions:

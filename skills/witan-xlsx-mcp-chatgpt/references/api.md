@@ -276,7 +276,7 @@ This means:
 - In create mode (`filename`), no file is minted at all — prototype freely, nothing accumulates
 - For independent what-if tests, each call starts from the original state
 
-To persist, pass `save: true`: a `file_id` run gains a new `revision_id` (only if the script wrote cells); a `filename` run mints a new `file_id` (always — an empty workbook is still a successful create). Either way the response's `output` bundle has the new ids (no URL) — hand the saved workbook to the user with `download_file`.
+To persist, pass `save: true`: a `file_id` run gains a new `revision_id` (only if the script wrote cells); a `filename` run mints a new `file_id` (always — an empty workbook is still a successful create). Either way the response's `output` bundle has the new ids — hand the saved workbook to the user with `download_file`.
 
 ### setCells result shape
 
@@ -343,10 +343,8 @@ Use `xlsx_calc` when you want a standalone seeded or full-workbook verification 
 
 ## Files in and out — upload_file, download_file
 
-ChatGPT moves the bytes natively — no URLs to manage.
-
-- **`upload_file { file }`** → `{ file_id, revision_id, filename, ... }`. `file` is a ChatGPT file id (`file_...`) or a mounted `/mnt/data/...` path — ChatGPT resolves either to the bytes; the param is always `file`, never `file_id`. Accepts `.xlsx` and `.xls` (converted server-side). Always mints a new `file_id` — re-uploading an updated workbook gives a fresh handle; stop using the old one.
-- **`download_file { file_id, revision_id? }`** → the workbook as a downloadable file in the chat (defaults to the current revision). Use it to deliver every saved result. ChatGPT mints its own `file_...` id for the downloaded copy — never feed that back into an `xlsx_*` call.
+- **`upload_file { file }`** → `{ file_id, revision_id, filename, ... }`. `file` is an OpenAI `file_...` id or a mounted `/mnt/data/...` path — the param is always `file`, never `file_id`. Accepts `.xlsx` and `.xls` (converted server-side). Always mints a new `file_id` — re-uploading an updated workbook gives a fresh handle; stop using the old one.
+- **`download_file { file_id, revision_id? }`** → the workbook as a download in the chat (defaults to the current revision). Use it to deliver every saved result. The downloaded copy gets its own OpenAI `file_...` id — never feed that back into an `xlsx_*` call.
 
 ## xlsx_calc — Full-workbook verification
 
@@ -386,7 +384,6 @@ The `previewStyles` exec function (see Rendering above) provides the same capabi
 - `Sheet 'X' not found`: check the sheet name; use `listSheets` to enumerate
 - `ADDRESS_PARSE_ERROR` / `RANGE_PARSE_ERROR`: bad A1 reference; check sheet quoting
 - org resolution failed with a candidate list: the user belongs to several orgs — ask which, then pass `org_id` on every call
-- `upload_file` couldn't fetch the workbook: ChatGPT's temporary link may have expired — retry `upload_file`; if it keeps failing, ask the user to re-attach the file
 - `findCells` returns empty: try synonym arrays, broader search, or check spelling
 - `setCells` result missing expected output: the output cell may not be a dependent; trace the formula chain
 

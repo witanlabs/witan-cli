@@ -47,15 +47,15 @@ Witan is a remote engine, not a place the user looks: a `file_id` is a working c
 
 **Three identifiers — don't mix them up:**
 
-- A **ChatGPT file id** (`file_...`) or a **mounted path** (`/mnt/data/...`) is what you *give* `upload_file` — a composer attachment, a file-library pick, or a workbook you built yourself. Pass it as `file` (never `file_id`).
-- The **Witan `file_id`** (`witan_...`) is what `upload_file` returns, and what `xlsx_exec` returns when it creates a file — the handle every `xlsx_*` tool and `download_file` takes. Don't pass it back into `upload_file`; it's already a working copy.
-- `download_file` makes ChatGPT mint its **own** copy with its **own** `file_...` id — that's ChatGPT's, not Witan's. Never feed it into an `xlsx_*` call; keep using the Witan `file_id`.
+- **What you give `upload_file`** — a file from your chat (composer attachment, file-library pick, or one you created): its OpenAI `file_...` id or `/mnt/data/...` path, passed as `file` (never `file_id`).
+- **What comes back** — the **Witan `file_id`** (`witan_...`), also returned by `xlsx_exec` when it creates a file. It's the handle every `xlsx_*` tool and `download_file` takes; don't re-upload it — it's already a working copy.
+- **What `download_file` delivers** — a fresh copy in the chat with a new OpenAI `file_...` id. Never feed that to an `xlsx_*` call; keep using the Witan `file_id`.
 
 The workflow:
 
 - **Upload** — `upload_file { file }`; the response has `file_id` (the Witan handle) and `revision_id`.
 - **Operate** — pass `file_id` to any `xlsx_*` tool; omit `revision_id` for the current revision.
-- **Deliver** — after any `save: true`, the response's `output` bundle has the new ids (no URL); call `download_file { file_id, revision_id }` so the user gets the updated workbook as a download in the chat, without being asked.
+- **Deliver** — after any `save: true`, the response's `output` bundle has the new ids; call `download_file { file_id, revision_id }` so the user gets the updated workbook as a download in the chat, without being asked.
 - **Re-sync** — `upload_file` always mints a *new* `file_id`; if the user attaches an updated copy, upload it again and stop using the old handle. If your working copy disagrees with the user, assume your copy is stale.
 - **`org_id`** — omit it; it auto-resolves for single-org users. If the call fails with a candidate list, ask the user which org and pass it from then on.
 

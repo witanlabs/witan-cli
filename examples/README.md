@@ -29,9 +29,9 @@ you're already working inside Claude Code or Codex, you can give the agent
 a witan skill prompt and the witan binary — the agent will use it directly
 as a tool. Two skills are available:
 
-- **`skills/xlsx-code-mode/SKILL.md`** — read, write, and query workbooks
+- **`skills/witan-xlsx/SKILL.md`** — read, write, and query workbooks
   via the witan exec API. Includes lint, calc, and render for verification.
-- **`skills/read-source/SKILL.md`** — extract text from non-spreadsheet
+- **`skills/witan-read-source/SKILL.md`** — extract text from non-spreadsheet
   documents (PDF, DOCX, PPTX, HTML, text) via `witan read`.
 
 The `agents/` directory shows how each framework is wired up. Use these as
@@ -116,7 +116,7 @@ pnpm verify
 pnpm verify path/to/workbook.xlsx
 ```
 
-The `xlsx-code-mode` skill includes three verification tools that go
+The `witan-xlsx` skill includes three verification tools that go
 beyond what Python libraries or manual inspection can catch:
 
 - **`witan xlsx lint`** — semantic formula analysis. Detects overlapping

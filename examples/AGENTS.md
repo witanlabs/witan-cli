@@ -19,7 +19,7 @@ module (`run.ts`), and four entry points:
   invokes the chosen runner with a model specification prompt, and copies output
   workbooks to the output directory.
 - `verify.ts` — Workbook audit CLI entry point. Generates a buggy P&L workbook
-  (demo mode) or accepts a user-provided workbook, loads the xlsx-code-mode skill,
+  (demo mode) or accepts a user-provided workbook, loads the witan-xlsx skill,
   and asks the agent to find formula issues. The skill provides lint (semantic
   formula analysis), calc (recalculation verification), and render (visual
   inspection) — tools that catch bugs invisible to normal spreadsheet use.

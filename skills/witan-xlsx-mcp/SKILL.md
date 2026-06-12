@@ -1,8 +1,12 @@
 ---
-name: xlsx-mcp
+name: witan-xlsx-mcp
 description: "Read, explore, understand, create, and modify Excel workbooks (.xls, .xlsx, .xlsm). You cannot read Excel files with cat, head, or normal file-reading tools — running JavaScript against the workbook via the Witan MCP server's `xlsx_exec` tool is the only way to open or inspect them. Trigger when you or the user need to open or look inside a workbook, find its sheets or where data lives, read cells/rows/columns/ranges, search for values or labels, trace how a figure is calculated, or run what-if scenarios; and equally when asked to create a new workbook or financial model from scratch, add or edit formulas, charts, formatting, tables, or data validation, or change an existing model without breaking its formulas or references. Trigger whenever a spreadsheet is referenced by name or path — even casually ('check report.xlsx', 'build me a model') — and when you need to inspect a workbook as part of a larger task."
+license: Apache-2.0
 metadata:
   version: "1.0.0"
+  author: witanlabs
+  source: https://github.com/witanlabs/witan-cli
+  mcp-server: witan
 ---
 
 > **No `xlsx_*` tools in your tool list?** The Witan MCP server isn't connected — point the user at https://api.witanlabs.com/mcp for setup steps.

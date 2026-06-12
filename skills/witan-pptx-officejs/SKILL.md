@@ -1,8 +1,11 @@
 ---
-name: pptx-code-mode
+name: witan-pptx-officejs
 description: Use this skill when a PPTX file needs to be rendered, inspected, created, or modified through Witan PPTX. The tool runs sandboxed Office.js-compatible JavaScript plus Witan PPTX chart extensions against PPTX files via `witan pptx exec`.
+license: Apache-2.0
 metadata:
   version: "1.0.0"
+  author: witanlabs
+  source: https://github.com/witanlabs/witan-cli
 ---
 
 > **Running in Claude Cowork?** The `witan` CLI isn't preinstalled — see [references/cowork-setup.md](references/cowork-setup.md) for install steps.

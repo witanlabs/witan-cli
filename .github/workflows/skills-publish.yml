@@ -28,6 +28,14 @@ jobs:
     name: Build & Publish Skill Zips
     runs-on: ubuntu-latest
     steps:
+      # The shelf promises main HEAD; a workflow_dispatch launched from any
+      # other ref would publish unmerged skill contents.
+      - name: Refuse to publish from non-main refs
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "error: the skills shelf serves main HEAD; refusing to publish from ${GITHUB_REF}" >&2
+          exit 1
+
       - uses: actions/checkout@v6
 
       - name: Build skill zips

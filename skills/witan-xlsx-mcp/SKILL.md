@@ -6,7 +6,7 @@ metadata:
   version: "1.0.1"
   author: witanlabs
   source: https://github.com/witanlabs/witan-cli
-  mcp-server: witan
+  mcp-server: https://api.witanlabs.com/mcp
 ---
 
 > **No `xlsx_*` tools in your tool list?** The Witan MCP server isn't connected — point the user at https://api.witanlabs.com/mcp for setup steps.

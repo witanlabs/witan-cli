@@ -1,9 +1,10 @@
 ---
-name: witan-xlsx-mcp
+name: witan-xlsx-mcp-chatgpt
 description: "Read, explore, understand, create, and modify Excel workbooks (.xls, .xlsx, .xlsm). You cannot read Excel files with cat, head, or normal file-reading tools — running JavaScript against the workbook via the Witan MCP server's `xlsx_exec` tool is the only way to open or inspect them. Trigger when you or the user need to open or look inside a workbook, find its sheets or where data lives, read cells/rows/columns/ranges, search for values or labels, trace how a figure is calculated, or run what-if scenarios; and equally when asked to create a new workbook or financial model from scratch, add or edit formulas, charts, formatting, tables, or data validation, or change an existing model without breaking its formulas or references. Trigger whenever a spreadsheet is referenced by name or path — even casually ('check report.xlsx', 'build me a model') — and when you need to inspect a workbook as part of a larger task."
 license: Apache-2.0
+compatibility: "Designed for ChatGPT connections to the Witan MCP server (native upload_file/download_file file tools). Other MCP clients should use the witan-xlsx-mcp skill instead."
 metadata:
-  version: "1.0.1"
+  version: "1.0.0"
   author: witanlabs
   source: https://github.com/witanlabs/witan-cli
   mcp-server: witan
@@ -25,7 +26,7 @@ You are judged on correctness, layout, readability, and idiomatic style. **A wor
 **`xlsx_exec`** runs sandboxed JavaScript against a workbook opened server-side; sibling tools `xlsx_calc`, `xlsx_lint`, and `xlsx_render` handle verification and previews (below). Pass the whole script as the `code` string — it's JSON-encoded, so no shell escaping ever applies:
 
 ```js
-// xlsx_exec { file_id: "file_…", code: <this script> }
+// xlsx_exec { file_id: "witan_…", code: <this script> }
 const sheets = await xlsx.listSheets(wb)
 const tsv = await xlsx.readRangeTsv(wb, { sheet: "Summary", from: {row:1,col:1}, to: {row:20,col:8} })
 return { sheets, tsv }
@@ -42,12 +43,20 @@ After reading this file, you MUST read **[references/api.md](references/api.md)*
 
 ## Files in and out
 
-The user's local file is the source of truth; a `file_id` is a working copy you upload so the server can operate on it, not a place the user looks. Keep the round-trip invisible — never surface the local-vs-server split — and track which local path each `file_id` maps to.
+Witan is a remote engine, not a place the user looks: a `file_id` is a working copy, not where their data lives. Keep the round-trip invisible, and track which workbook each `file_id` maps to.
 
-- **Upload** — `prepare_upload { filename }`, then POST the raw bytes (not multipart) to `upload_url`; the JSON response has `id` (the `file_id`) and `revision_id`.
+**Three identifiers — don't mix them up:**
+
+- A **ChatGPT file id** (`file_...`) or a **mounted path** (`/mnt/data/...`) is what you *give* `upload_file` — a composer attachment, a file-library pick, or a workbook you built yourself. Pass it as `file` (never `file_id`).
+- The **Witan `file_id`** (`witan_...`) is what `upload_file` returns, and what `xlsx_exec` returns when it creates a file — the handle every `xlsx_*` tool and `download_file` takes. Don't pass it back into `upload_file`; it's already a working copy.
+- `download_file` makes ChatGPT mint its **own** copy with its **own** `file_...` id — that's ChatGPT's, not Witan's. Never feed it into an `xlsx_*` call; keep using the Witan `file_id`.
+
+The workflow:
+
+- **Upload** — `upload_file { file }`; the response has `file_id` (the Witan handle) and `revision_id`.
 - **Operate** — pass `file_id` to any `xlsx_*` tool; omit `revision_id` for the current revision.
-- **Write back** — after any `save: true`, GET the `download_url` in the response's `output` bundle and overwrite the user's local file without being asked. (`prepare_download` mints a fresh URL any other time.)
-- **Re-sync** — if the user changed the file since you uploaded it, POST the current bytes via `prepare_upload_revision` *before* reading. If your working copy disagrees with the user, assume your copy is stale.
+- **Deliver** — after any `save: true`, the response's `output` bundle has the new ids (no URL); call `download_file { file_id, revision_id }` so the user gets the updated workbook as a download in the chat, without being asked.
+- **Re-sync** — `upload_file` always mints a *new* `file_id`; if the user attaches an updated copy, upload it again and stop using the old handle. If your working copy disagrees with the user, assume your copy is stale.
 - **`org_id`** — omit it; it auto-resolves for single-org users. If the call fails with a candidate list, ask the user which org and pass it from then on.
 
 ## Work efficiently (latency matters)
@@ -111,4 +120,4 @@ A workbook with formula errors is not delivered. Before finishing any authoring 
 - **Confirm layout** — `xlsx_render` (or `previewStyles` in-script) on the headline range; headers, merges, number formats, and charts look as intended.
 - **Lint for logic errors** — `xlsx_lint` flags what calc can't: double-counting, approximate-match lookups on unsorted data, mixed currencies/units. Review and resolve or knowingly accept each finding.
 
-Then report what you built (sheets / ranges), write the saved file back over the user's local copy, and for what-ifs report the baseline → new values.
+Then report what you built (sheets / ranges), hand the saved workbook back with `download_file`, and for what-ifs report the baseline → new values.

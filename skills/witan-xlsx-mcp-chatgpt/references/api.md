@@ -1,6 +1,6 @@
 # Witan MCP xlsx API reference
 
-The complete reference for the Witan MCP server's xlsx tools — the `xlsx_exec` scripting API (`xlsx.*`), the `xlsx_calc`, `xlsx_lint`, and `xlsx_render` tools, and the `prepare_*` file plumbing, with parameters, result shapes, and full type definitions. **Read this before your first `xlsx_exec` call** — the API surface is large and not guessable from names alone.
+The complete reference for the Witan MCP server's xlsx tools — the `xlsx_exec` scripting API (`xlsx.*`), the `xlsx_calc`, `xlsx_lint`, and `xlsx_render` tools, and the `upload_file`/`download_file` file plumbing, with parameters, result shapes, and full type definitions. **Read this before your first `xlsx_exec` call** — the API surface is large and not guessable from names alone.
 
 This file is the *reference*. For the *playbook* — when to reach for what, the reading / what-if and authoring workflows, the quality bar, and the verification gate — see `SKILL.md`.
 

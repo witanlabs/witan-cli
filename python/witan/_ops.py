@@ -55,7 +55,7 @@ OPERATIONS: tuple[OperationSpec, ...] = (
     OperationSpec("evaluate_formulas", "evaluateFormulas", ("sheet", "formulas")),
     OperationSpec("evaluate_formula", "evaluateFormulas", ("sheet", "formulas"), composite=True),
     OperationSpec("lint", "lint", (), ("rangeAddresses", "skipRuleIds", "onlyRuleIds")),
-    OperationSpec("preview_styles", "previewStyles", ("address",), ("dpr",)),
+    OperationSpec("preview_styles", "previewStyles", ("address",), ("dpr", "zoom", "format")),
     OperationSpec("list_charts", "listCharts", (), ("sheet",)),
     OperationSpec("get_chart", "getChart", ("sheet", "name")),
     OperationSpec("add_chart", "addChart", ("sheet", "chart")),

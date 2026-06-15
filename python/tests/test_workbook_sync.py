@@ -54,7 +54,7 @@ def test_workbook_invokes_witan_xlsx_rpc_and_maps_pythonic_methods(tmp_path: Pat
         assert wb.find_cells(Regex("rev", "i"), in_="Sheet1!A:A") == []
         assert wb.find_cells(re.compile("cost", re.I), formulas=True) == []
         assert wb.find_and_replace(Regex("old"), "new")["replaced"] == 1
-        assert wb.preview_styles("Sheet1!A1") == "data:image/png;base64,AAA="
+        assert wb.preview_styles("Sheet1!A1", dpr=2, zoom=1.5, format="png") == "data:image/png;base64,AAA="
         assert wb.scenarios([{"address": "Sheet1!A1", "values": [1]}], ["Sheet1!B1"])["sweepCount"] == 1
         assert wb.reduce_addresses(["Sheet1!A:B"]) == ["Sheet1!A1:B2"]
         assert wb.copy_range("Sheet1!A1:B2", "Sheet1!C1")["cellsCopied"] == 4

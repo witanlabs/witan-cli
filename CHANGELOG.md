@@ -4,6 +4,8 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 ## Unreleased
 
+- New: [Skill] `witan-xlsx-mcp-chatgpt` 1.0.0 — ChatGPT variant of `witan-xlsx-mcp`: native `upload_file`/`download_file` file flow (no presigned URLs, no `download_url` in save outputs) and the ChatGPT-vs-Witan file-identifier model. Served live to ChatGPT connections by the server's `read_witan_manual`; same `xlsx_exec` workflow and quality guidance as the sibling. Gated against non-ChatGPT use: hidden from generic `npx skills` installs (`metadata.internal: true`, still installable by name) and the description steers all other agents to `witan-xlsx-mcp`.
+- Updated: [Skill] `witan-xlsx-mcp` 1.0.1 — removed the "do not call `read_witan_manual`" instruction: the server now serves this skill *as* the manual, and the tool descriptions already route between installed skill and manual call. `metadata.mcp-server` now records the server URL (https://api.witanlabs.com/mcp) rather than a bare name, on both MCP skills.
 - New: [Skill] Per-skill zips are published to the rolling [`skills` GitHub release](https://github.com/witanlabs/witan-cli/releases/tag/skills) on every merge to `main` that touches `skills/**` — stable download URLs (`releases/download/skills/<name>.zip`) for clients that install by zip upload, e.g. claude.ai (Settings → Capabilities → Skills). See `skills/README.md`.
 - Renamed: [Skill] `xlsx-code-mode` → `witan-xlsx` 1.0.0 — all skills are rebranded under the `witan-` prefix. Existing installs: `npx skills remove` the old names, then re-run `npx skills add witanlabs/witan-cli`.
 - Renamed: [Skill] `xlsx-excelscript` → `witan-xlsx-excelscript` 1.0.0.

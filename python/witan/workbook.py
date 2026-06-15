@@ -342,7 +342,7 @@ class Workbook(_WorkbookBase):
     def lint(self, *, range_addresses: Sequence[str] | None = None, skip_rule_ids: Sequence[str] | None = None, only_rule_ids: Sequence[str] | None = None) -> LintResult:
         return cast(LintResult, self._request("lint", "lint", _drop_none({"rangeAddresses": list(range_addresses) if range_addresses is not None else None, "skipRuleIds": list(skip_rule_ids) if skip_rule_ids is not None else None, "onlyRuleIds": list(only_rule_ids) if only_rule_ids is not None else None})))
 
-    def preview_styles(self, range: RangeRef, *, dpr: float | None = None) -> str:
+    def preview_styles(self, range: RangeRef, *, dpr: int | None = None) -> str:
         result = cast(Mapping[str, Any], self._request("preview_styles", "previewStyles", _drop_none({"address": range, "dpr": dpr})))
         return _preview_data_url(result)
 
@@ -673,7 +673,7 @@ class AsyncWorkbook(_WorkbookBase):
     async def lint(self, *, range_addresses: Sequence[str] | None = None, skip_rule_ids: Sequence[str] | None = None, only_rule_ids: Sequence[str] | None = None) -> LintResult:
         return cast(LintResult, await self._request("lint", "lint", _drop_none({"rangeAddresses": list(range_addresses) if range_addresses is not None else None, "skipRuleIds": list(skip_rule_ids) if skip_rule_ids is not None else None, "onlyRuleIds": list(only_rule_ids) if only_rule_ids is not None else None})))
 
-    async def preview_styles(self, range: RangeRef, *, dpr: float | None = None) -> str:
+    async def preview_styles(self, range: RangeRef, *, dpr: int | None = None) -> str:
         result = cast(Mapping[str, Any], await self._request("preview_styles", "previewStyles", _drop_none({"address": range, "dpr": dpr})))
         return _preview_data_url(result)
 

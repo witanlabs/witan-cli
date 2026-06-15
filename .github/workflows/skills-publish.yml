@@ -1,0 +1,98 @@
+name: Skills Publish
+
+# Maintains the rolling "skills" release: one zip per skills/<name>/ folder,
+# rebuilt from main HEAD so the download URLs
+# (https://github.com/witanlabs/witan-cli/releases/download/skills/<name>.zip)
+# never change and always serve the newest version. The Witan MCP server's
+# setup page links these zips for claude.ai skill upload.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - ".github/workflows/skills-publish.yml"
+      - "scripts/build-skill-zips.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Every run uploads the complete set, so cancelling a superseded run is safe —
+# the survivor leaves the shelf whole.
+concurrency:
+  group: skills-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build & Publish Skill Zips
+    runs-on: ubuntu-latest
+    steps:
+      # The shelf promises main HEAD; a workflow_dispatch launched from any
+      # other ref would publish unmerged skill contents.
+      - name: Refuse to publish from non-main refs
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "error: the skills shelf serves main HEAD; refusing to publish from ${GITHUB_REF}" >&2
+          exit 1
+
+      - uses: actions/checkout@v6
+
+      - name: Build skill zips
+        run: scripts/build-skill-zips.sh "${RUNNER_TEMP}/skill-zips"
+
+      - name: Ensure rolling "skills" release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view skills >/dev/null 2>&1; then
+            echo "Release exists."
+          else
+            # --latest=false is load-bearing: install.sh resolves the CLI
+            # version via releases/latest, which must stay on CLI releases.
+            gh release create skills \
+              --latest=false \
+              --target "${GITHUB_SHA}" \
+              --title "Skills (rolling)" \
+              --notes "Bootstrap — notes are rewritten on every publish."
+          fi
+
+      - name: Upload zips and prune stray assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload skills "${RUNNER_TEMP}/skill-zips"/*.zip --clobber
+
+          # The release is machine-owned: anything not built this run is stale.
+          for asset in $(gh release view skills --json assets -q '.assets[].name'); do
+            if [ ! -f "${RUNNER_TEMP}/skill-zips/${asset}" ]; then
+              echo "Pruning stray asset: ${asset}"
+              gh release delete-asset skills "${asset}" --yes
+            fi
+          done
+
+      - name: Rewrite release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Per-skill zips of [\`skills/\`](https://github.com/${GITHUB_REPOSITORY}/tree/main/skills),"
+            echo "rebuilt on every merge to \`main\` that touches \`skills/**\`. Download URLs are"
+            echo "stable and always serve the newest version. This release is machine-owned by"
+            echo "the skills-publish workflow; its tag commit is meaningless — provenance below."
+            echo
+            echo "To install in claude.ai: Settings → Capabilities → Skills → upload a zip."
+            echo
+            echo "**Published from ${GITHUB_REPOSITORY}@${GITHUB_SHA} on $(date -u +%Y-%m-%dT%H:%M:%SZ).**"
+            echo
+            echo "| Skill | Version |"
+            echo "| --- | --- |"
+            for dir in skills/*/; do
+              name="$(basename "$dir")"
+              version="$(yq --front-matter=extract '.metadata.version // "?"' "${dir}SKILL.md")"
+              echo "| ${name} | ${version} |"
+            done
+          } > "${RUNNER_TEMP}/notes.md"
+
+          gh release edit skills --notes-file "${RUNNER_TEMP}/notes.md"

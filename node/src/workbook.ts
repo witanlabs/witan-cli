@@ -1450,10 +1450,15 @@ export class Workbook implements AsyncDisposable {
    * Generate a preview image of cell styles.
    *
    * @param range - Range address to preview
+   * @param options - Preview options
    * @returns Data URL of the preview image
    */
-  async previewStyles(range: string): Promise<string> {
-    const result = (await this.request('previewStyles', 'previewStyles', { address: range })) as {
+  async previewStyles(range: string, options: { dpr?: number } = {}): Promise<string> {
+    const result = (await this.request(
+      'previewStyles',
+      'previewStyles',
+      dropUndefined({ address: range, dpr: options.dpr })
+    )) as {
       contentType?: string;
       data?: string;
     };

@@ -307,6 +307,47 @@ func TestInspectAuthStatus_SavedSessionValidatesAndFetchesEmail(t *testing.T) {
 	}
 }
 
+// TestInspectAuthStatus_SessionWithoutOrgIsUnauthenticated verifies that a
+// valid session token with no org (an incomplete multi-org login) is reported
+// as unauthenticated, not authenticated. resolveAuth rejects this state, so a
+// machine consumer of `auth status --json` must not be told to proceed.
+func TestInspectAuthStatus_SessionWithoutOrgIsUnauthenticated(t *testing.T) {
+	restoreAuthStatusGlobals(t)
+
+	t.Setenv("WITAN_CONFIG_DIR", t.TempDir())
+	if err := config.Save(config.Config{SessionToken: "session-token"}); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	mgmt := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v0/auth/token":
+			fmt.Fprint(w, `{"token":"jwt-token"}`)
+		case "/v0/auth/get-session":
+			fmt.Fprint(w, `{"user":{"email":"alice@example.com"}}`)
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer mgmt.Close()
+
+	t.Setenv("WITAN_MANAGEMENT_API_URL", mgmt.URL)
+	t.Setenv("WITAN_API_KEY", "")
+
+	report := inspectAuthStatus()
+
+	if report.Status != "unauthenticated" {
+		t.Fatalf("expected unauthenticated status for empty-org session, got %+v", report)
+	}
+	if report.ActiveAuth.Validation != "ok" {
+		t.Fatalf("expected token validation ok, got %+v", report.ActiveAuth)
+	}
+	if report.Hint == "" {
+		t.Fatalf("expected an org-selection hint, got none: %+v", report)
+	}
+}
+
 func TestRunAuthStatus_JSONOutput(t *testing.T) {
 	restoreAuthStatusGlobals(t)
 

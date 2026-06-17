@@ -194,6 +194,14 @@ func finalizeAuthStatus(report *authStatusReport) {
 		report.Status = "unauthenticated"
 	}
 
+	// A valid session token with no org is an incomplete multi-org login: every
+	// org-scoped command fails (resolveAuth rejects it) until an org is chosen,
+	// so it is not usable. Report it as unauthenticated, not authenticated, so a
+	// machine consumer of `auth status --json` does not proceed.
+	if report.ActiveAuth.Type == "session" && report.ActiveAuth.Validation == "ok" && report.ActiveAuth.OrgID == "" {
+		report.Status = "unauthenticated"
+	}
+
 	if report.Hint != "" {
 		return
 	}
@@ -210,6 +218,10 @@ func finalizeAuthStatus(report *authStatusReport) {
 	case "session":
 		if report.ActiveAuth.Validation == "invalid" {
 			report.Hint = "run `witan auth login` again"
+		} else if report.ActiveAuth.Validation == "ok" && report.ActiveAuth.OrgID == "" {
+			// Valid token but no org: an incomplete multi-org login. Requests
+			// would fail until an org is chosen, so say so.
+			report.Hint = "organization not selected: run `witan auth login --org <id>` (or set WITAN_ORG) to finish signing in"
 		}
 	}
 }

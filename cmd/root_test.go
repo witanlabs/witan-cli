@@ -215,6 +215,51 @@ func TestResolveAuth_ClearsInvalidSavedSessionAndFallsBackToStateless(t *testing
 	}
 }
 
+// TestResolveAuth_RejectsSessionWithoutOrg verifies that a valid session token
+// with no org (an incomplete multi-org login left by a non-interactive run that
+// exited needing --org) is not treated as usable: resolveAuth must return an
+// actionable error rather than valid auth with an empty org, which would send
+// unscoped requests.
+func TestResolveAuth_RejectsSessionWithoutOrg(t *testing.T) {
+	origAPIKey := apiKey
+	origAPIURL := apiURL
+	origStateless := stateless
+	t.Cleanup(func() {
+		apiKey = origAPIKey
+		apiURL = origAPIURL
+		stateless = origStateless
+	})
+
+	apiKey = ""
+	apiURL = ""
+	stateless = false
+
+	t.Setenv("WITAN_CONFIG_DIR", t.TempDir())
+	t.Setenv("WITAN_API_KEY", "")
+	t.Setenv("WITAN_STATELESS", "")
+
+	if err := config.Save(config.Config{SessionToken: "pending-session"}); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	mgmtServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v0/auth/token" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		fmt.Fprint(w, `{"token":"jwt-from-exchange"}`)
+	}))
+	defer mgmtServer.Close()
+	t.Setenv("WITAN_MANAGEMENT_API_URL", mgmtServer.URL)
+
+	key, orgID, err := resolveAuth()
+	if err == nil {
+		t.Fatalf("expected error for session without org, got key=%q orgID=%q", key, orgID)
+	}
+	if !strings.Contains(err.Error(), "organization not selected") {
+		t.Fatalf("expected actionable org-selection error, got: %v", err)
+	}
+}
+
 func TestResolveAuth_KeepsSavedSessionOnUnknownExchangeError(t *testing.T) {
 	origAPIKey := apiKey
 	origAPIURL := apiURL

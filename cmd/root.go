@@ -186,6 +186,13 @@ func resolveAuth() (string, string, error) {
 		}
 		return "", "", fmt.Errorf("authentication failed (%v): run 'witan auth login' to re-authenticate", err)
 	}
+	// A saved session token with no org is an incomplete multi-org login (left
+	// by a non-interactive `auth login` that exited needing --org). It must not
+	// be treated as usable: without an org, requests would be sent unscoped.
+	// Fail with an actionable error instead.
+	if cfg.SessionOrgID == "" {
+		return "", "", fmt.Errorf("organization not selected: run 'witan auth login --org <id>' (or set WITAN_ORG) to finish signing in")
+	}
 	return jwt, cfg.SessionOrgID, nil
 }
 

@@ -23,3 +23,5 @@ examples/output/
 .DS_Store
 # Packaged skill artifacts (generated, not tracked)
 skills/*.zip
+CLAUDE.local.md
+AGENTS.local.md

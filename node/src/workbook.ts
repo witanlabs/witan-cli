@@ -1450,7 +1450,10 @@ export class Workbook implements AsyncDisposable {
    * Generate a preview image of cell styles.
    *
    * @param range - Range address to preview
-   * @param options - Render options: `dpr` (1-3), `zoom` (0.5-2), `format` ('png' | 'webp')
+   * @param options - Render options:
+   *   - `dpr` - Device pixel ratio, 1-3 (default: auto)
+   *   - `zoom` - Zoom factor, 0.5-2 (default: 1)
+   *   - `format` - Image format, 'png' | 'webp' (default: 'png')
    * @returns Data URL of the preview image
    */
   async previewStyles(

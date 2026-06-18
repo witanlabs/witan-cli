@@ -1543,6 +1543,24 @@ describe('Workbook', () => {
       expect(dataUrl).toBe('data:image/png;base64,AAA=');
     });
 
+    it('previews styles with options', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const dataUrl = await wb.previewStyles('A1:B5', { dpr: 2, zoom: 1.5, format: 'webp' });
+      expect(dataUrl).toBe('data:image/png;base64,AAA=');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const previewReq = requests.find((r) => r.op === 'previewStyles');
+      expect(previewReq!.args.address).toBe('A1:B5');
+      expect(previewReq!.args.dpr).toBe(2);
+      expect(previewReq!.args.zoom).toBe(1.5);
+      expect(previewReq!.args.format).toBe('webp');
+    });
+
     it('reduces addresses', async () => {
       const env = fakeEnv(tmpDir);
       await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {

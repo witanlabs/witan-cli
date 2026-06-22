@@ -342,8 +342,8 @@ class Workbook(_WorkbookBase):
     def lint(self, *, range_addresses: Sequence[str] | None = None, skip_rule_ids: Sequence[str] | None = None, only_rule_ids: Sequence[str] | None = None) -> LintResult:
         return cast(LintResult, self._request("lint", "lint", _drop_none({"rangeAddresses": list(range_addresses) if range_addresses is not None else None, "skipRuleIds": list(skip_rule_ids) if skip_rule_ids is not None else None, "onlyRuleIds": list(only_rule_ids) if only_rule_ids is not None else None})))
 
-    def preview_styles(self, range: RangeRef) -> str:
-        result = cast(Mapping[str, Any], self._request("preview_styles", "previewStyles", {"address": range}))
+    def preview_styles(self, range: RangeRef, *, dpr: int | None = None, zoom: float | None = None, format: Literal["png", "webp"] | None = None) -> str:
+        result = cast(Mapping[str, Any], self._request("preview_styles", "previewStyles", _drop_none({"address": range, "dpr": dpr, "zoom": zoom, "format": format})))
         return _preview_data_url(result)
 
     def list_charts(self, *, sheet: str | None = None) -> list[ChartSummary]:
@@ -673,8 +673,8 @@ class AsyncWorkbook(_WorkbookBase):
     async def lint(self, *, range_addresses: Sequence[str] | None = None, skip_rule_ids: Sequence[str] | None = None, only_rule_ids: Sequence[str] | None = None) -> LintResult:
         return cast(LintResult, await self._request("lint", "lint", _drop_none({"rangeAddresses": list(range_addresses) if range_addresses is not None else None, "skipRuleIds": list(skip_rule_ids) if skip_rule_ids is not None else None, "onlyRuleIds": list(only_rule_ids) if only_rule_ids is not None else None})))
 
-    async def preview_styles(self, range: RangeRef) -> str:
-        result = cast(Mapping[str, Any], await self._request("preview_styles", "previewStyles", {"address": range}))
+    async def preview_styles(self, range: RangeRef, *, dpr: int | None = None, zoom: float | None = None, format: Literal["png", "webp"] | None = None) -> str:
+        result = cast(Mapping[str, Any], await self._request("preview_styles", "previewStyles", _drop_none({"address": range, "dpr": dpr, "zoom": zoom, "format": format})))
         return _preview_data_url(result)
 
     async def list_charts(self, *, sheet: str | None = None) -> list[ChartSummary]:

@@ -239,6 +239,7 @@ await wb.addListObject('Sheet1', {
 // Charts
 const charts = await wb.listCharts();
 const chart = await wb.getChart('Sheet1', 'Chart1');
+const chartPreview = await wb.previewChart('Sheet1', 'Chart1', { format: 'webp', dpr: 2 });
 await wb.addChart('Sheet1', {
   name: 'SalesChart',
   position: {

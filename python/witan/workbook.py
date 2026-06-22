@@ -16,6 +16,8 @@ from .exceptions import WitanProcessError
 from .types import (
     CellRef,
     ChartInfo,
+    ChartPreviewFormat,
+    ChartSelector,
     ChartSpec,
     ChartSummary,
     AutoFitColumnResult,
@@ -87,17 +89,26 @@ def _serialize_matcher(value: Matcher | ReplaceMatcher) -> Any:
     return value
 
 
-def _preview_data_url(result: Mapping[str, Any]) -> str:
+def _preview_data_url(result: Mapping[str, Any], operation: str) -> str:
     content_type = result.get("contentType")
     data = result.get("data")
     if not isinstance(content_type, str) or not isinstance(data, str):
-        msg = f"invalid previewStyles result: {result!r}"
+        msg = f"invalid {operation} result: {result!r}"
         raise TypeError(msg)
     return f"data:{content_type};base64,{data}"
 
 
 def _is_json_number(value: Any) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _chart_selector_arg(chart: ChartSelector) -> JsonDict:
+    if isinstance(chart, bool):
+        msg = "chart must be a chart name or integer id"
+        raise TypeError(msg)
+    if isinstance(chart, int):
+        return {"id": chart}
+    return {"name": chart}
 
 
 class _WorkbookBase:
@@ -344,7 +355,7 @@ class Workbook(_WorkbookBase):
 
     def preview_styles(self, range: RangeRef, *, dpr: int | None = None, zoom: float | None = None, format: Literal["png", "webp"] | None = None) -> str:
         result = cast(Mapping[str, Any], self._request("preview_styles", "previewStyles", _drop_none({"address": range, "dpr": dpr, "zoom": zoom, "format": format})))
-        return _preview_data_url(result)
+        return _preview_data_url(result, "previewStyles")
 
     def list_charts(self, *, sheet: str | None = None) -> list[ChartSummary]:
         result = cast(Mapping[str, Any], self._request("list_charts", "listCharts", _drop_none({"sheet": sheet})))
@@ -353,6 +364,19 @@ class Workbook(_WorkbookBase):
     def get_chart(self, sheet: str, name: str) -> ChartInfo:
         result = cast(Mapping[str, Any], self._request("get_chart", "getChart", {"sheet": sheet, "name": name}))
         return cast(ChartInfo, result.get("chart", {}))
+
+    def preview_chart(
+        self,
+        sheet: str,
+        chart: ChartSelector,
+        *,
+        format: ChartPreviewFormat | None = None,
+        dpr: int | None = None,
+        zoom: float | None = None,
+    ) -> str:
+        args = _drop_none({"sheet": sheet, **_chart_selector_arg(chart), "format": format, "dpr": dpr, "zoom": zoom})
+        result = cast(Mapping[str, Any], self._request("preview_chart", "previewChart", args))
+        return _preview_data_url(result, "previewChart")
 
     def add_chart(self, sheet: str, chart: ChartSpec) -> ChartSpec:
         result = cast(Mapping[str, Any], self._request("add_chart", "addChart", {"sheet": sheet, "chart": chart}))
@@ -675,7 +699,7 @@ class AsyncWorkbook(_WorkbookBase):
 
     async def preview_styles(self, range: RangeRef, *, dpr: int | None = None, zoom: float | None = None, format: Literal["png", "webp"] | None = None) -> str:
         result = cast(Mapping[str, Any], await self._request("preview_styles", "previewStyles", _drop_none({"address": range, "dpr": dpr, "zoom": zoom, "format": format})))
-        return _preview_data_url(result)
+        return _preview_data_url(result, "previewStyles")
 
     async def list_charts(self, *, sheet: str | None = None) -> list[ChartSummary]:
         result = cast(Mapping[str, Any], await self._request("list_charts", "listCharts", _drop_none({"sheet": sheet})))
@@ -684,6 +708,19 @@ class AsyncWorkbook(_WorkbookBase):
     async def get_chart(self, sheet: str, name: str) -> ChartInfo:
         result = cast(Mapping[str, Any], await self._request("get_chart", "getChart", {"sheet": sheet, "name": name}))
         return cast(ChartInfo, result.get("chart", {}))
+
+    async def preview_chart(
+        self,
+        sheet: str,
+        chart: ChartSelector,
+        *,
+        format: ChartPreviewFormat | None = None,
+        dpr: int | None = None,
+        zoom: float | None = None,
+    ) -> str:
+        args = _drop_none({"sheet": sheet, **_chart_selector_arg(chart), "format": format, "dpr": dpr, "zoom": zoom})
+        result = cast(Mapping[str, Any], await self._request("preview_chart", "previewChart", args))
+        return _preview_data_url(result, "previewChart")
 
     async def add_chart(self, sheet: str, chart: ChartSpec) -> ChartSpec:
         result = cast(Mapping[str, Any], await self._request("add_chart", "addChart", {"sheet": sheet, "chart": chart}))

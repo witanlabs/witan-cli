@@ -56,6 +56,7 @@ def test_workbook_invokes_witan_xlsx_rpc_and_maps_pythonic_methods(tmp_path: Pat
         assert wb.find_and_replace(Regex("old"), "new")["replaced"] == 1
         assert wb.preview_styles("Sheet1!A1") == "data:image/png;base64,AAA="
         assert wb.preview_styles("Sheet1!A1", dpr=2, zoom=1.5, format="png") == "data:image/png;base64,AAA="
+        assert wb.preview_chart("Sheet1", "Chart1", format="webp", dpr=2, zoom=1.5) == "data:image/webp;base64,CHART="
         assert wb.scenarios([{"address": "Sheet1!A1", "values": [1]}], ["Sheet1!B1"])["sweepCount"] == 1
         assert wb.reduce_addresses(["Sheet1!A:B"]) == ["Sheet1!A1:B2"]
         assert wb.copy_range("Sheet1!A1:B2", "Sheet1!C1")["cellsCopied"] == 4
@@ -161,6 +162,7 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         wb.preview_styles("Sheet1!A1:B2")
         wb.list_charts(sheet="Sheet1")
         wb.get_chart("Sheet1", "Chart1")
+        wb.preview_chart("Sheet1", 7)
         chart_spec = {
             "name": "Chart1",
             "position": {"from": {"cell": "E2"}, "to": {"cell": "L18"}},
@@ -237,6 +239,7 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
         "previewStyles",
         "listCharts",
         "getChart",
+        "previewChart",
         "addChart",
         "setChart",
         "deleteChart",
@@ -265,6 +268,7 @@ def test_all_sync_operation_wrappers_emit_documented_rpc_ops(tmp_path: Path) -> 
 
     logged_requests = json_lines(requests_file)
     args_by_op = {request["op"]: request["args"] for request in logged_requests}
+    assert args_by_op["previewChart"] == {"sheet": "Sheet1", "id": 7}
     assert args_by_op["removeDataValidations"] == {"sheet": "Sheet1", "address": "A1"}
     assert next(request["args"] for request in logged_requests if request["op"] == "setCells" and request["args"].get("validationMode") == "reject") == {
         "cells": [{"address": "Sheet1!A1", "value": 1}],

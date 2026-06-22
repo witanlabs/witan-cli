@@ -1179,6 +1179,44 @@ describe('Workbook', () => {
       expect(chart.name).toBe('Chart1');
     });
 
+    it('previews a chart by name', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      const dataUrl = await wb.previewChart('Sheet1', 'Chart1', { format: 'webp', dpr: 2, zoom: 1.5 });
+      expect(dataUrl).toBe('data:image/webp;base64,CHART=');
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const previewReq = requests.find((r) => r.op === 'previewChart');
+      expect(previewReq!.args).toEqual({
+        sheet: 'Sheet1',
+        name: 'Chart1',
+        format: 'webp',
+        dpr: 2,
+        zoom: 1.5,
+      });
+    });
+
+    it('previews a chart by id', async () => {
+      const env = fakeEnv(tmpDir);
+      await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {
+        binary: FAKE_WITAN_PATH,
+        env,
+      });
+
+      await wb.previewChart('Sheet1', 7);
+
+      const requests = await readRequests(env.WITAN_FAKE_REQUESTS_FILE);
+      const previewReq = requests.find((r) => r.op === 'previewChart');
+      expect(previewReq!.args).toEqual({
+        sheet: 'Sheet1',
+        id: 7,
+      });
+    });
+
     it('adds a chart', async () => {
       const env = fakeEnv(tmpDir);
       await using wb = await Workbook.open(join(tmpDir, 'test.xlsx'), {

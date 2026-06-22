@@ -782,6 +782,8 @@ ChartTimeUnit: TypeAlias = Literal["days", "months", "years"]
 ChartScatterStyle: TypeAlias = Literal["line", "lineMarker", "marker", "smooth", "smoothMarker"]
 ChartRadarStyle: TypeAlias = Literal["standard", "marker", "filled"]
 ChartSurfaceVariant: TypeAlias = Literal["topView", "topViewWireframe"]
+ChartSelector: TypeAlias = str | int
+ChartPreviewFormat: TypeAlias = Literal["png", "webp"]
 
 
 class ChartTextSource(TypedDict, total=False):

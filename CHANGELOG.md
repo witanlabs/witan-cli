@@ -4,6 +4,9 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 ## Unreleased
 
+## 0.13.0
+
+
 - Updated: [Skill] `witan-xlsx` 1.0.1 — documented the new `previewChart` xlsx operation in the chart API reference.
 - Updated: [Skill] `witan-xlsx-mcp` 1.0.2 — documented the new `previewChart` xlsx operation in the chart API reference.
 - Updated: [Skill] `witan-xlsx-mcp-chatgpt` 1.0.1 — documented the new `previewChart` xlsx operation in the chart API reference.

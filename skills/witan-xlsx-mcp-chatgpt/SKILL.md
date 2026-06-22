@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: "Designed for ChatGPT connections to the Witan MCP server (native upload_file/download_file file tools). Other MCP clients should use the witan-xlsx-mcp skill instead."
 metadata:
   internal: true
-  version: "1.0.0"
+  version: "1.0.1"
   author: witanlabs
   source: https://github.com/witanlabs/witan-cli
   mcp-server: https://api.witanlabs.com/mcp

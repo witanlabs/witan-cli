@@ -112,6 +112,9 @@ def result_for(op: str, args: dict[str, Any]) -> Any:
         return {"charts": []}
     if op in {"getChart", "addChart", "setChart"}:
         return {"sheet": args.get("sheet"), "chart": {"name": args.get("name", "Chart1")}}
+    if op == "previewChart":
+        content_type = "image/webp" if args.get("format") == "webp" else "image/png"
+        return {"contentType": content_type, "data": "CHART=", "pixelWidth": 640, "pixelHeight": 360}
     if op == "getConditionalFormatting":
         return {"rules": []}
     if op == "getDataValidations":

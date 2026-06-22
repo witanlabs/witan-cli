@@ -48,6 +48,7 @@ def test_async_workbook_invokes_witan_xlsx_rpc(tmp_path: Path) -> None:
             assert (await wb.read_cell("Sheet1!A1"))["value"] == 2
             assert await wb.find_cells(Regex("rev", "i")) == []
             assert await wb.reduce_addresses(["Sheet1!A:B"]) == ["Sheet1!A1:B2"]
+            assert await wb.preview_chart("Sheet1", 7) == "data:image/png;base64,CHART="
             assert (await wb.scenarios([{"address": "Sheet1!A1", "values": [1]}], ["Sheet1!B1"]))["sweepCount"] == 1
             assert await wb.save() is True
 
@@ -60,6 +61,7 @@ def test_async_workbook_invokes_witan_xlsx_rpc(tmp_path: Path) -> None:
             "readRange",
             "findCells",
             "reduceAddresses",
+            "previewChart",
             "sweepInputs",
             "save",
         ]

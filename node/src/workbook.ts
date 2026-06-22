@@ -7,6 +7,8 @@ import type {
   AutoFitRowResult,
   CellAssignment,
   ChartInfo,
+  ChartPreviewOptions,
+  ChartSelector,
   ChartSpec,
   ChartSummary,
   ConditionalFormattingRule,
@@ -187,6 +189,10 @@ export class Workbook implements AsyncDisposable {
       throw new WitanProcessError('Workbook is closed');
     }
     return this.process.request(method, op, args, this.nextId());
+  }
+
+  private static chartSelectorArg(chart: ChartSelector): { name: string } | { id: number } {
+    return typeof chart === 'number' ? { id: chart } : { name: chart };
   }
 
   // ============================================================================
@@ -1029,6 +1035,37 @@ export class Workbook implements AsyncDisposable {
       chart?: ChartInfo;
     };
     return result.chart ?? ({} as ChartInfo);
+  }
+
+  /**
+   * Generate a preview image of a chart.
+   *
+   * @param sheet - Sheet containing the chart
+   * @param chart - Chart name or numeric chart id
+   * @param options - Render options
+   * @returns Data URL of the preview image
+   */
+  async previewChart(sheet: string, chart: ChartSelector, options: ChartPreviewOptions = {}): Promise<string> {
+    const result = (await this.request(
+      'previewChart',
+      'previewChart',
+      dropUndefined({
+        sheet,
+        ...Workbook.chartSelectorArg(chart),
+        format: options.format,
+        dpr: options.dpr,
+        zoom: options.zoom,
+      })
+    )) as {
+      contentType?: string;
+      data?: string;
+    };
+    const contentType = result.contentType;
+    const data = result.data;
+    if (typeof contentType !== 'string' || typeof data !== 'string') {
+      throw new WitanProcessError(`Invalid previewChart result: ${JSON.stringify(result)}`);
+    }
+    return `data:${contentType};base64,${data}`;
   }
 
   /**

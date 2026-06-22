@@ -722,6 +722,14 @@ export type ChartTimeUnit = 'days' | 'months' | 'years';
 export type ChartScatterStyle = 'line' | 'lineMarker' | 'marker' | 'smooth' | 'smoothMarker';
 export type ChartRadarStyle = 'standard' | 'marker' | 'filled';
 export type ChartSurfaceVariant = 'topView' | 'topViewWireframe';
+export type ChartSelector = string | number;
+export type ChartPreviewFormat = 'png' | 'webp';
+
+export interface ChartPreviewOptions {
+  format?: ChartPreviewFormat;
+  dpr?: number;
+  zoom?: number;
+}
 
 export interface ChartTextSource {
   text?: string;

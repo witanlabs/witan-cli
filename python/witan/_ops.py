@@ -58,6 +58,7 @@ OPERATIONS: tuple[OperationSpec, ...] = (
     OperationSpec("preview_styles", "previewStyles", ("address",), ("dpr", "zoom", "format")),
     OperationSpec("list_charts", "listCharts", (), ("sheet",)),
     OperationSpec("get_chart", "getChart", ("sheet", "name")),
+    OperationSpec("preview_chart", "previewChart", ("sheet", "chart"), ("format", "dpr", "zoom"), composite=True),
     OperationSpec("add_chart", "addChart", ("sheet", "chart")),
     OperationSpec("set_chart", "setChart", ("sheet", "name", "chart")),
     OperationSpec("delete_chart", "deleteChart", ("sheet", "name")),

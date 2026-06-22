@@ -609,6 +609,7 @@ function listCharts(wb,options?:{ sheet?:string }):Promise<Array<{
 	position:ChartPos;
 }>>;
 function getChart(wb,sheet:string,name:string):Promise<Omit<ChartSpec,"position">&{ position:ChartPos }>;
+function previewChart(wb,sheet:string,chart:string|number,options?:{format?:"png"|"webp";dpr?:number;zoom?:number}):Promise<void>;
 function addChart(wb,sheet:string,chart:ChartSpec):Promise<ChartSpec>;
 function setChart(wb,sheet:string,name:string,chart:ChartSpec):Promise<ChartSpec>;
 function deleteChart(wb,sheet:string,name:string):Promise<void>;

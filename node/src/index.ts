@@ -37,6 +37,8 @@ export {
   WitanProcessError,
   WitanRPCError,
   WitanTimeoutError,
+  isGoogleAuthRequired,
+  isNeedsFileAuthorization,
 } from './errors.js';
 
 export { serializeMatcher, dropUndefined } from './helpers.js';
@@ -44,5 +46,15 @@ export { serializeMatcher, dropUndefined } from './helpers.js';
 export { StdioRPCProcess } from './process.js';
 
 export { Workbook, type WorkbookOptions } from './workbook.js';
+
+export {
+  GoogleSheet,
+  DEFAULT_GOOGLE_SHEET_REQUEST_TIMEOUT_MS,
+  type GoogleSheetOptions,
+  type GoogleSheetOpenOptions,
+  type GoogleSheetCreateOptions,
+  type GoogleSheetAuthorizeOptions,
+  type AuthorizeUrlResult,
+} from './google-sheet.js';
 
 export type * from './types.js';

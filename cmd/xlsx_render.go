@@ -1,13 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/witanlabs/witan-cli/client"
@@ -120,62 +115,18 @@ func runRender(cmd *cobra.Command, args []string) error {
 	// If --diff is set, pixel-diff against the baseline image
 	var diffSummary string
 	if renderDiff != "" {
-		if renderFormat != "png" {
-			return fmt.Errorf("--diff requires --format png (got %q)", renderFormat)
-		}
-
-		beforeBytes, err := os.ReadFile(renderDiff)
+		var err error
+		imageBytes, diffSummary, err = runRenderDiffPipeline(renderFormat, renderDiff, imageBytes)
 		if err != nil {
-			return fmt.Errorf("reading baseline image: %w", err)
+			return err
 		}
-		beforeImg, err := png.Decode(bytes.NewReader(beforeBytes))
-		if err != nil {
-			return fmt.Errorf("decoding baseline image: %w", err)
-		}
-		afterImg, err := png.Decode(bytes.NewReader(imageBytes))
-		if err != nil {
-			return fmt.Errorf("decoding rendered image: %w", err)
-		}
-
-		diffImg, changed, err := internal.DiffImages(beforeImg, afterImg)
-		if err != nil {
-			return fmt.Errorf("diffing images: %w", err)
-		}
-
-		total := diffImg.Bounds().Dx() * diffImg.Bounds().Dy()
-		diffSummary = internal.FormatDiffSummary(changed, total)
-
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, diffImg); err != nil {
-			return fmt.Errorf("encoding diff image: %w", err)
-		}
-		imageBytes = buf.Bytes()
-		// Force png content type for diff output
 		contentType = "image/png"
 	}
 
-	// Determine output path
-	outPath := renderOutput
-	if outPath == "" {
-		ext := ".png"
-		if strings.Contains(contentType, "webp") {
-			ext = ".webp"
-		}
-		f, err := os.CreateTemp("", "witan-render-*"+ext)
-		if err != nil {
-			return fmt.Errorf("creating temp file: %w", err)
-		}
-		outPath = f.Name()
-		f.Close()
-	}
-
-	// Ensure output directory exists
-	if dir := filepath.Dir(outPath); dir != "" {
-		os.MkdirAll(dir, 0o755)
-	}
-
-	if err := os.WriteFile(outPath, imageBytes, 0o644); err != nil {
-		return fmt.Errorf("writing output: %w", err)
+	// Write image
+	outPath, err := writeRenderedImage(renderOutput, contentType, imageBytes)
+	if err != nil {
+		return err
 	}
 
 	// Print result info
@@ -186,49 +137,7 @@ func runRender(cmd *cobra.Command, args []string) error {
 		pixelWidth, pixelHeight = estimatePixels(address, dpr)
 	}
 
-	if diffSummary != "" {
-		if pixelWidth > 0 && pixelHeight > 0 {
-			fmt.Printf("%s\n%s | ~%d×%dpx | dpr=%d | %s\n", outPath, rangeStr, pixelWidth, pixelHeight, dpr, diffSummary)
-		} else {
-			fmt.Printf("%s\n%s | dpr=%d | %s\n", outPath, rangeStr, dpr, diffSummary)
-		}
-	} else {
-		if pixelWidth > 0 && pixelHeight > 0 {
-			fmt.Printf("%s\n%s | ~%d×%dpx | dpr=%d\n", outPath, rangeStr, pixelWidth, pixelHeight, dpr)
-		} else {
-			fmt.Printf("%s\n%s | dpr=%d\n", outPath, rangeStr, dpr)
-		}
-	}
-
-	// Vision model warning (on stdout — it's actionable advice for agents)
-	if pixelWidth > 1568 || pixelHeight > 1568 {
-		fmt.Printf("Warning: Image exceeds 1568px. Vision models may downscale, reducing detail. Consider a smaller --range.\n")
-	}
-
+	printRenderResult(outPath, rangeStr, pixelWidth, pixelHeight, dpr, diffSummary)
 	return nil
 }
 
-func autoDPR(address string) int {
-	_, sr, sc, er, ec, err := internal.ParseRange(address)
-	if err != nil {
-		return 2 // default
-	}
-	cols := ec - sc + 1
-	rows := er - sr + 1
-	estWidth := cols * 64
-	estHeight := rows * 15
-	if estWidth*2 > 1568 || estHeight*2 > 1568 {
-		return 1
-	}
-	return 2
-}
-
-func estimatePixels(address string, dpr int) (int, int) {
-	_, sr, sc, er, ec, err := internal.ParseRange(address)
-	if err != nil {
-		return 0, 0
-	}
-	cols := ec - sc + 1
-	rows := er - sr + 1
-	return cols * 64 * dpr, rows * 15 * dpr
-}

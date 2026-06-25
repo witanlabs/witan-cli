@@ -137,10 +137,35 @@ def result_for(op: str, args: dict[str, Any]) -> Any:
     return None
 
 
+def one_shot(argv: list[str]) -> int:
+    """Handle the non-RPC `gsheets authorize` / `gsheets status` commands."""
+    sub = argv[1]
+    auth_mode = os.environ.get("WITAN_FAKE_AUTH_MODE", "authorized")
+    authorized = auth_mode == "authorized"
+    if sub == "authorize":
+        if authorized:
+            print(json.dumps({"authorized": True}), flush=True)
+        else:
+            print(
+                json.dumps(
+                    {"authorized": False, "picker_url": "https://picker?state=x", "expires_in_seconds": 600}
+                ),
+                flush=True,
+            )
+        return 0
+    # status <ref> [--wait] --json
+    print(json.dumps({"authorized": authorized}), flush=True)
+    return 0
+
+
 def main() -> int:
     write_json(os.environ.get("WITAN_FAKE_ARGV_FILE"), sys.argv[1:])
     mode = os.environ.get("WITAN_FAKE_MODE", "ok")
     request_log = os.environ.get("WITAN_FAKE_REQUESTS_FILE")
+
+    argv = sys.argv[1:]
+    if len(argv) >= 2 and argv[0] == "gsheets" and argv[1] in {"authorize", "status"}:
+        return one_shot(argv)
 
     for line in sys.stdin:
         line = line.strip()

@@ -10,12 +10,20 @@ type ErrorResponse struct {
 	} `json:"error"`
 }
 
+// LintDiagnosticObject references the floating object (chart, image, shape) a diagnostic is about
+type LintDiagnosticObject struct {
+	// Kind is one of the known object kinds: "chart", "image", "shape", "object"
+	Kind string  `json:"kind"`
+	Name *string `json:"name"`
+}
+
 // LintDiagnostic is a single lint diagnostic
 type LintDiagnostic struct {
-	Severity string  `json:"severity"`
-	RuleId   string  `json:"ruleId"`
-	Message  string  `json:"message"`
-	Location *string `json:"location"`
+	Severity string                `json:"severity"`
+	RuleId   string                `json:"ruleId"`
+	Message  string                `json:"message"`
+	Location *string               `json:"location"`
+	Object   *LintDiagnosticObject `json:"object,omitempty"`
 }
 
 // LintResponse is the response from the lint endpoint

@@ -29,7 +29,18 @@ const lintRulesHelp = `Available rules:
   D034 (Warning): Cell display text is clipped by row height
   D041 (Warning): Floating object overlaps visible cell content
   D042 (Warning): Floating object overlaps another floating object
-  D043 (Error): Cell value violates its data validation rule`
+  D043 (Error): Cell value violates its data validation rule
+  D100 (Error): Chart series data reference fails to resolve
+  D101 (Warning): Chart cached data differs from its source range values
+  D102 (Warning): Chart series data references have mismatched lengths
+  D103 (Warning): Chart series renders no data points
+  D104 (Warning): Chart series data contains calculation errors
+  D105 (Warning): Chart value range contains non-numeric text
+  D106 (Warning): Chart data lies outside the explicit axis bounds
+  D107 (Error): Chart data contains non-positive values on a logarithmic axis
+  D108 (Warning): Pie or doughnut chart plots negative values as positive slices
+  D109 (Warning): Scatter or bubble chart has non-numeric X values
+  D110 (Warning): Chart has multiple series plotting the same values range`
 
 var lintCmd = &cobra.Command{
 	Use:   "lint <file>",

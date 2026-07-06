@@ -28,14 +28,27 @@ Behavior:
   - Returns exit code 2 when any Error or Warning is reported.
   - Use --json for machine-readable results.
 
-Rules use the P### namespace. No rules are registered yet, so lint currently
-always reports zero issues; rules will be added incrementally.
+Pptx-specific rules use the P### namespace; the chart data-integrity family
+shared with xlsx lint keeps its D### ids.
+
+Available rules:
+  D100 (Error): Chart series data reference fails to resolve
+  D101 (Warning): Chart displays cached data that is out of date with its embedded workbook
+  D102 (Warning): Chart series data references have mismatched lengths
+  D103 (Warning): Chart series renders no data points
+  D104 (Warning): Chart series data contains calculation errors
+  D105 (Warning): Chart value range contains non-numeric text
+  D106 (Warning): Chart data lies outside the explicit axis bounds
+  D107 (Error): Chart data contains non-positive values on a logarithmic axis
+  D108 (Warning): Pie or doughnut chart plots negative values as positive slices
+  D109 (Warning): Scatter or bubble chart has non-numeric X values
+  D110 (Warning): Chart has multiple series plotting the same values range
 
 Examples:
   witan pptx lint deck.pptx
   witan pptx lint deck.pptx -p 1 -p 3
-  witan pptx lint deck.pptx --skip-rule P001
-  witan pptx lint deck.pptx --only-rule P001 --only-rule P002`,
+  witan pptx lint deck.pptx --skip-rule D101
+  witan pptx lint deck.pptx --only-rule D100 --only-rule D101`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPPTXLint,
 }

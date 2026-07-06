@@ -12,6 +12,7 @@ var pptxCmd = &cobra.Command{
 Commands:
   exec   Execute Office.js-compatible JavaScript against existing PPTX files or create new .pptx files with --create.
   render Render a PPTX slide as PNG.
+  lint   Run semantic presentation checks.
 
 Output:
   default  Human-friendly summaries

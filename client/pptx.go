@@ -226,6 +226,82 @@ func (c *Client) FilesPPTXRender(fileID, revisionID string, params map[string]st
 	return raw.Body, raw.ContentType, nil
 }
 
+// PPTXLint lints a PPTX file via POST /v0/pptx/lint.
+func (c *Client) PPTXLint(filePath string, params url.Values) (*PptxLintResponse, error) {
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		f, err := os.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot open file: %w", err)
+		}
+
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/pptx/lint"))
+		if err != nil {
+			f.Close()
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		u.RawQuery = params.Encode()
+
+		req, err := http.NewRequest("POST", u.String(), f)
+		if err != nil {
+			f.Close()
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		req.GetBody = func() (io.ReadCloser, error) {
+			return os.Open(filePath)
+		}
+		req.Header.Set("Content-Type", detectContentType(filePath))
+		c.setCommonHeaders(req)
+		return req, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != http.StatusOK {
+		return nil, parsePPTXAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+
+	var result PptxLintResponse
+	if err := json.Unmarshal(raw.Body, &result); err != nil {
+		return nil, fmt.Errorf("parsing lint response: %w", err)
+	}
+	return &result, nil
+}
+
+// FilesPPTXLint calls GET /v0/files/:fileId/pptx/lint.
+func (c *Client) FilesPPTXLint(fileID, revisionID string, params url.Values) (*PptxLintResponse, error) {
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/files/"+fileID+"/pptx/lint"))
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		q := make(url.Values)
+		for k, v := range params {
+			q[k] = v
+		}
+		q.Set("revision", revisionID)
+		u.RawQuery = q.Encode()
+
+		req, err := http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		c.setCommonHeaders(req)
+		return req, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != http.StatusOK {
+		return nil, parsePPTXAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+
+	var result PptxLintResponse
+	if err := json.Unmarshal(raw.Body, &result); err != nil {
+		return nil, fmt.Errorf("parsing lint response: %w", err)
+	}
+	return &result, nil
+}
+
 func parsePPTXAPIError(statusCode int, body []byte, retryAfter string) error {
 	err := parseAPIError(statusCode, body, retryAfter)
 	apiErr, ok := err.(*APIError)

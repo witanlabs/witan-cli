@@ -10,9 +10,10 @@ var pptxCmd = &cobra.Command{
 	Long: `Operate on PPTX files (.pptx).
 
 Commands:
-  exec   Execute Office.js-compatible JavaScript against existing PPTX files or create new .pptx files with --create.
-  render Render a PPTX slide as PNG.
-  lint   Run semantic presentation checks.
+  exec       Execute Office.js-compatible JavaScript against existing PPTX files or create new .pptx files with --create.
+  exec-types Print the TypeScript declarations available to exec scripts.
+  render     Render a PPTX slide as PNG.
+  lint       Run semantic presentation checks.
 
 Output:
   default  Human-friendly summaries
@@ -20,6 +21,7 @@ Output:
 
 Examples:
   witan pptx render deck.pptx --slide 1 -o slide-1.png
+  witan pptx exec-types > types.d.ts
   witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
   witan pptx --json exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'`,
 }

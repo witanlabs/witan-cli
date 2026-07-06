@@ -269,3 +269,42 @@ func assertPPTXMultipartFile(t *testing.T, form *multipart.Form, name, want stri
 		t.Fatalf("unexpected %q file body: %q", name, string(body))
 	}
 }
+
+func TestPPTXExecTypes_GetsExecTypes(t *testing.T) {
+	const wantBody = "// exec types\ndeclare namespace PowerPoint {}\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v0/pptx/exec/types" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "" {
+			t.Fatalf("expected no auth header, got %q", got)
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		fmt.Fprint(w, wantBody)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "", "", false)
+	body, err := c.PPTXExecTypes()
+	if err != nil {
+		t.Fatalf("PPTXExecTypes: %v", err)
+	}
+	if string(body) != wantBody {
+		t.Fatalf("unexpected body: %q", string(body))
+	}
+}
+
+func TestPPTXExecTypes_PropagatesAPIError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"error":{"code":"not_found","message":"no such route"}}`)
+	}))
+	defer server.Close()
+
+	c := New(server.URL, "", "", false)
+	if _, err := c.PPTXExecTypes(); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}

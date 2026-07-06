@@ -226,6 +226,32 @@ func (c *Client) FilesPPTXRender(fileID, revisionID string, params map[string]st
 	return raw.Body, raw.ContentType, nil
 }
 
+// PPTXExecTypes fetches the combined TypeScript declarations for the pptx exec
+// sandbox (stripped Office.js surface plus Witan chart extensions) via GET
+// /v0/pptx/exec/types. The endpoint is public and returns raw text/plain; no
+// auth headers are required.
+func (c *Client) PPTXExecTypes() ([]byte, error) {
+	raw, err := c.doWithRetry(func() (*http.Request, error) {
+		u, err := url.Parse(c.BaseURL + c.buildPath("v0", "/pptx/exec/types"))
+		if err != nil {
+			return nil, fmt.Errorf("building URL: %w", err)
+		}
+		req, err := http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		c.setCommonHeaders(req)
+		return req, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if raw.StatusCode != http.StatusOK {
+		return nil, parsePPTXAPIError(raw.StatusCode, raw.Body, raw.RetryAfter)
+	}
+	return raw.Body, nil
+}
+
 // PPTXLint lints a PPTX file via POST /v0/pptx/lint.
 func (c *Client) PPTXLint(filePath string, params url.Values) (*PptxLintResponse, error) {
 	raw, err := c.doWithRetry(func() (*http.Request, error) {

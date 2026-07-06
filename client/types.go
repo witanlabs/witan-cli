@@ -24,6 +24,24 @@ type LintResponse struct {
 	Total       int              `json:"total"`
 }
 
+// PptxLintDiagnostic is a single PPTX lint diagnostic
+type PptxLintDiagnostic struct {
+	Severity    string  `json:"severity"`
+	RuleId      string  `json:"ruleId"`
+	Message     string  `json:"message"`
+	Location    *string `json:"location"`
+	SlideNumber *int    `json:"slideNumber"`
+	SlideId     *string `json:"slideId"`
+	ShapeId     *string `json:"shapeId"`
+	ShapeName   *string `json:"shapeName"`
+}
+
+// PptxLintResponse is the response from the PPTX lint endpoint
+type PptxLintResponse struct {
+	Diagnostics []PptxLintDiagnostic `json:"diagnostics"`
+	Total       int                  `json:"total"`
+}
+
 // CellError is a formula calculation error
 type CellError struct {
 	Address string  `json:"address"`

@@ -115,11 +115,10 @@ The authoritative TypeScript declarations for the exec sandbox are served by the
 - Confirming a Witan chart-extension member or enum value (see [Chart Extensions](#chart-extensions)) that isn't part of standard Office.js.
 - Resolving an unexpected runtime error or an API signature you're genuinely unsure about.
 
-When you do fetch, pull them once per session and search the local copy with `rg` — the file is ~2 MB, so never read it wholesale. `witan pptx exec-types` needs no authentication.
+When you do fetch, pull them once per session and search the local copy (e.g grep) — the file is ~2 MB, so never read it wholesale.
 
 ```bash
 witan pptx exec-types > "${TMPDIR:-/tmp}/witan-pptx-types.d.ts"
-rg -n "addChart|ChartSeries|ChartType|setDataRange" "${TMPDIR:-/tmp}/witan-pptx-types.d.ts"
 ```
 
 - `PowerPoint.createPresentation(...)` is intentionally not implemented; use `witan pptx exec <file> --create --save` to create a PPTX file through the CLI.

@@ -1280,12 +1280,21 @@ export interface SweepResult {
 // Lint Interfaces
 // ============================================================================
 
+/** References the floating object (chart, image, shape) a diagnostic is about. */
+export interface LintDiagnosticObject {
+  /** Known kinds: "chart" | "image" | "shape" | "object". */
+  kind: string;
+  name: string | null;
+}
+
 export interface LintDiagnostic {
   severity: LintSeverity;
   ruleId: string;
   message: string;
   location: string | null;
   visibility: Visibility | null;
+  /** Present only for diagnostics about a floating object (e.g. chart rules D100-D110). */
+  object?: LintDiagnosticObject | null;
 }
 
 export interface LintResult {

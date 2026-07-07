@@ -328,12 +328,21 @@ class AutoFitRowResult(TypedDict):
     previousHidden: bool
 
 
+class LintDiagnosticObject(TypedDict):
+    """References the floating object (chart, image, shape) a diagnostic is about."""
+
+    kind: str  # known kinds: "chart" | "image" | "shape" | "object"
+    name: str | None
+
+
 class LintDiagnostic(TypedDict):
     severity: Literal["Info", "Warning", "Error"]
     ruleId: str
     message: str
     location: str | None
     visibility: Visibility | None
+    # Present only for diagnostics about a floating object (e.g. chart rules D100-D110).
+    object: NotRequired[LintDiagnosticObject | None]
 
 
 class LintResult(TypedDict):

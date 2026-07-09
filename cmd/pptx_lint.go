@@ -43,6 +43,13 @@ Available rules:
   D108 (Warning): Pie or doughnut chart plots negative values as positive slices
   D109 (Warning): Scatter or bubble chart has non-numeric X values
   D110 (Warning): Chart has multiple series plotting the same values range
+  D111 (Warning): Chart title or axis title extends beyond the chart frame
+  D112 (Warning): Chart axis labels are cut off, dropped, or overlapping
+  D113 (Warning): Chart data labels overlap each other
+  D114 (Warning): Chart data labels are cut off, spill outside the chart frame, or are hidden
+  D115 (Warning): Chart legend entries do not fit and are dropped or cut off
+  P001 (Warning): Text is hidden behind an opaque object painted on top
+  P002 (Warning): Content is completely hidden behind objects painted on top
 
 Examples:
   witan pptx lint deck.pptx

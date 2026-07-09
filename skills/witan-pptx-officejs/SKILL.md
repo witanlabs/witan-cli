@@ -3,7 +3,7 @@ name: witan-pptx-officejs
 description: Use this skill when a PPTX file needs to be rendered, inspected, created, or modified through Witan PPTX. The tool runs sandboxed Office.js-compatible JavaScript plus Witan PPTX chart extensions against PPTX files via `witan pptx exec`.
 license: Apache-2.0
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: witanlabs
   source: https://github.com/witanlabs/witan-cli
 ---
@@ -106,13 +106,21 @@ Witan PPTX includes an Excel-style chart API adapted to PPTX. This is a Witan ex
 - Mutate chart titles, legends, axes, series, data labels, fills, borders, and fonts with property-style accessors such as `chart.title.text`, `chart.axes.valueAxis.maximum`, and `chart.series.getItemAt(0).name`.
 - Replace chart data with `chart.setData(values, options)` or repoint embedded workbook ranges with `chart.setDataRange("Sheet1!A1:B4", { seriesBy: "columns" })`.
 - Delete charts with `chart.delete()` or delete the containing shape with `shape.delete()`.
-- Use `references/witan-pptx-chart.d.ts` as the authoritative reference for Witan-only chart members and enum values.
+- The `exec-types` declarations (see References) are the authoritative reference for Witan-only chart members and enum values.
 
 ## References
 
-Office.js declarations are available in `references/office-js.d.ts`. Witan PPTX chart extension declarations are available in `references/witan-pptx-chart.d.ts`.
+The authoritative TypeScript declarations for the exec sandbox are served by the CLI (not bundled with this skill), combining the Office.js PowerPoint surface and the Witan chart extensions in a single `.d.ts`. Fetch them **only when you need to**, for example:
 
-- Prefer targeted lookup with `rg`, for example `rg -n "SlideCollection|addTextBox|ClientResult|addChart|ChartSeries" references`.
+- Confirming a Witan chart-extension member or enum value (see [Chart Extensions](#chart-extensions)) that isn't part of standard Office.js.
+- Resolving an unexpected runtime error or an API signature you're genuinely unsure about.
+
+When you do fetch, pull them once per session and search the local copy (e.g grep) — the file is ~2 MB, so never read it wholesale.
+
+```bash
+witan pptx exec-types > "${TMPDIR:-/tmp}/witan-pptx-types.d.ts"
+```
+
 - `PowerPoint.createPresentation(...)` is intentionally not implemented; use `witan pptx exec <file> --create --save` to create a PPTX file through the CLI.
 
 Witan PPTX follows the Office.js PowerPoint API surface where implemented and extends it with chart APIs. `OfficeExtension.ClientResult` values must be read after `await context.sync()`, and APIs returning `void` should not be treated as object factories.

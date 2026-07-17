@@ -48,14 +48,14 @@ Available rules:
   D113 (Warning): Chart data labels overlap each other
   D114 (Warning): Chart data labels are cut off, spill outside the chart frame, or are hidden
   D115 (Warning): Chart legend entries do not fit and are dropped or cut off
-  P001 (Warning): Text is hidden behind an opaque object painted on top
-  P002 (Warning): Content is completely hidden behind objects painted on top
+  P001 (Warning): One or more text lines are hidden behind opaque objects painted on top
+  P002 (Warning): All text in a shape is hidden behind opaque objects painted on top
 
 Examples:
   witan pptx lint deck.pptx
   witan pptx lint deck.pptx -p 1 -p 3
-  witan pptx lint deck.pptx --skip-rule D101
-  witan pptx lint deck.pptx --only-rule D100 --only-rule D101`,
+  witan pptx lint deck.pptx --skip-rule P001
+  witan pptx lint deck.pptx --only-rule P001 --only-rule P002`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPPTXLint,
 }

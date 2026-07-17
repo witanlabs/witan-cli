@@ -43,12 +43,19 @@ Available rules:
   D108 (Warning): Pie or doughnut chart plots negative values as positive slices
   D109 (Warning): Scatter or bubble chart has non-numeric X values
   D110 (Warning): Chart has multiple series plotting the same values range
+  D111 (Warning): Chart title or axis title extends beyond the chart frame
+  D112 (Warning): Chart axis labels are cut off, dropped, or overlapping
+  D113 (Warning): Chart data labels overlap each other
+  D114 (Warning): Chart data labels are cut off, spill outside the chart frame, or are hidden
+  D115 (Warning): Chart legend entries do not fit and are dropped or cut off
+  P001 (Warning): One or more text lines are hidden behind opaque objects painted on top
+  P002 (Warning): All text in a shape is hidden behind opaque objects painted on top
 
 Examples:
   witan pptx lint deck.pptx
   witan pptx lint deck.pptx -p 1 -p 3
-  witan pptx lint deck.pptx --skip-rule D101
-  witan pptx lint deck.pptx --only-rule D100 --only-rule D101`,
+  witan pptx lint deck.pptx --skip-rule P001
+  witan pptx lint deck.pptx --only-rule P001 --only-rule P002`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPPTXLint,
 }

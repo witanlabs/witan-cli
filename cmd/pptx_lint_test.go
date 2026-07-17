@@ -85,6 +85,20 @@ func TestRunPPTXLint_ValidatesExtension(t *testing.T) {
 	}
 }
 
+func TestPPTXLintHelpListsCurrentRules(t *testing.T) {
+	for _, want := range []string{
+		"D100 (Error): Chart series data reference fails to resolve",
+		"D115 (Warning): Chart legend entries do not fit and are dropped or cut off",
+		"P001 (Warning): One or more text lines are hidden behind opaque objects painted on top",
+		"P002 (Warning): All text in a shape is hidden behind opaque objects painted on top",
+		"--only-rule P001 --only-rule P002",
+	} {
+		if !strings.Contains(pptxLintCmd.Long, want) {
+			t.Fatalf("pptx lint help is missing %q", want)
+		}
+	}
+}
+
 func resetPPTXLintTestGlobals(t *testing.T) {
 	origAPIKey := apiKey
 	origAPIURL := apiURL

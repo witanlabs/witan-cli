@@ -1,6 +1,6 @@
 # witan-cli
 
-The Office toolkit for coding agents — edit, render, calculate, and lint Excel workbooks, plus render and script PPTX files.
+The Office toolkit for coding agents — edit, render, calculate, and lint Excel workbooks, plus render, script, and lint PPTX files.
 
 **[Documentation](https://witanlabs.com/agents)** | **[How we built it](https://github.com/witanlabs/research-log)**
 
@@ -147,6 +147,9 @@ witan auth login
 # Render a PPTX slide
 witan pptx render deck.pptx --slide 1 -o slide-1.png
 
+# Check a PPTX for chart-integrity, layout, and hidden-text issues
+witan pptx lint deck.pptx
+
 # Run Office.js-compatible JavaScript against a PPTX file
 witan pptx exec deck.pptx --expr 'PowerPoint.run(async context => { const count = context.presentation.slides.getCount(); await context.sync(); return count.value })'
 
@@ -249,6 +252,8 @@ WITAN
 The PyPI package also exposes `witan.Workbook` and `witan.AsyncWorkbook`, backed by `witan xlsx rpc` subprocess sessions. Public SDK methods use snake_case names matching the `xlsx exec` operation surface, such as `read_range_tsv`, `find_cells`, `sweep_inputs`, `set_cells`, `add_chart`, and `set_conditional_formatting`.
 
 The lower-level Witan spreadsheet runtime supports broader workbook operations; this CLI focuses on the four agent-facing workflows above.
+
+For presentations, the CLI provides `witan pptx exec`, `witan pptx render`, and `witan pptx lint`.
 
 ## Auth, Config, and Modes
 

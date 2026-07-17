@@ -4,6 +4,9 @@ For spreadsheet product and runtime changes, see the [spreadsheet changelog](htt
 
 ## Unreleased
 
+## 0.14.0
+
+
 - New: [CLI] `witan pptx exec-types` prints the combined TypeScript declarations for the pptx exec sandbox (stripped Office.js PowerPoint surface plus Witan chart extensions) from `GET /v0/pptx/exec/types`. Public endpoint — no authentication required; raw `text/plain` output (the global `--json` flag is ignored).
 - Updated: [Skill] `witan-pptx-officejs` 1.1.0 — dropped the bundled `references/office-js.d.ts` and `references/witan-pptx-chart.d.ts`; the References section now fetches the authoritative declarations via `witan pptx exec-types` into a temp file and greps that, so the types can no longer drift from the deployed runtime.
 - New: [CLI] `witan pptx lint` runs semantic presentation checks for chart integrity and layout (`D100`–`D115`) plus text occlusion (`P001`/`P002`). It supports whole-deck or repeated `--slide` analysis, `--skip-rule`/`--only-rule` filters, JSON output, and exit code 2 when warnings or errors are reported.

@@ -116,8 +116,7 @@ func runPPTXExec(cmd *cobra.Command, args []string) error {
 
 	c := newAPIClient(key, orgID)
 	if pptxExecCreate {
-		c = client.New(resolveAPIURL(), key, orgID, true)
-		c.UserAgent = cliUserAgent()
+		c = newAPIClientWithMode(key, orgID, true)
 	}
 
 	var result *client.ExecResponse

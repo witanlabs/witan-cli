@@ -100,8 +100,7 @@ func runRPC(cmd *cobra.Command, args []string) error {
 	}
 	c := newAPIClient(key, orgID)
 	if rpcCreate {
-		c = client.New(resolveAPIURL(), key, orgID, true)
-		c.UserAgent = cliUserAgent()
+		c = newAPIClientWithMode(key, orgID, true)
 	}
 
 	session, err := openRPCSession(cmd.Context(), c, filePath, rpcHint, locale, rpcCreate)
@@ -210,13 +209,11 @@ func openStatelessRPCSession(ctx context.Context, c *client.Client, filePath, hi
 	}, nil
 }
 
-
 func (s *rpcSession) close() {
 	if s.conn != nil {
 		_ = s.conn.Close(websocket.StatusNormalClosure, "")
 	}
 }
-
 
 func relayRPCStdio(ctx context.Context, session *rpcSession, stdin io.Reader, stdout io.Writer) error {
 	scanner := bufio.NewScanner(stdin)
@@ -413,4 +410,3 @@ func (s *rpcSession) applySaveResponse(resp rpcResponseEnvelope) error {
 	}
 	return nil
 }
-

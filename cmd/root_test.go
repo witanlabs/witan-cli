@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/witanlabs/witan-cli/config"
@@ -545,4 +546,29 @@ func resetCommandFlag(flagSet interface{ Lookup(string) *pflag.Flag }, name, val
 	}
 	_ = flag.Value.Set(value)
 	flag.Changed = false
+}
+
+func TestRequestTimeoutFlag(t *testing.T) {
+	original := requestTimeout
+	t.Cleanup(func() { requestTimeout = original })
+	for _, value := range []string{"0s", "-1s", "2m"} {
+		t.Run(value, func(t *testing.T) {
+			if err := rootCmd.PersistentFlags().Set("request-timeout", value); err != nil {
+				t.Fatal(err)
+			}
+			err := rootCmd.PersistentPreRunE(rootCmd, nil)
+			if requestTimeout <= 0 {
+				if err == nil {
+					t.Fatal("expected invalid timeout to be rejected")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := newAPIClient("", "").RequestTimeout; got != 2*time.Minute {
+				t.Fatalf("request timeout = %v", got)
+			}
+		})
+	}
 }

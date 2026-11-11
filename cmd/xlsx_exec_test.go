@@ -1309,3 +1309,59 @@ func captureExecStdout(t *testing.T, fn func() error) (string, error) {
 	}
 	return string(out), runErr
 }
+
+type execDeadlineTransport struct {
+	t        *testing.T
+	fallback http.RoundTripper
+	calls    int
+}
+
+func (tr *execDeadlineTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Host != "timeout.test" {
+		return tr.fallback.RoundTrip(req)
+	}
+	tr.calls++
+	deadline, ok := req.Context().Deadline()
+	if !ok || time.Until(deadline) < 119*time.Second || time.Until(deadline) > 2*time.Minute {
+		tr.t.Fatalf("expected a two-minute request deadline, got %v", deadline)
+	}
+	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(`{"ok":true,"result":42}`)), Request: req}, nil
+}
+
+func TestRunExec_RequestTimeout(t *testing.T) {
+	for _, create := range []bool{false, true} {
+		t.Run(fmt.Sprintf("create=%t", create), func(t *testing.T) {
+			resetExecTestGlobals(t)
+			previousTimeout := requestTimeout
+			previousTransport := http.DefaultTransport
+			t.Cleanup(func() { requestTimeout = previousTimeout; http.DefaultTransport = previousTransport })
+			tr := &execDeadlineTransport{t: t, fallback: previousTransport}
+			http.DefaultTransport = tr
+			if err := rootCmd.PersistentFlags().Set("request-timeout", "2m"); err != nil {
+				t.Fatal(err)
+			}
+			stateless = !create
+			apiURL = "https://timeout.test"
+			apiKey = "test-key"
+			path := filepath.Join(t.TempDir(), "created.xlsx")
+			if !create {
+				path, _ = writeWorkbookForExecTest(t)
+			}
+			cmd := newExecTestCommand()
+			if err := cmd.Flags().Set("code", "return 42;"); err != nil {
+				t.Fatal(err)
+			}
+			if create {
+				if err := cmd.Flags().Set("create", "true"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := captureExecStdout(t, func() error { return runExec(cmd, []string{path}) }); err != nil {
+				t.Fatal(err)
+			}
+			if tr.calls != 1 {
+				t.Fatalf("requests = %d", tr.calls)
+			}
+		})
+	}
+}

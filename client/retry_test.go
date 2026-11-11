@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -370,5 +372,56 @@ func TestCreateGoogleSheet_DoesNotRetryMutatingPost(t *testing.T) {
 	}
 	if tr.calls != 1 {
 		t.Fatalf("expected 1 attempt (create must not retry), got %d", tr.calls)
+	}
+}
+
+type deadlineBudgetTransport struct {
+	required time.Duration
+	calls    int
+}
+
+func (tr *deadlineBudgetTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	tr.calls++
+	deadline, ok := req.Context().Deadline()
+	if !ok || time.Until(deadline) < tr.required {
+		return nil, context.DeadlineExceeded
+	}
+	return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("ok")), Request: req}, nil
+}
+
+func TestRequestTimeoutBudget(t *testing.T) {
+	for _, once := range []bool{false, true} {
+		for _, timeout := range []time.Duration{0, -time.Second, time.Minute, 2 * time.Minute} {
+			t.Run(fmt.Sprintf("once=%t/timeout=%s", once, timeout), func(t *testing.T) {
+				tr := &deadlineBudgetTransport{required: 75 * time.Second}
+				c := newTestClient(t, tr)
+				c.RequestTimeout = timeout
+				request := func() (*http.Request, error) { return http.NewRequest("POST", "https://api.test.local/v0/test", nil) }
+				call := c.doWithRetry
+				if once {
+					call = c.doOnce
+				}
+				result, err := call(request)
+				if timeout <= time.Minute {
+					if !errors.Is(err, context.DeadlineExceeded) {
+						t.Fatalf("expected deadline failure, got %v", err)
+					}
+					wantCalls := 3
+					if once {
+						wantCalls = 1
+					}
+					if tr.calls != wantCalls {
+						t.Fatalf("attempts = %d, want %d", tr.calls, wantCalls)
+					}
+				} else {
+					if err != nil {
+						t.Fatal(err)
+					}
+					if string(result.Body) != "ok" || tr.calls != 1 {
+						t.Fatalf("unexpected response or attempts: %+v, %d", result, tr.calls)
+					}
+				}
+			})
+		}
 	}
 }

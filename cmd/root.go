@@ -18,9 +18,10 @@ import (
 var Version = "dev"
 
 var (
-	apiKey    string
-	apiURL    string
-	stateless bool
+	apiKey         string
+	apiURL         string
+	stateless      bool
+	requestTimeout time.Duration
 )
 
 const versionHealthRequestTimeout = 5 * time.Second
@@ -58,6 +59,12 @@ Limits:
   Workbook inputs must be 25 MB or smaller.`,
 	Version:       Version,
 	SilenceErrors: true,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if requestTimeout <= 0 {
+			return fmt.Errorf("--request-timeout must be positive")
+		}
+		return nil
+	},
 }
 
 func init() {
@@ -66,6 +73,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for Witan requests (env: WITAN_API_KEY)")
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Override the Witan API base URL (env: WITAN_API_URL)")
+	rootCmd.PersistentFlags().DurationVar(&requestTimeout, "request-timeout", 60*time.Second, "HTTP timeout per request attempt, including workbook upload, opening, execution, and response transfer")
 	rootCmd.PersistentFlags().BoolVar(&stateless, "stateless", false, "Send workbook bytes on every request; do not reuse uploaded revisions (env: WITAN_STATELESS)")
 }
 
@@ -366,8 +374,13 @@ func resolveAPIURL() string {
 }
 
 func newAPIClient(bearerToken, orgID string) *client.Client {
-	c := client.New(resolveAPIURL(), bearerToken, orgID, resolveStateless())
+	return newAPIClientWithMode(bearerToken, orgID, resolveStateless())
+}
+
+func newAPIClientWithMode(bearerToken, orgID string, useStateless bool) *client.Client {
+	c := client.New(resolveAPIURL(), bearerToken, orgID, useStateless)
 	c.UserAgent = cliUserAgent()
+	c.RequestTimeout = requestTimeout
 	return c
 }
 

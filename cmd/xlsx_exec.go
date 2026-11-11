@@ -167,8 +167,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 
 	c := newAPIClient(key, orgID)
 	if execCreate {
-		c = client.New(resolveAPIURL(), key, orgID, true)
-		c.UserAgent = cliUserAgent()
+		c = newAPIClientWithMode(key, orgID, true)
 	}
 
 	var result *client.ExecResponse
@@ -270,7 +269,6 @@ func resolveExecWorkbookPath(filePath string, create bool) (string, error) {
 	return filePath, nil
 }
 
-
 func parseExecInput(raw string, provided bool) (any, error) {
 	if !provided {
 		return map[string]any{}, nil
@@ -357,5 +355,3 @@ func execImageContentType(path string, b []byte) string {
 
 	return contentType
 }
-
-

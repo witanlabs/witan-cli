@@ -40,7 +40,7 @@ type Client struct {
 	Stateless  bool       // when true, use POST-file-in-body endpoints only
 	cache      *FileCache // nil when stateless
 
-	requestTimeout time.Duration
+	RequestTimeout time.Duration
 	maxAttempts    int
 	baseBackoff    time.Duration
 	maxBackoff     time.Duration
@@ -67,7 +67,7 @@ func New(baseURL, apiKey, orgID string, stateless bool) *Client {
 		UserAgent:      defaultUserAgent,
 		HTTPClient:     &http.Client{},
 		Stateless:      stateless,
-		requestTimeout: defaultRequestTimeout,
+		RequestTimeout: defaultRequestTimeout,
 		maxAttempts:    defaultMaxAttempts,
 		baseBackoff:    defaultBaseBackoff,
 		maxBackoff:     defaultMaxBackoff,
@@ -114,7 +114,7 @@ func (c *Client) doWithRetry(makeRequest func() (*http.Request, error)) (*rawRes
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
 
-		timeout := c.requestTimeout
+		timeout := c.RequestTimeout
 		if timeout <= 0 {
 			timeout = defaultRequestTimeout
 		}
@@ -685,7 +685,7 @@ func (c *Client) doOnce(makeRequest func() (*http.Request, error)) (*rawResponse
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	timeout := c.requestTimeout
+	timeout := c.RequestTimeout
 	if timeout <= 0 {
 		timeout = defaultRequestTimeout
 	}
@@ -802,7 +802,6 @@ func (c *Client) buildGSheetsPath(spreadsheetID, suffix string) (string, error) 
 	}
 	return "/v0/orgs/" + c.OrgID + "/gsheets/" + spreadsheetID + suffix, nil
 }
-
 
 // GSheetsLint runs lint diagnostics on a Google Sheets spreadsheet.
 // Endpoint: GET /v0/orgs/:org_id/gsheets/:spreadsheet_id/lint
